@@ -8,6 +8,7 @@ invite = "https://discordapp.com/oauth2/authorize?client_id=500385855072894982&p
 client = commands.Bot(command_prefix=">")
 
 extensions = ["commands"]
+testing_variable = True
 
 @client.event
 async def on_ready():
