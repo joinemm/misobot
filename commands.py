@@ -5,11 +5,16 @@ import urllib.request
 import re
 import wikipedia as wp
 import random as rd
+from lxml import html
+import requests
 
 
 class Commands:
     def __init__(self, client):
         self.client = client
+        self.groups = []
+        self.groups = scrape_html(self.groups, 5, "https://en.wikipedia.org/wiki/List_of_South_Korean_idol_groups_(2010s)")
+        self.groups = scrape_html(self.groups, 7, "https://en.wikipedia.org/wiki/List_of_South_Korean_idol_groups_(2000s)")
 
     @commands.command()
     async def info(self):
@@ -46,11 +51,17 @@ class Commands:
 
     @commands.command()
     async def wikipedia(self, *args):
-        search_string = ""
-        for word in args:
-            search_string += word + " "
-        page = wp.page(search_string)
-        await self.client.say(page.url)
+        if args[0] == "random":
+            search_string = wp.random()
+        else:
+            search_string = " ".join(args)
+        try:
+            page = wp.page(search_string)
+            await self.client.say(page.url)
+        except wp.exceptions.DisambiguationError as error:
+            print(error)
+            await self.client.say("```" + str(error) + "```")
+
 
     @commands.command()
     async def navyseal(self):
@@ -75,6 +86,12 @@ class Commands:
                     "and now you're paying the price, you goddamn idiot. I will shit fury all over you and you will drown " \
                     "in it. You're fucking dead, kiddo."
         await self.client.say(copypasta)
+
+    @commands.command()
+    async def stan(self):
+        group = str(rd.choice(self.groups))
+        await self.client.say("stan " + group)
+        print(f"selected {group} out of {len(self.groups)} groups")
 
     """
     @commands.command()
@@ -144,3 +161,18 @@ class Commands:
 
 def setup(client):
     client.add_cog(Commands(client))
+
+
+def scrape_html(list_to_add_to, end_ignore, url):
+    page = requests.get(url)
+    tree = html.fromstring(page.content)
+    results = tree.xpath('//div[@id="bodyContent"]/div/div/div/ul/li/a[@href][@title]/text()')
+    for item in results:
+        list_to_add_to.append(item)
+
+    results = tree.xpath('//div[@id="bodyContent"]/div/div/ul/li/a[@href][@title]/text()')
+    for item in results:
+        list_to_add_to.append(item)
+    list_to_add_to = list_to_add_to[:len(list_to_add_to) - end_ignore]
+    print(list_to_add_to)
+    return list_to_add_to

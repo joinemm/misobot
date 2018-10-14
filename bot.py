@@ -3,8 +3,6 @@ from discord.ext import commands
 
 TOKEN = "NTAwMzg1ODU1MDcyODk0OTgy.DqKEiQ.4WqACX2kDk7JbzsSQz1KoLErgvk"
 
-invite = "https://discordapp.com/oauth2/authorize?client_id=500385855072894982&permissions=305657921&redirect_uri=https%3A%2F%2Flocalhost%3A8080&scope=bot"
-
 client = commands.Bot(command_prefix=">")
 
 extensions = ["commands"]
