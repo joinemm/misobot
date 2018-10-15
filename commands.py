@@ -21,8 +21,26 @@ class Commands:
 
     @commands.command()
     async def info(self):
-        help_string = "```I am Miso Bot, created by Joinemm. Use >help for a list of commands```"
-        await self.client.say(help_string)
+        # help_string = "```I am Miso Bot, created by Joinemm. Use >help for a list of commands```"
+        # await self.client.say(help_string)
+
+        info_embed = discord.Embed(
+            title="Hello",
+            description="I am Miso Bot, created by Joinemm. Use >help for a list of commands",
+            colour=discord.Colour.magenta()
+        )
+
+        info_embed.set_footer(text="version 0.03")
+
+        # info_embed.set_image(
+        #    url="")
+        info_embed.set_thumbnail(
+            url=self.client.user.default_avatar_url)
+        info_embed.set_author(name="author name",
+                         icon_url=self.client.user.default_avatar_url)
+        info_embed.add_field(name="Github", value="https://github.com/joinemm/Miso-Bot", inline=False)
+
+        await self.client.say(embed=info_embed)
 
     @commands.command(pass_context=True)
     async def ping(self, ctx):
