@@ -9,7 +9,7 @@ import wikipedia as wp
 from discord.ext import commands
 from lxml import html
 
-weather_api_key = "837a5b0ff8e1e4402e47e70ae0bb5cc1"
+weather_api_key = ""
 
 
 class Commands:
