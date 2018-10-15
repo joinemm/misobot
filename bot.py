@@ -1,11 +1,13 @@
 import discord
 from discord.ext import commands
-
-TOKEN = ""
+import json
 
 client = commands.Bot(command_prefix=">")
-
 extensions = ["commands"]
+
+with open("dont commit\keys.txt", "r") as filehandle:
+    data = json.load(filehandle)
+    TOKEN = data["TOKEN"]
 
 
 @client.event

@@ -9,8 +9,9 @@ import wikipedia as wp
 from discord.ext import commands
 from lxml import html
 
-weather_api_key = ""
-
+with open("dont commit\keys.txt", "r") as filehandle:
+    data = json.load(filehandle)
+    WEATHER_TOKEN = data["WEATHER_API"]
 
 class Commands:
     def __init__(self, client):
@@ -30,14 +31,13 @@ class Commands:
             colour=discord.Colour.magenta()
         )
 
-        info_embed.set_footer(text="version 0.03")
+        info_embed.set_footer(text="version 0.04")
 
         # info_embed.set_image(
         #    url="")
         info_embed.set_thumbnail(
-            url=self.client.user.default_avatar_url)
-        info_embed.set_author(name="author name",
-                         icon_url=self.client.user.default_avatar_url)
+            url=self.client.user.avatar_url)
+        # info_embed.set_author(name="author name", icon_url=self.client.user.avatar_url)
         info_embed.add_field(name="Github", value="https://github.com/joinemm/Miso-Bot", inline=False)
 
         await self.client.say(embed=info_embed)
@@ -116,11 +116,15 @@ class Commands:
                 amount = len(self.artists)
                 print(f"Updating artists.txt... current amount of artists is {amount}")
                 self.artists = []
-                self.artists += scrape_kprofiles("https://kprofiles.com/k-pop-girl-groups/")
-                self.artists += scrape_kprofiles("https://kprofiles.com/k-pop-boy-groups/")
-                self.artists += scrape_kprofiles("https://kprofiles.com/co-ed-groups-profiles/")
-                self.artists += scrape_kprofiles("https://kprofiles.com/kpop-duets-profiles/")
-                self.artists += scrape_kprofiles("https://kprofiles.com/kpop-solo-singers/")
+                urls_to_scrape = ["https://kprofiles.com/k-pop-girl-groups/",
+                                  "https://kprofiles.com/k-pop-boy-groups/",
+                                  "https://kprofiles.com/co-ed-groups-profiles/",
+                                  "https://kprofiles.com/kpop-duets-profiles/",
+                                  "https://kprofiles.com/kpop-solo-singers/"
+                                  ]
+                for url in urls_to_scrape:
+                    self.artists += scrape_kprofiles(url)
+
                 print(f"Artist list updated. new amount of artists is {len(self.artists)}")
                 with open("artists.txt", "w") as filehandle:
                     json.dump(self.artists, filehandle)
@@ -128,6 +132,7 @@ class Commands:
                     await self.client.say(f"Artist list succesfully updated, {len(self.artists)-amount} new entries, "
                                           f"{len(self.artists)} total entries")
                 return
+
             elif args[0] == "clear":
                 print("Clearing artist list...")
                 self.artists = []
@@ -136,6 +141,7 @@ class Commands:
                     print("Artist list cleared")
                     await self.client.say("Artist list succesfully cleared")
                 return
+
         try:
             artist = str(rd.choice(self.artists))
             await self.client.say("stan " + artist)
@@ -149,7 +155,7 @@ class Commands:
     async def weather(self, *args):
         try:
             city = " ".join(args)
-            response = requests.get(f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid=837a5b0ff8e1e4402e47e70ae0bb5cc1")
+            response = requests.get(f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_TOKEN}")
             weather_data = json.loads(response.content.decode('utf-8'))
             weather = weather_data["weather"][0]["main"]
             await self.client.say(f"Weather in {city}: {weather}")
@@ -209,22 +215,6 @@ class Commands:
     """
 
 
-def setup(client):
-    client.add_cog(Commands(client))
-
-
-def scrape_html(list_to_add_to, end_ignore, xpath,  url):
-    page = requests.get(url)
-    tree = html.fromstring(page.content)
-    results = tree.xpath(xpath)
-    for item in results:
-        list_to_add_to.append(item)
-    if end_ignore > 0:
-        list_to_add_to = list_to_add_to[:len(list_to_add_to) - end_ignore]
-    print(list_to_add_to)
-    return list_to_add_to
-
-
 def scrape_kprofiles(url):
     page = requests.get(url)
     tree = html.fromstring(page.content)
@@ -236,6 +226,12 @@ def scrape_kprofiles(url):
             discarded_results += 1
             continue
         else:
+            if "Profile" in item:
+                item = item.replace("Profile", "")
             filtered_results.append(item.strip())
     print(f"discarded {discarded_results} results")
     return filtered_results
+
+
+def setup(client):
+    client.add_cog(Commands(client))
