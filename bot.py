@@ -6,7 +6,7 @@ TOKEN = "NTAwMzg1ODU1MDcyODk0OTgy.DqKEiQ.4WqACX2kDk7JbzsSQz1KoLErgvk"
 client = commands.Bot(command_prefix=">")
 
 extensions = ["commands"]
-testing_variable = True
+
 
 @client.event
 async def on_ready():
