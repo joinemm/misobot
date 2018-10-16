@@ -12,6 +12,11 @@ from lxml import html
 with open("dont commit\keys.txt", "r") as filehandle:
     data = json.load(filehandle)
     WEATHER_TOKEN = data["WEATHER_API"]
+    OXFORD_APPID = data["OXFORD_APPID"]
+    OXFORD_TOKEN = data["OXFORD_TOKEN"]
+    NAVER_APPID = data["NAVER_APPID"]
+    NAVER_TOKEN = data["NAVER_TOKEN"]
+
 
 class Commands:
     def __init__(self, client):
@@ -20,7 +25,7 @@ class Commands:
             self.artists = json.load(filehandle)
             print("artists.txt loaded succesfully")
 
-    @commands.command()
+    @commands.command(name="info", brief="Get information about the bot")
     async def info(self):
         # help_string = "```I am Miso Bot, created by Joinemm. Use >help for a list of commands```"
         # await self.client.say(help_string)
@@ -42,13 +47,13 @@ class Commands:
 
         await self.client.say(embed=info_embed)
 
-    @commands.command(pass_context=True)
+    @commands.command(name="ping", brief="Gets the bot's ping", pass_context=True)
     async def ping(self, ctx):
         pong_msg = await self.client.say(":ping_pong:")
         ms = (pong_msg.timestamp - ctx.message.timestamp).total_seconds() * 1000
         await self.client.edit_message(pong_msg, new_content=f":ping_pong: {ms}ms")
 
-    @commands.command(pass_context=True)
+    @commands.command(name="say", brief="Makes the bot say what you want", pass_context=True)
     async def say(self, ctx, *args):
         content = ""
         for word in args:
@@ -56,12 +61,12 @@ class Commands:
         await self.client.say(content)
         await self.client.delete_message(ctx.message)
 
-    @commands.command()
+    @commands.command(name="random", brief="Gives random integer from range 0-{input}")
     async def random(self, cap=1):
         content = rd.randint(0, int(cap))
         await self.client.say(content)
 
-    @commands.command()
+    @commands.command(name="youtube", brief="Searches the given video from youtube")
     async def youtube(self, *args):
         search_string = ""
         for word in args:
@@ -72,7 +77,7 @@ class Commands:
         result = "http://www.youtube.com/watch?v=" + search_results[0]
         await self.client.say(result)
 
-    @commands.command()
+    @commands.command(name="wikipedia", brief="Searches the given page from wikipedia")
     async def wikipedia(self, *args):
         if args[0] == "random":
             search_string = wp.random()
@@ -85,7 +90,7 @@ class Commands:
             print(error)
             await self.client.say("```" + str(error) + "```")
 
-    @commands.command()
+    @commands.command(name="navyseal")
     async def navyseal(self):
         copypasta = "What the fuck did you just fucking say about me, you little bitch? " \
                     "I'll have you know I graduated top of my class in the Navy Seals, " \
@@ -109,7 +114,7 @@ class Commands:
                     "in it. You're fucking dead, kiddo."
         await self.client.say(copypasta)
 
-    @commands.command()
+    @commands.command(name="stan", brief="Gives you a random korean artist to stan")
     async def stan(self, *args):
         if args:
             if args[0] == "update":
@@ -151,7 +156,7 @@ class Commands:
             print(error)
             await self.client.say(error)
 
-    @commands.command()
+    @commands.command(name="weather", brief="Gets the weather of a given city")
     async def weather(self, *args):
         try:
             city = " ".join(args)
@@ -161,6 +166,69 @@ class Commands:
             await self.client.say(f"Weather in {city}: {weather}")
         except Exception as error:
             await self.client.say(f"Error: {error}")
+
+    @commands.command(name="define", brief="Searches the given word from oxford dictionary")
+    async def define(self, *args):
+        search_string = " ".join(args).lower()
+        api_url = "https://od-api.oxforddictionaries.com:443/api/v1"
+        print("searching with query " + search_string)
+        query = f"/search/en?q={search_string}&prefix=false"
+        id_response = requests.get(api_url + query, headers={"Accept": "application/json",
+                                                             'app_id': OXFORD_APPID,
+                                                             'app_key': OXFORD_TOKEN})
+        rescode = id_response.status_code
+        if rescode == 200:
+            json_data = json.loads(id_response.content.decode('utf-8'))
+            try:
+                word_id = json_data["results"][0]["id"]
+                word_string = json_data["results"][0]["word"]
+                print("found " + word_id + " as word_id")
+                response = requests.get(api_url + "/entries/en/" + word_id,
+                                        headers={"Accept": "application/json", 'app_id': OXFORD_APPID, 'app_key': OXFORD_TOKEN})
+        #
+                json_data = json.loads(response.content.decode('utf-8'))
+                definition = json_data["results"][0]["lexicalEntries"][0]["entries"][0]["senses"][0]["definitions"][0]
+
+                await self.client.say("**" + word_string + "**: " + str(definition))
+            except Exception as e:
+                print(e)
+                await self.client.say("Error: no definition found for " + search_string)
+        else:
+            await self.client.say("Error: status code" + str(id_response.status_code))
+
+    @commands.command(name="translate",
+                      brief="Translates given text from KR/JP -> EN or EN -> KR")
+    async def translate(self, *args):
+        search_string = urllib.parse.quote(" ".join(args))
+        detected_lang = detect_language(search_string)
+        if detected_lang == "ko":
+            source_lang = "ko"
+            target_lang = "en"
+        elif detected_lang == "ja":
+            source_lang = "ja"
+            target_lang = "en"
+        else:
+            source_lang = "en"
+            target_lang = "ko"
+        query = f"source={source_lang}&target={target_lang}&text={search_string}"
+        print(query)
+        api_url = "https://openapi.naver.com/v1/papago/n2mt"
+
+        request = urllib.request.Request(api_url)
+        request.add_header("X-Naver-Client-Id", NAVER_APPID)
+        request.add_header("X-Naver-Client-Secret", NAVER_TOKEN)
+        response = urllib.request.urlopen(request, data=query.encode("utf-8"))
+        rescode = response.getcode()
+
+        if rescode == 200:
+            response_body = json.loads(response.read().decode('utf-8'))
+            print(response_body)
+            translation = response_body["message"]["result"]["translatedText"]
+            await self.client.say(translation)
+        else:
+            print("Error Code:" + str(rescode))
+            print(response)
+
     """
     @commands.command()
     async def displayembed(self):
@@ -231,6 +299,23 @@ def scrape_kprofiles(url):
             filtered_results.append(item.strip())
     print(f"discarded {discarded_results} results")
     return filtered_results
+
+
+def detect_language(string):
+    api_url = "https://openapi.naver.com/v1/papago/detectLangs"
+    query = "query=" + string
+    request = urllib.request.Request(api_url)
+    request.add_header("X-Naver-Client-Id", NAVER_APPID)
+    request.add_header("X-Naver-Client-Secret", NAVER_TOKEN)
+    response = urllib.request.urlopen(request, data=query.encode("utf-8"))
+    rescode = response.getcode()
+    if rescode == 200:
+        response_body = json.loads(response.read().decode('utf-8'))
+        print(response_body)
+        return response_body["langCode"]
+    else:
+        print("Error Code (detect_language):" + str(rescode))
+        return None
 
 
 def setup(client):
