@@ -279,7 +279,7 @@ class Commands:
 
     just some basic tests stuff
 
-    TODO: Weather command, spotify api, lastfm(?), 
+    TODO: spotify api, lastfm(?), 
     """
 
 
