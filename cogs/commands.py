@@ -9,22 +9,24 @@ import wikipedia as wp
 from discord.ext import commands
 from lxml import html
 
-with open('dont commit\\keys.txt', 'r') as filehandle:
+with open('dont commit\keys.txt', 'r') as filehandle:
+    keys = json.load(filehandle)
+    WEATHER_TOKEN = keys['WEATHER_API']
+    OXFORD_APPID = keys['OXFORD_APPID']
+    OXFORD_TOKEN = keys['OXFORD_TOKEN']
+    NAVER_APPID = keys['NAVER_APPID']
+    NAVER_TOKEN = keys['NAVER_TOKEN']
+
+with open('data.json', 'r') as filehandle:
     data = json.load(filehandle)
-    WEATHER_TOKEN = data['WEATHER_API']
-    OXFORD_APPID = data['OXFORD_APPID']
-    OXFORD_TOKEN = data['OXFORD_TOKEN']
-    NAVER_APPID = data['NAVER_APPID']
-    NAVER_TOKEN = data['NAVER_TOKEN']
+    print('data.json loaded succesfully')
 
 
 class Commands:
 
     def __init__(self, client):
         self.client = client
-        with open('artists.txt', 'r') as filehandle:
-            self.artists = json.load(filehandle)
-            print('artists.txt loaded succesfully')
+        self.artists = data
 
     @commands.command(name='info', brief='Get information about the bot')
     async def info(self, ctx):
@@ -44,6 +46,7 @@ class Commands:
         ms = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
         await pong_msg.edit(content=f":ping_pong: {ms}ms")
 
+    """
     @commands.command(name='say', brief='Makes the bot say what you want')
     async def say(self, ctx, *args):
         content = ""
@@ -51,6 +54,7 @@ class Commands:
             content += word + " "
         await ctx.send(content)
         await ctx.message.delete()
+    """
 
     @commands.command(name='random', brief='Gives random integer from range 0-{input}')
     async def random(self, ctx, cap=1):
@@ -166,8 +170,21 @@ class Commands:
                     'app_key': OXFORD_TOKEN,
                 })
                 json_data = json.loads(response.content.decode('utf-8'))
-                definition = json_data['results'][0]['lexicalEntries'][0]['entries'][0]['senses'][0]['definitions'][0]
-                await ctx.send((('**' + word_string) + '**: ') + str(definition))
+                all_entries = []
+                for entry in json_data['results'][0]['lexicalEntries']:
+                    name = json_data['results'][0]['word']
+                    definition = entry['entries'][0]['senses'][0]['definitions'][0]
+                    word_type = entry['lexicalCategory']
+                    this_entry = {"id": name, "definition": definition, "type": word_type}
+                    all_entries.append(this_entry)
+
+                definitions_embed = discord.Embed(colour=discord.Colour.blue())
+                definitions_embed.set_author(name=word_string.capitalize(), icon_url="https://i.imgur.com/vDvSmF3.png")
+
+                for entry in all_entries:
+                    definitions_embed.add_field(name=entry["type"], value=entry["definition"].capitalize(), inline=False)
+
+                await ctx.send(embed=definitions_embed)
             except Exception as e:
                 print(e)
                 await ctx.send('Error: no definition found for ' + search_string)
