@@ -16,6 +16,8 @@ with open('dont commit\keys.txt', 'r') as filehandle:
     OXFORD_TOKEN = keys['OXFORD_TOKEN']
     NAVER_APPID = keys['NAVER_APPID']
     NAVER_TOKEN = keys['NAVER_TOKEN']
+    LASTFM_APPID = keys['LASTFM_APIKEY']
+    LASTFM_TOKEN = keys['LASTFM_SECRET']
 
 with open('data.json', 'r') as filehandle:
     data = json.load(filehandle)
@@ -31,10 +33,11 @@ class Commands:
     @commands.command(name='info', brief='Get information about the bot')
     async def info(self, ctx):
         info_embed = discord.Embed(title='Hello',
-                                   description='I am Miso Bot, created by Joinemm. Use >help for a list of commands',
+                                   description='I am Miso Bot, created by Joinemm. Use >help for a list of commands.'
+                                               f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 0.04')
+        info_embed.set_footer(text='version 0.1.1')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
 
@@ -45,16 +48,6 @@ class Commands:
         pong_msg = await ctx.send(":ping_pong:")
         ms = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
         await pong_msg.edit(content=f":ping_pong: {ms}ms")
-
-    """
-    @commands.command(name='say', brief='Makes the bot say what you want')
-    async def say(self, ctx, *args):
-        content = ""
-        for word in args:
-            content += word + " "
-        await ctx.send(content)
-        await ctx.message.delete()
-    """
 
     @commands.command(name='random', brief='Gives random integer from range 0-{input}')
     async def random(self, ctx, cap=1):
@@ -90,7 +83,7 @@ class Commands:
         copypasta = "What the fuck did you just fucking say about me, you little bitch? I'll have you know I graduated top of my class in the Navy Seals, and I've been involved in numerous secret raids on Al-Quaeda, and I have over 300 confirmed kills. I am trained in gorilla warfare and I'm the top sniper in the entire US armed forces. You are nothing to me but just another target. I will wipe you the fuck out with precision the likes of which has never been seen before on this Earth, mark my fucking words. You think you can get away with saying that shit to me over the Internet? Think again, fucker. As we speak I am contacting my secret network of spies across the USA and your IP is being traced right now so you better prepare for the storm, maggot. The storm that wipes out the pathetic little thing you call your life. You're fucking dead, kid. I can be anywhere, anytime, and I can kill you in over seven hundred ways, and that's just with my bare hands. Not only am I extensively trained in unarmed combat, but I have access to the entire arsenal of the United States Marine Corps and I will use it to its full extent to wipe your miserable ass off the face of the continent, you little shit. If only you could have known what unholy retribution your little clever comment was about to bring down upon you, maybe you would have held your fucking tongue. But you couldn't, you didn't, and now you're paying the price, you goddamn idiot. I will shit fury all over you and you will drown in it. You're fucking dead, kiddo."
         await ctx.send(copypasta)
 
-    @commands.command(name='stan', brief='Gives you a random korean artist to stan')
+    @commands.command(name='stan', brief='Gives you a random korean artist to stan', aliases=['Stan'])
     async def stan(self, ctx, *args):
         if args:
             if args[0] == 'update':
@@ -137,14 +130,28 @@ class Commands:
     @commands.command(name='weather', brief='Gets the weather of a given city')
     async def weather(self, ctx, *args):
         try:
-            city = ' '.join(args)
+            city = " ".join(args).capitalize().replace('"', '')
             response = requests.get(
-                f'''http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_TOKEN}''')
-            weather_data = json.loads(response.content.decode('utf-8'))
-            weather = weather_data['weather'][0]['main']
-            await ctx.send(f'''Weather in {city}: {weather}''')
+                f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_TOKEN}&units=metric")
+            rescode = response.status_code
+            print(f"requested weather for {city} with rescode {rescode}")
+            if rescode == 200:
+                weather_data = json.loads(response.content.decode('utf-8'))
+                weather = weather_data['weather'][0]['description'].capitalize()
+                temperature = weather_data['main']['temp']
+                temperature_f = (temperature * (9.0/5.0) + 32)
+                country = weather_data['sys']['country']
+                city = weather_data['name']
+
+                time = get_timezone(weather_data['coord'])
+
+                # (0°C × 9/5) + 32 = 32°F
+                await ctx.send(f":flag_{country.lower()}: `{city}, {country} — {weather}, "
+                               f"{temperature:.1f} °C / {temperature_f:.1f} °F, local time: {time}`")
+            else:
+                await ctx.send(f"Error: status code {rescode}")
         except Exception as error:
-            await ctx.send(f'''Error: {error}''')
+            await ctx.send(f"Error: {error}")
 
     @commands.command(name='define', brief='Searches the given word from oxford dictionary')
     async def define(self, ctx, *args):
@@ -221,6 +228,11 @@ class Commands:
             print('Error Code:' + str(rescode))
             print(response)
 
+    @commands.command()
+    async def spotify(self, ctx, *args):
+        print()
+        # soon tm
+
 
 def scrape_kprofiles(url):
     page = requests.get(url)
@@ -238,6 +250,16 @@ def scrape_kprofiles(url):
             filtered_results.append(item.strip())
     print(f'''discarded {discarded_results} results''')
     return filtered_results
+
+
+def get_timezone(coord):
+    YOUR_API_KEY = "RJYLTZSPGQYB"
+    url = f"http://api.timezonedb.com/v2.1/get-time-zone?key={YOUR_API_KEY}&format=json&by=position&" \
+          f"lat={coord['lat']}&lng={coord['lon']}"
+    response = requests.get(url)
+    json_data = json.loads(response.content.decode('utf-8'))
+    time = json_data['formatted'].split(" ")
+    return time[1]
 
 
 def detect_language(string):
