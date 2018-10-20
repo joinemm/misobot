@@ -42,7 +42,7 @@ class Nsfw:
                     json_data = scrape_ph(string, amount)
                     break
                 except Exception as error:
-                    print(error)
+                    print("error in while loop;" + str(error))
 
             await ctx.send("```json\n" + json.dumps(json_data, indent=4) + "\n```")
             print("successful send")
@@ -60,7 +60,9 @@ class Nsfw:
             print("searching pornhub with keyword: " + string)
             while True:
                 try:
-                    json_data = scrape_ph(string, amount)
+                    json_data, status_code = scrape_ph(string, amount)
+                    print(status_code)
+                    print(json_data)
                     break
                 except Exception as error:
                     print(error)
@@ -73,7 +75,7 @@ class Nsfw:
             await ctx.send("Please go to an NSFW channel to use this command :flushed:")
 
 
-def scrape_ph(string, amount_to_return=5):
+def scrape_ph(string, amount_to_return):
     new_proxy = proxy()
     proxyDict = {
         "http": f"http://{new_proxy['ip']}:{new_proxy['port']}",
@@ -82,25 +84,27 @@ def scrape_ph(string, amount_to_return=5):
     }
     ph_data = {"videos": [], }
     url = 'https://www.pornhub.com/video/search?search=' + string
-    page = requests.get(url, headers={"User-Agent": ua.random, "Cookie": ""}, proxies=proxyDict)
+    page = requests.get(url, proxies=proxyDict)
     tree = html.fromstring(page.content)
-    results = tree.xpath('//ul[@id="videoSearchResult"]/li[@class="js-pop videoblock videoBox"]')
-    results_views = tree.xpath('//ul[@id="videoSearchResult"]/li[@class="js-pop videoblock videoBox"]'
+    results = tree.xpath('//ul[@id="videoSearchResult"]/li[@class=" js-pop videoblock videoBox"]')
+    results_views = tree.xpath('//ul[@id="videoSearchResult"]/li[@class=" js-pop videoblock videoBox"]'
                                '/div/div/span[@class="views"]/var/text()')
-    results_title = tree.xpath('//ul[@id="videoSearchResult"]/li[@class="js-pop videoblock videoBox"]'
+    results_title = tree.xpath('//ul[@id="videoSearchResult"]/li[@class=" js-pop videoblock videoBox"]'
                                '/div/div/span[@class="title"]/a')
-    results_rating = tree.xpath('//ul[@id="videoSearchResult"]/li[@class="js-pop videoblock videoBox"]'
+    results_rating = tree.xpath('//ul[@id="videoSearchResult"]/li[@class=" js-pop videoblock videoBox"]'
                                 '/div/div/div[@class="rating-container up"]/div[@class="value"]/text()')
-    if len(results) > amount_to_return:
-        amount_to_return = amount_to_return
-    else:
-        amount_to_return = len(results)
+
+    print(results)
+    print(results_views)
+    print(results_title)
+    print(results_rating)
     for i in range(amount_to_return):
         ph_data["videos"].append({"title": results_title[i].attrib["title"],
-                                  "vkey": results[i].attrib['_vkey'],
+                                  "vkey": results[i].attrib["_vkey"],
                                   "views": results_views[i],
                                   "rating": results_rating[i]})
-    return ph_data
+    print(ph_data)
+    return ph_data, page.status_code
 
 
 def proxy():
