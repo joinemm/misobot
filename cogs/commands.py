@@ -1,8 +1,6 @@
 import json
 import random as rd
 import re
-import urllib.parse
-import urllib.request
 import discord
 import requests
 import wikipedia as wp
