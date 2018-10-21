@@ -9,6 +9,7 @@ class Owner:
     @commands.command(hidden=True)
     @commands.is_owner()
     async def say(self, ctx, *args):
+        print(f"{ctx.message.author} >say {args}")
         channel_id = int(args[0])
         string = " ".join(args[1:])
         channel = self.client.get_channel(channel_id)
@@ -17,6 +18,7 @@ class Owner:
     @commands.command(hidden=True)
     @commands.is_owner()
     async def logout(self, ctx):
+        print(f"{ctx.message.author} >logout")
         print('logout')
         await ctx.send("Logging out... :wave:")
         await self.client.logout()

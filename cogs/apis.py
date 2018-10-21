@@ -24,6 +24,7 @@ class Apis:
 
     @commands.command(name='weather', brief='Gets the weather of a given city')
     async def weather(self, ctx, *args):
+        print(f"{ctx.message.author} >weather {args}")
         # noinspection PyBroadException
         try:
             city = " ".join(args).capitalize().replace('"', '')
@@ -49,6 +50,7 @@ class Apis:
 
     @commands.command(name='define', brief='Searches the given word from oxford dictionary')
     async def define(self, ctx, *args):
+        print(f"{ctx.message.author} >define {args}")
         search_string = ' '.join(args).lower()
         api_url = 'https://od-api.oxforddictionaries.com:443/api/v1'
         print('searching with query ' + search_string)
@@ -95,6 +97,7 @@ class Apis:
 
     @commands.command(name='translate', brief='Translates given text from KR/JP -> EN or EN -> KR')
     async def translate(self, ctx, *args):
+        print(f"{ctx.message.author} >translate {args}")
         search_string = urllib.parse.quote(' '.join(args))
         detected_lang = detect_language(search_string)
         if detected_lang == 'ko':

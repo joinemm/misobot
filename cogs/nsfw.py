@@ -18,6 +18,7 @@ class Nsfw:
 
     @commands.command(hidden=True)
     async def nsfw(self, ctx):
+        print(f"{ctx.message.author} >nsfw")
         channel_nsfw = ctx.channel.is_nsfw()
         if channel_nsfw:
             await ctx.send("current channel is nsfw")
@@ -26,6 +27,7 @@ class Nsfw:
 
     @commands.command(hidden=True)
     async def phub_json(self, ctx, *args):
+        print(f"{ctx.message.author} >phub_json {args}")
         channel_nsfw = ctx.channel.is_nsfw()
         if channel_nsfw:
             try:
@@ -50,6 +52,7 @@ class Nsfw:
 
     @commands.command(hidden=True)
     async def phub(self, ctx, *args):
+        print(f"{ctx.message.author} >phub {args}")
         channel_nsfw = ctx.channel.is_nsfw()
         if channel_nsfw:
             video_url = "https://www.pornhub.com/view_video.php?viewkey="
