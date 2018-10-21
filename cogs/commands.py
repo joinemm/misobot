@@ -34,6 +34,7 @@ class Commands:
 
     @commands.command(name='info', brief='Get information about the bot')
     async def info(self, ctx):
+        print(f"{ctx.message.author} >info")
         info_embed = discord.Embed(title='Hello',
                                    description='I am Miso Bot, created by Joinemm. Use >help for a list of commands.'
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
@@ -47,28 +48,32 @@ class Commands:
 
     @commands.command(name='ping', brief="Gets the bot's ping")
     async def ping(self, ctx):
+        print(f"{ctx.message.author} >ping")
         pong_msg = await ctx.send(":ping_pong:")
         ms = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
         await pong_msg.edit(content=f":ping_pong: {ms}ms")
 
     @commands.command(name='random', brief='Gives random integer from range 0-{input}')
     async def random(self, ctx, cap=1):
+        print(f"{ctx.message.author} >random")
         content = rd.randint(0, int(cap))
         await ctx.send(content)
 
     @commands.command(name='youtube', brief='Searches the given video from youtube')
     async def youtube(self, ctx, *args):
-        search_string = ''
-        for word in args:
-            search_string += word + ' '
-        query_string = urllib.parse.urlencode({'search_query': search_string})
-        html_content = urllib.request.urlopen('http://www.youtube.com/results?' + query_string)
-        search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', html_content.read().decode())
-        result = 'http://www.youtube.com/watch?v=' + search_results[0]
-        await ctx.send(result)
+        print(f"{ctx.message.author} >youtube {args}")
+        search_string = " ".join(args)
+        response = requests.get('http://www.youtube.com/results?search_query=' + search_string)
+        if response.status_code == 200:
+            search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
+            first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
+            await ctx.send(first_result_url)
+        else:
+            await ctx.send("Error: status code " + str(response.status_code))
 
     @commands.command(name='wikipedia', brief='Searches the given page from wikipedia')
     async def wikipedia(self, ctx, *args):
+        print(f"{ctx.message.author} >wikipedia {args}")
         if args[0] == 'random':
             search_string = wp.random()
         else:
@@ -82,6 +87,7 @@ class Commands:
 
     @commands.command(name='navyseal')
     async def navyseal(self, ctx):
+        print(f"{ctx.message.author} >navyseal")
         copypasta = data_json['strings']['navyseal_copypasta']
         await ctx.send(copypasta)
 
