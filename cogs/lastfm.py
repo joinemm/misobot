@@ -1,16 +1,27 @@
-import discord
 from discord.ext import commands
 import requests
 import json
 
-with open('dont commit\keys.txt', 'r') as filehandle:
-    keys = json.load(filehandle)
+with open('dont commit\keys.txt', 'r') as keys_filehandle:
+    keys = json.load(keys_filehandle)
     LASTFM_APPID = keys['LASTFM_APIKEY']
     LASTFM_TOKEN = keys['LASTFM_SECRET']
 
-with open("lastfm_data.json", "r") as filehandle:
-    userdata = json.load(filehandle)
-    print("lastfm_data.json loaded")
+
+def load_data():
+    with open('users.json', 'r') as filehandle:
+        data = json.load(filehandle)
+        print('users.json loaded')
+        return data
+
+
+def save_data():
+    with open('users.json', 'w') as filehandle:
+        json.dump(users_json, filehandle, indent=4)
+        print('users.json saved')
+
+
+users_json = load_data()
 
 
 class Lastfm:
@@ -30,14 +41,15 @@ class Lastfm:
                     method = "user.getinfo"
                     try:
                         fm_data = get_fm_data(method, args[1])
+                        username = fm_data['user']['name']
+                        playcount = fm_data['user']['playcount']
+                        profile_url = fm_data['user']['url']
 
                         # save username here
-                        userdata['users'][str(ctx.message.author.id)] = args[1]
-                        with open("lastfm_data.json", "w") as filehandle:
-                            json.dump(userdata, filehandle)
-                            print("userdata.json saved")
+                        users_json['users'][str(ctx.message.author.id)] = {'lastfm_username': args[1]}
+                        save_data()
 
-                        await ctx.send(f"username saved as {args[1]}")
+                        await ctx.send(f"username saved as {username}\nTotal scrobbles: {playcount}\n{profile_url}")
                         return
                     except IndexError:
                         await ctx.send("please give a username")
@@ -97,8 +109,8 @@ class Lastfm:
             await ctx.send("Usage: >fm {set, nowplaying, recent, toptracks} {timeframe}")
             return
         try:
-            user = userdata["users"][str(ctx.message.author.id)]
-        except Exception as e:
+            user = users_json["users"][str(ctx.message.author.id)]['lastfm_username']
+        except Exception:
             await ctx.send("No username found in database, please use >fm set {username}")
             return
 

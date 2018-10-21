@@ -1,6 +1,4 @@
-import discord
 from discord.ext import commands
-from discord.http import Route
 import requests
 from lxml import html
 import json
@@ -77,14 +75,14 @@ class Nsfw:
 
 def scrape_ph(string, amount_to_return):
     new_proxy = proxy()
-    proxyDict = {
+    proxy_dict = {
         "http": f"http://{new_proxy['ip']}:{new_proxy['port']}",
         "https": f"https://{new_proxy['ip']}:{new_proxy['port']}",
         "ftp": f"ftp://{new_proxy['ip']}:{new_proxy['port']}"
     }
     ph_data = {"videos": [], }
     url = 'https://www.pornhub.com/video/search?search=' + string
-    page = requests.get(url, proxies=proxyDict)
+    page = requests.get(url, proxies=proxy_dict)
     tree = html.fromstring(page.content)
     results = tree.xpath('//ul[@id="videoSearchResult"]/li[@class=" js-pop videoblock videoBox"]')
     results_views = tree.xpath('//ul[@id="videoSearchResult"]/li[@class=" js-pop videoblock videoBox"]'
