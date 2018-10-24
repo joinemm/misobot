@@ -4,6 +4,8 @@ import urllib.request
 import discord
 import requests
 from discord.ext import commands
+import spotipy.util as util
+import spotipy
 
 with open('dont commit\keys.txt', 'r') as filehandle:
     keys = json.load(filehandle)
@@ -15,6 +17,8 @@ with open('dont commit\keys.txt', 'r') as filehandle:
     LASTFM_APPID = keys['LASTFM_APIKEY']
     LASTFM_TOKEN = keys['LASTFM_SECRET']
     TIMEZONE_API_KEY = keys['TIMEZONEDB_API_KEY']
+    SPOTIFY_CLIENT_ID = keys['SPOTIFY_CLIENT_ID']
+    SPOTIFY_CLIENT_SECRET = keys['SPOTIFY_CLIENT_SECRET']
 
 
 class Apis:
@@ -22,7 +26,7 @@ class Apis:
     def __init__(self, client):
         self.client = client
 
-    @commands.command(name='weather', brief='Gets the weather of a given city')
+    @commands.command(name='weather', brief='Get the weather of a city')
     async def weather(self, ctx, *args):
         print(f"{ctx.message.author} >weather {args}")
         # noinspection PyBroadException
@@ -40,7 +44,6 @@ class Apis:
                 country = weather_data['sys']['country']
                 city = weather_data['name']
                 time = get_timezone(weather_data['coord'])
-                # (0°C × 9/5) + 32 = 32°F
                 await ctx.send(f":flag_{country.lower()}: `{city}, {country} — {weather}, "
                                f"{temperature:.1f} °C / {temperature_f:.1f} °F, local time: {time}`\n")
             else:
@@ -48,7 +51,7 @@ class Apis:
         except Exception as error:
             await ctx.send(f"Error: {error}")
 
-    @commands.command(name='define', brief='Searches the given word from oxford dictionary')
+    @commands.command(name='define', brief='Search from oxford dictionary')
     async def define(self, ctx, *args):
         print(f"{ctx.message.author} >define {args}")
         search_string = ' '.join(args).lower()
@@ -95,7 +98,7 @@ class Apis:
         else:
             await ctx.send('Error: status code' + str(id_response.status_code))
 
-    @commands.command(name='translate', brief='Translates given text from KR/JP -> EN or EN -> KR')
+    @commands.command(name='translate', brief='Korean / Japanese / English Translator')
     async def translate(self, ctx, *args):
         print(f"{ctx.message.author} >translate {args}")
         search_string = urllib.parse.quote(' '.join(args))
@@ -110,7 +113,6 @@ class Apis:
             source_lang = 'en'
             target_lang = 'ko'
         query = f'''source={source_lang}&target={target_lang}&text={search_string}'''
-        print(query)
         api_url = 'https://openapi.naver.com/v1/papago/n2mt'
         request = urllib.request.Request(api_url)
         request.add_header('X-Naver-Client-Id', NAVER_APPID)
@@ -119,17 +121,80 @@ class Apis:
         rescode = response.getcode()
         if rescode == 200:
             response_body = json.loads(response.read().decode('utf-8'))
-            print(response_body)
             translation = response_body['message']['result']['translatedText']
             await ctx.send(translation)
         else:
             print('Error Code:' + str(rescode))
             print(response)
 
-    @commands.command()
+    @commands.command(name='spotify', brief='Analyze a spotify playlist from URI')
     async def spotify(self, ctx, *args):
-        print()
-        # soon tm
+        print(f"{ctx.message.author} >spotify {args}")
+        try:
+            data = args[0].split(":")
+        except Exception:
+            await ctx.send("Usage: >spotify [Spotify playlist URI] [amount to show](optional)\n"
+                           "How to get Spotify URI?: Right click playlist -> Share -> Copy Spotify URI")
+            return
+        try:
+            amount = int(args[1])
+            if amount > 50:
+                amount = 50
+        except IndexError:
+            amount = 10
+        playlist_id = data[4]
+        user_id = data[2]
+
+        token = util.oauth2.SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET)
+        cache_token = token.get_access_token()
+        spotify = spotipy.Spotify(cache_token)
+        tracks_per_request = 100
+        results = []
+
+        playlist_data = spotify.user_playlist(user_id, playlist_id)
+        playlist_name = playlist_data['name']
+        playlist_owner = playlist_data['owner']['display_name']
+        playlist_image = playlist_data['images'][0]['url']
+
+        this_request_results = spotify.user_playlist_tracks(user_id, playlist_id, limit=tracks_per_request,
+                                                            offset=0)["items"]
+        for i in range(len(this_request_results)):
+            results.append(this_request_results[i])
+        while len(this_request_results) >= tracks_per_request:
+            this_request_results = spotify.user_playlist_tracks(user_id, playlist_id, limit=tracks_per_request,
+                                                                offset=len(results))["items"]
+            for i in range(len(this_request_results)):
+                results.append(this_request_results[i])
+
+        artists_dict = {}
+        total = 0
+        for i in range(len(results)):
+            artist = results[i]["track"]["artists"][0]["name"]
+            if artist in artists_dict:
+                artists_dict[artist] += 1
+            else:
+                artists_dict[artist] = 1
+            total += 1
+
+        count = 0
+        description = ""
+        for item in sorted(artists_dict.items(), key=lambda v: v[1], reverse=True):
+            if count < amount:
+                percentage = (item[1] / total) * 100
+                description += f"{item[1]} tracks — {percentage:.2f}% — {item[0]}\n"
+                count += 1
+            else:
+                break
+
+        message = discord.Embed(colour=discord.Colour.green())
+        message.set_author(name=f"{playlist_name} · by {playlist_owner}",
+                           icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/2000px-Spotify_logo_without_text.svg.png")
+        message.set_thumbnail(url=playlist_image)
+        message.title = "Artist distribution:"
+        message.set_footer(text=f"Total tracks in this playlist: {total}")
+        message.description = description
+
+        await ctx.send(embed=message)
 
 
 def get_timezone(coord):
@@ -151,7 +216,6 @@ def detect_language(string):
     rescode = response.getcode()
     if rescode == 200:
         response_body = json.loads(response.read().decode('utf-8'))
-        print(response_body)
         return response_body['langCode']
     else:
         print('Error Code (detect_language):' + str(rescode))
