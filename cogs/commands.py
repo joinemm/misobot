@@ -44,7 +44,7 @@ class Commands:
 
         await ctx.send(embed=info_embed)
 
-    @commands.command(name='ping', brief="Gets the bot's ping")
+    @commands.command(name='ping', brief="Get the bot's ping")
     async def ping(self, ctx):
         print(f"{ctx.message.author} >ping")
         pong_msg = await ctx.send(":ping_pong:")
@@ -57,7 +57,7 @@ class Commands:
         content = rd.randint(0, int(cap))
         await ctx.send(content)
 
-    @commands.command(name='youtube', brief='Searches the given video from youtube')
+    @commands.command(name='youtube', brief='Search a video from youtube')
     async def youtube(self, ctx, *args):
         print(f"{ctx.message.author} >youtube {args}")
         search_string = " ".join(args)
@@ -69,7 +69,7 @@ class Commands:
         else:
             await ctx.send("Error: status code " + str(response.status_code))
 
-    @commands.command(name='wikipedia', brief='Searches the given page from wikipedia')
+    @commands.command(name='wikipedia', brief='Search from wikipedia')
     async def wikipedia(self, ctx, *args):
         print(f"{ctx.message.author} >wikipedia {args}")
         if args[0] == 'random':
@@ -83,13 +83,13 @@ class Commands:
             print(error)
             await ctx.send(('```' + str(error)) + '```')
 
-    @commands.command(name='navyseal')
+    @commands.command(name='navyseal',brief='What the fuck did you just-')
     async def navyseal(self, ctx):
         print(f"{ctx.message.author} >navyseal")
         copypasta = data_json['strings']['navyseal_copypasta']
         await ctx.send(copypasta)
 
-    @commands.command(name='stan', brief='Gives you a random korean artist to stan', aliases=['Stan'])
+    @commands.command(name='stan', brief='Get a random korean artist to stan', aliases=['Stan'])
     async def stan(self, ctx, *args):
         print(f"{ctx.message.author} >stan {args}")
         if args:

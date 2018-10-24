@@ -16,12 +16,12 @@ class Tictactoe:
         self.client = client
         self.games = {}
 
-    @commands.command()
+    @commands.command(name="start", brief="Start a game of Tic Tac Toe")
     async def start(self, ctx):
         this_game = self.games[ctx.channel.id] = Gameinstance()
         this_game.message = await ctx.send(print_board(this_game.board, this_game.player1, this_game.player2))
 
-    @commands.command(name="p")
+    @commands.command(name="p", hidden=True)
     async def place(self, ctx, *args):
         channel_id = ctx.channel.id
         if channel_id in self.games:

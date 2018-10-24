@@ -55,7 +55,7 @@ class Voice:
         self.client = client
         self.queue = []
 
-    @commands.command()
+    @commands.command(name="join", brief="Join the given voice channel")
     async def join(self, ctx, *, channel: discord.VoiceChannel):
         print(f"{ctx.message.author} >join {channel}")
         """Joins a voice channel"""
@@ -63,7 +63,7 @@ class Voice:
             return await ctx.voice_client.move_to(channel)
         await channel.connect()
 
-    @commands.command()
+    @commands.command(name="play", brief="Search a song from youtube and play it")
     async def play(self, ctx, *args):
         print(f"{ctx.message.author} >play {args}")
         search_string = " ".join(args)
@@ -83,7 +83,7 @@ class Voice:
             title = info.get('title', None)
         await ctx.send(f"Now playing: **{title}** - Duration: **{length//60}:{str(int(length%60.)).zfill(2)}**")
 
-    @commands.command()
+    @commands.command(name="stop", brief="Stop playing and disconnect from voice")
     async def stop(self, ctx):
         print(f"{ctx.message.author} >stop")
         """Stops and disconnects the bot from voice"""
