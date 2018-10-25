@@ -227,7 +227,7 @@ class Apis:
 
     @commands.command(name="convert", brief="convert units")
     async def convert(self, ctx, *args):
-
+        print(f"{ctx.message.author} >convert {args}")
         source_quantity = args[0]
         source_unit, source_name = get_ucum_code(args[1])
         target_unit, target_name = get_ucum_code(args[len(args)-1])
