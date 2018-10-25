@@ -225,6 +225,27 @@ class Apis:
 
         await ctx.send(embed=message)
 
+    @commands.command(name="convert", brief="convert units")
+    async def convert(self, ctx, *args):
+
+        source_quantity = args[0]
+        source_unit, source_name = get_ucum_code(args[1])
+        target_unit, target_name = get_ucum_code(args[len(args)-1])
+
+        base_url = "https://ucum.nlm.nih.gov/ucum-service/v1/ucumtransform/"
+        request_format = f"{source_quantity}/from/{source_unit}/to/{target_unit}"
+        print(request_format)
+
+        response = requests.get(base_url + request_format, headers={"Accept": "application/json"})
+        if response.status_code == 200:
+            json_data = json.loads(response.content.decode('utf-8'))
+            print(json.dumps(json_data, indent=4))
+            converted_quantity = json_data['UCUMWebServiceResponse']['Response']['ResultQuantity']
+
+            await ctx.send(f"{source_quantity} {source_name} in {target_name} is {converted_quantity}")
+        else:
+            await ctx.send(f"Error {response.status_code}")
+
 
 def get_timezone(coord):
     url = f"http://api.timezonedb.com/v2.1/get-time-zone?key={TIMEZONE_API_KEY}&format=json&by=position&" \
@@ -252,6 +273,19 @@ def detect_language(string):
     else:
         print('Error Code (detect_language):' + str(rescode))
         return None
+
+
+def get_ucum_code(search_query):
+    url = "https://clinicaltables.nlm.nih.gov/api/ucum/v3/search?terms="
+    response = requests.get(url + search_query)
+    if response.status_code == 200:
+        json_data = json.loads(response.content.decode('utf-8'))
+        ucum_code = json_data[3][0][0]
+        name = json_data[3][0][1]
+        print(name + " - " + ucum_code)
+        return urllib.parse.quote_plus(ucum_code), name
+    else:
+        print(f"Error getting ucum code for {search_query}")
 
 
 def setup(client):
