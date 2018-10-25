@@ -98,6 +98,35 @@ class Apis:
         else:
             await ctx.send('Error: status code' + str(id_response.status_code))
 
+    @commands.command(name="urban", brief="Search from urban dictionary")
+    async def urban(self, ctx, *args):
+        print(f"{ctx.message.author} >urban {args}")
+        search_string = " ".join(args)
+        url = "https://mashape-community-urban-dictionary.p.mashape.com/define?term="
+        response = requests.get(url + search_string, headers={"X-Mashape-Key":
+                                                                  "w3TR0XTmB3mshcxWHQNKxiVWSuUtp1nqnlzjsnoZ6d0yZ1MJAT",
+                                                              "Accept": "text/plain"})
+        if response.status_code == 200:
+            message = discord.Embed(colour=discord.Colour.orange())
+            message.set_author(name=search_string.capitalize(), icon_url="https://i.imgur.com/yMwpnBe.png")
+
+            json_data = json.loads(response.content.decode('utf-8'))
+            # print(json.dumps(json_data, indent=4))
+
+            if json_data['list']:
+                word = json_data['list'][0]
+                definition = word['definition'].replace("]", "").replace("[", "")
+                example = word['example'].replace("]", "").replace("[", "")
+                time = word['written_on'][:9].replace("-", "/")
+                message.description = f"{definition}"
+                message.add_field(name="Example", value=example)
+                message.set_footer(text=f"by {word['author']} on {time}")
+                await ctx.send(embed=message)
+            else:
+                await ctx.send("No definition found for " + search_string)
+        else:
+            await ctx.send("Error: " + str(response.status_code))
+
     @commands.command(name='translate', brief='Korean / Japanese / English Translator')
     async def translate(self, ctx, *args):
         print(f"{ctx.message.author} >translate {args}")
@@ -188,7 +217,7 @@ class Apis:
 
         message = discord.Embed(colour=discord.Colour.green())
         message.set_author(name=f"{playlist_name} · by {playlist_owner}",
-                           icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/2000px-Spotify_logo_without_text.svg.png")
+                           icon_url="https://i.imgur.com/tN20ywg.png")
         message.set_thumbnail(url=playlist_image)
         message.title = "Artist distribution:"
         message.set_footer(text=f"Total tracks in this playlist: {total}")
@@ -201,9 +230,12 @@ def get_timezone(coord):
     url = f"http://api.timezonedb.com/v2.1/get-time-zone?key={TIMEZONE_API_KEY}&format=json&by=position&" \
           f"lat={coord['lat']}&lng={coord['lon']}"
     response = requests.get(url)
-    json_data = json.loads(response.content.decode('utf-8'))
-    time = json_data['formatted'].split(" ")
-    return time[1]
+    if response.status_code == 200:
+        json_data = json.loads(response.content.decode('utf-8'))
+        time = json_data['formatted'].split(" ")
+        return time[1]
+    else:
+        return f"<error{response.status_code}>"
 
 
 def detect_language(string):
