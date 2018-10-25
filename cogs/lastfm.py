@@ -34,7 +34,6 @@ class Lastfm:
     @commands.command(name="fm", brief="Get user data from LastFM", aliases=["Fm", "FM"])
     async def fm(self, ctx, *args):
         print(f"{ctx.message.author} >fm {args}")
-        method_call = ""
         if len(args) > 0:
 
             try:
