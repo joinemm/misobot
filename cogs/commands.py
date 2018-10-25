@@ -38,7 +38,7 @@ class Commands:
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 0.2.1')
+        info_embed.set_footer(text='version 0.3.3')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
 
@@ -129,6 +129,68 @@ class Commands:
         except IndexError as e:
             print(f"{ctx.message.author} >stan: " + str(e))
             await ctx.send("Error: artist list is empty, please use >stan update")
+
+    @commands.command()
+    async def igsource(self, ctx, *args):
+        print(f"{ctx.message.author} >igsource {args}")
+        if len(args) > 1:
+            url = args[1]
+            filetype = args[0]
+        else:
+            url = args[0]
+            filetype = "video"
+        if filetype == "image":
+            file_extension = ".jpg"
+        elif filetype == "video":
+            file_extension = ".mp4"
+        else:
+            print(f'"{filetype}" not found on this page')
+            return
+        response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
+        tree = html.fromstring(response.content)
+        results = tree.xpath('//meta[@content]')
+        contents = []
+        for result in results:
+            contents.append(result.attrib['content'])
+        sources = []
+        for content in contents:
+            if content.endswith(file_extension):
+                sources.append(content)
+        if sources:
+            print(sources[0])
+            await ctx.send(sources[0])
+        else:
+            if file_extension == ".mp4":
+                print(f"No video found, searching for image now...")
+                file_extension = ".jpg"
+                for content in contents:
+                    if content.endswith(file_extension):
+                        sources.append(content)
+                if sources:
+                    print(sources[0])
+                    await ctx.send(sources[0])
+                else:
+                    print("Found nothing, sorry!")
+            else:
+                print("Found nothing, sorry!")
+
+    @commands.command()
+    async def twtsource(self, ctx, *args):
+        print(f"{ctx.message.author} >twtsource {args}")
+        requested_url = args[0]
+        id = requested_url.split("/")[-1].split("?")[0]
+        print(id)
+        url = f"https://api.twitter.com/1.1/videos/tweet/config/{id}.json"
+        response = requests.get(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:64.0) Gecko/20100101 Firefox/64.0",
+            "authorization": "Bearer AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "x-csrf-token": "31164d088085ad00e74060d8f08043c4",
+            "x-guest-token": "1055537006749597696"})
+        json_data = json.loads(response.content.decode('utf-8'))
+        print(json.dumps(json_data, indent=4))
+        await ctx.send(json_data['track']['playbackUrl'])
 
 
 def scrape_kprofiles(url):
