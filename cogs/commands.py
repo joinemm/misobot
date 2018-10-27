@@ -6,6 +6,7 @@ import requests
 import wikipedia as wp
 from discord.ext import commands
 from lxml import html
+import urllib.parse
 
 
 def load_data():
@@ -59,29 +60,38 @@ class Commands:
 
     @commands.command(name='youtube', brief='Search a video from youtube')
     async def youtube(self, ctx, *args):
-        print(f"{ctx.message.author} >youtube {args}")
-        search_string = " ".join(args)
-        response = requests.get('http://www.youtube.com/results?search_query=' + search_string)
-        if response.status_code == 200:
-            search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
-            first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
-            await ctx.send(first_result_url)
-        else:
-            await ctx.send("Error: status code " + str(response.status_code))
+        try:
+            print(f"{ctx.message.author} >youtube {args}")
+            search_string = " ".join(args)
+            search_string = urllib.parse.urlencode({'search_query': search_string})
+            response = requests.get('http://www.youtube.com/results?search_query=' + search_string)
+            if response.status_code == 200:
+                search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
+                first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
+                await ctx.send(first_result_url)
+            else:
+                await ctx.send("Error: status code " + str(response.status_code))
+        except Exception as e:
+            print(str(e))
+            await ctx.send(f"```{e}```")
 
     @commands.command(name='wikipedia', brief='Search from wikipedia')
     async def wikipedia(self, ctx, *args):
-        print(f"{ctx.message.author} >wikipedia {args}")
-        if args[0] == 'random':
-            search_string = wp.random()
-        else:
-            search_string = ' '.join(args)
         try:
-            page = wp.page(search_string)
-            await ctx.send(page.url)
-        except wp.exceptions.DisambiguationError as error:
-            print(error)
-            await ctx.send(('```' + str(error)) + '```')
+            print(f"{ctx.message.author} >wikipedia {args}")
+            if args[0] == 'random':
+                search_string = wp.random()
+            else:
+                search_string = ' '.join(args)
+            try:
+                page = wp.page(search_string)
+                await ctx.send(page.url)
+            except wp.exceptions.DisambiguationError as error:
+                print(error)
+                await ctx.send(('```' + str(error)) + '```')
+        except Exception as e:
+            print(str(e))
+            await ctx.send(f"```{e}```")
 
     @commands.command(name='navyseal',brief='What the fuck did you just-')
     async def navyseal(self, ctx):
@@ -132,65 +142,81 @@ class Commands:
 
     @commands.command()
     async def igsource(self, ctx, *args):
-        print(f"{ctx.message.author} >igsource {args}")
-        if len(args) > 1:
-            url = args[1]
-            filetype = args[0]
-        else:
-            url = args[0]
-            filetype = "video"
-        if filetype == "image":
-            file_extension = ".jpg"
-        elif filetype == "video":
-            file_extension = ".mp4"
-        else:
-            print(f'"{filetype}" not found on this page')
-            return
-        response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
-        tree = html.fromstring(response.content)
-        results = tree.xpath('//meta[@content]')
-        contents = []
-        for result in results:
-            contents.append(result.attrib['content'])
-        sources = []
-        for content in contents:
-            if content.endswith(file_extension):
-                sources.append(content)
-        if sources:
-            print(sources[0])
-            await ctx.send(sources[0])
-        else:
-            if file_extension == ".mp4":
-                print(f"No video found, searching for image now...")
+        try:
+            print(f"{ctx.message.author} >igsource {args}")
+            if len(args) > 1:
+                url = args[1]
+                filetype = args[0]
+            else:
+                url = args[0]
+                filetype = "video"
+            if filetype == "image":
                 file_extension = ".jpg"
-                for content in contents:
-                    if content.endswith(file_extension):
-                        sources.append(content)
-                if sources:
-                    print(sources[0])
-                    await ctx.send(sources[0])
+            elif filetype == "video":
+                file_extension = ".mp4"
+            else:
+                print(f'"{filetype}" not found on this page')
+                return
+            response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
+            tree = html.fromstring(response.content)
+            results = tree.xpath('//meta[@content]')
+            contents = []
+            for result in results:
+                contents.append(result.attrib['content'])
+            sources = []
+            for content in contents:
+                if content.endswith(file_extension):
+                    sources.append(content)
+            if sources:
+                print(sources[0])
+                await ctx.send(sources[0])
+            else:
+                if file_extension == ".mp4":
+                    print(f"No video found, searching for image now...")
+                    file_extension = ".jpg"
+                    for content in contents:
+                        if content.endswith(file_extension):
+                            sources.append(content)
+                    if sources:
+                        print(sources[0])
+                        await ctx.send(sources[0])
+                    else:
+                        print("Found nothing, sorry!")
                 else:
                     print("Found nothing, sorry!")
-            else:
-                print("Found nothing, sorry!")
+        except Exception as e:
+            print(str(e))
+            await ctx.send(f"```{e}```")
 
     @commands.command()
     async def twtsource(self, ctx, *args):
-        print(f"{ctx.message.author} >twtsource {args}")
-        requested_url = args[0]
-        id = requested_url.split("/")[-1].split("?")[0]
-        print(id)
-        url = f"https://api.twitter.com/1.1/videos/tweet/config/{id}.json"
-        response = requests.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:64.0) Gecko/20100101 Firefox/64.0",
-            "authorization": "Bearer AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE",
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br",
-            "x-csrf-token": "31164d088085ad00e74060d8f08043c4",
-            "x-guest-token": "1055537006749597696"})
-        json_data = json.loads(response.content.decode('utf-8'))
-        print(json.dumps(json_data, indent=4))
-        await ctx.send(json_data['track']['playbackUrl'])
+        try:
+            print(f"{ctx.message.author} >twtsource {args}")
+            requested_url = args[0]
+            id = requested_url.split("/")[-1].split("?")[0]
+            url = f"https://api.twitter.com/1.1/videos/tweet/config/{id}.json"
+            response = requests.get(url, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:64.0) Gecko/20100101 Firefox/64.0",
+                "authorization": "Bearer AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE",
+                "Accept": "*/*",
+                "Accept-Encoding": "gzip, deflate, br",
+                "x-csrf-token": "31164d088085ad00e74060d8f08043c4"})
+            if response.status_code == 200:
+                json_data = json.loads(response.content.decode('utf-8'))
+                # print(json.dumps(json_data, indent=4))
+                try:
+                    video_url = json_data['track']['playbackUrl']
+                    if "mp4" in video_url:
+                        await ctx.send(video_url)
+                    else:
+                        await ctx.send("Unable to fetch source video, encoded in .m3u8 format!")
+                except Exception as e:
+                    await ctx.send(f"Error code {json_data['errors'][0]['code']} : {json_data['errors'][0]['message']}")
+            else:
+                await ctx.send(f"Error: status code {response.status_code}")
+        except Exception as e:
+            print(str(e))
+            await ctx.send(f"```{e}```")
 
 
 def scrape_kprofiles(url):
