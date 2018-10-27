@@ -58,10 +58,12 @@ class Voice:
     @commands.command(name="join", brief="Join the given voice channel")
     async def join(self, ctx, *, channel: discord.VoiceChannel):
         print(f"{ctx.message.author} >join {channel}")
-        """Joins a voice channel"""
-        if ctx.voice_client is not None:
-            return await ctx.voice_client.move_to(channel)
-        await channel.connect()
+        try:
+            if ctx.voice_client is not None:
+                return await ctx.voice_client.move_to(channel)
+            await channel.connect()
+        except Exception:
+            await ctx.send()
 
     @commands.command(name="play", brief="Search a song from youtube and play it")
     async def play(self, ctx, *args):
