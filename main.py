@@ -3,7 +3,7 @@ import json
 
 client = commands.Bot(command_prefix=">")
 extensions = ["cogs.commands", "cogs.nsfw", "cogs.owner", "cogs.lastfm", "cogs.apis", "cogs.voice", "cogs.events",
-              "cogs.tictactoe"]
+              "cogs.tictactoe", "cogs.fishy"]
 
 with open('dont commit\\keys.txt', 'r') as filehandle:
     TOKEN = json.load(filehandle)["TOKEN"]
