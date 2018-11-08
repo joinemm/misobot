@@ -3,6 +3,7 @@ import requests
 import json
 import discord
 from datetime import datetime
+import re
 
 with open('dont commit\keys.txt', 'r') as keys_filehandle:
     keys = json.load(keys_filehandle)
@@ -17,13 +18,11 @@ def load_data():
         return data
 
 
-def save_data():
+def save_data(users_json):
     with open('users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
         print('users.json saved')
-
-
-users_json = load_data()
+        filehandle.close()
 
 
 class Lastfm:
@@ -34,6 +33,11 @@ class Lastfm:
     @commands.command(name="fm", brief="Get user data from LastFM", aliases=["Fm", "FM"])
     async def fm(self, ctx, *args):
         print(f"{ctx.message.author} >fm {args}")
+        users_json = load_data()
+
+        if str(ctx.message.author.id) not in users_json['users']:
+            users_json['users'][str(ctx.message.author.id)] = {}
+
         if len(args) > 0:
 
             try:
@@ -44,8 +48,8 @@ class Lastfm:
                         fm_data = get_fm_data(method, args[1])
                         username = fm_data['user']['name']
                         profile_url = fm_data['user']['url']
-                        users_json['users'][str(ctx.message.author.id)] = {'lastfm_username': args[1]}
-                        save_data()
+                        users_json['users'][str(ctx.message.author.id)]['lastfm_username'] = args[1]
+                        save_data(users_json)
                         await ctx.send(f"Username saved as {username}\n{profile_url}")
                         return
                     except IndexError:
@@ -124,23 +128,22 @@ class Lastfm:
         if method_call == "nowplaying":
             user_attr = fm_data['recenttracks']['@attr']
             tracks = fm_data['recenttracks']['track']
-            artist = tracks[0]['artist']['#text']
-            album = tracks[0]['album']['#text']
+            artist = esc(tracks[0]['artist']['#text'])
+            album = esc(tracks[0]['album']['#text'])
             if album == "":
                 album = "<unknown album>"
-            name = tracks[0]['name']
-            message.description = album
+            name = esc(tracks[0]['name'])
             try:
                 if tracks[0]['@attr']['nowplaying'] == "true":
                     message.set_author(name=f"{user_attr['user']} — Now Playing",
                                        icon_url=ctx.message.author.avatar_url)
-                    message.title = f"{artist} — *{name}* :notes:"
+                    message.description = f"**{artist}** — ***{name}*** :notes:\n{album}"
                 else:
                     await ctx.send("lastfm error :thinking:")
             except KeyError:
                 message.set_author(name=f"{user_attr['user']} — Most recent track:",
                                    icon_url=ctx.message.author.avatar_url)
-                message.title = f"{artist} — {name}"
+                message.description = f"**{artist}** — ***{name}***\n{album}"
             message.set_thumbnail(url=tracks[0]['image'][3]['#text'])
 
         elif method_call == "recent":
@@ -148,11 +151,11 @@ class Lastfm:
             tracks = fm_data['recenttracks']['track']
             description = ""
             for i in range(amount):
-                artist = tracks[i]['artist']['#text']
-                album = tracks[i]['album']['#text']
+                artist = esc(tracks[i]['artist']['#text'])
+                album = esc(tracks[i]['album']['#text'])
                 if album == "":
                     album = "<unknown album>"
-                name = tracks[i]['name']
+                name = esc2(tracks[i]['name'])
                 description += f"**{artist}** — ***{name}***\n"
                 total += 1
             message.description = description
@@ -167,8 +170,8 @@ class Lastfm:
             largest = len(tracks[0]['playcount'])
             description = ""
             for i in range(amount):
-                artist = tracks[i]['artist']['name']
-                name = tracks[i]['name']
+                artist = esc(tracks[i]['artist']['name'])
+                name = esc2(tracks[i]['name'])
                 plays = tracks[i]['playcount']
                 rank = tracks[i]['@attr']['rank']
                 description += f"**{plays:{largest}}** plays - ***{name}*** — **{artist}**\n"
@@ -185,8 +188,8 @@ class Lastfm:
             largest = len(artists[0]['playcount'])
             description = ""
             for i in range(amount):
-                artist = artists[i]['name']
-                plays = artists[i]['playcount']
+                artist = esc(artists[i]['name'])
+                plays = esc(artists[i]['playcount'])
                 rank = artists[i]['@attr']['rank']
                 description += f"**{plays:{largest}}** plays — **{artist}**\n"
                 total += 1
@@ -202,8 +205,8 @@ class Lastfm:
             largest = len(albums[0]['playcount'])
             description = ""
             for i in range(amount):
-                album = albums[i]['name']
-                artist = albums[i]['artist']['name']
+                album = esc2(albums[i]['name'])
+                artist = esc(albums[i]['artist']['name'])
                 plays = albums[i]['playcount']
                 rank = albums[i]['@attr']['rank']
                 description += f"**{plays:{largest}}** plays - ***{album}*** — **{artist}**\n"
@@ -249,9 +252,9 @@ class Lastfm:
                         fm_data = json.loads(response.content.decode('utf-8'))
                         tracks = fm_data['tracks']['track']
                         for i in range(10):
-                            name = tracks[i]['name']
+                            name = esc(tracks[i]['name'])
                             listeners = tracks[i]['listeners']
-                            artist = tracks[i]['artist']['name']
+                            artist = esc(tracks[i]['artist']['name'])
                             rank += 1
                             line = f"\n{rank:>2}: {name} — {artist} — {listeners} listeners"
                             message += line
@@ -292,10 +295,92 @@ class Lastfm:
             await ctx.send("invalid syntax")
             return
 
+    @commands.command(name="fmdata", brief="Get data about a song, album or artist")
+    async def fmdata(self, ctx, datatype, *args):
+        query = " ".join(args)
+        message = discord.Embed(colour=discord.Colour.magenta())
 
-def get_fm_data(method, user, period="overall"):
+        if datatype == "artist":
+            try:
+                data = get_fm_data(f"artist.getinfo&artist={query}")['artist']
+            except IndexError:
+                await ctx.send(f'artist "{query}" was not found')
+                return
+
+            message.set_author(name=data['name'])
+            message.description = f"Listeners: **{data['stats']['listeners']}**\n" \
+                                  f"Playcount: **{data['stats']['playcount']}**"
+            summary = data['bio']['summary']
+            summary = re.sub('<a[^>]+>', '[Read more on Last.fm]!(', summary)
+            summary = re.sub('</[^>]+>', ')!', summary)
+            summary = re.sub('!\([^>]+\)!', f"({data['url']})", summary)
+            message.add_field(name="Summary:", value=summary)
+            tags = []
+            for tag in data['tags']['tag']:
+                tags.append(tag['name'])
+            tags_string = "Tags: " + ", ".join(tags)
+            message.set_footer(text=tags_string)
+            message.set_thumbnail(url=data['image'][-1]['#text'])
+
+        elif datatype == "album":
+            query_split = query.split(" by ")
+            try:
+                data = get_fm_data(f"album.getinfo&artist={query_split[1]}&album={query_split[0]}")['album']
+            except IndexError:
+                await ctx.send(f'album "{query}" was not found')
+                return
+
+            message.set_author(name=data['name'])
+            message.title = f"Album by {data['artist']}"
+            message.description = f"Listeners: **{data['listeners']}**\n" \
+                                  f"Playcount: **{data['playcount']}**\n"
+
+            tracks_string = ""
+            for track in data['tracks']['track']:
+                tracks_string += f"**{track['name']}** - {int(track['duration'])//60}:{int(track['duration'])%60}\n"
+            message.add_field(name="Tracklist", value=tracks_string)
+
+            tags = []
+            for tag in data['tags']['tag']:
+                tags.append(tag['name'])
+            tags_string = "Tags: " + ", ".join(tags)
+            message.set_footer(text=tags_string)
+            message.set_thumbnail(url=data['image'][-1]['#text'])
+
+        elif datatype == "track":
+            query_split = query.split(" by ")
+            try:
+                data = get_fm_data(f"track.getinfo&artist={query_split[1]}&track={query_split[0]}")['track']
+            except IndexError:
+                await ctx.send(f'track "{query}" was not found')
+                return
+
+            message.set_author(name=data['name'])
+            try:
+                album = data['album']['title']
+                message.set_thumbnail(url=data['album']['image'][-1]['#text'])
+            except KeyError:
+                album = "<unknown album>"
+            message.title = f"by **{data['artist']['name']}** on **{album}**"
+            message.description = f"Duration: **{int(int(data['duration'])*0.001)//60}:{int(int(data['duration'])*0.001)%60}**\n"\
+                                  f"Listeners: **{data['listeners']}**\n" \
+                                  f"Playcount: **{data['playcount']}**"
+            tags = []
+            for tag in data['toptags']['tag']:
+                tags.append(tag['name'])
+            tags_string = "Tags: " + ", ".join(tags)
+            message.set_footer(text=tags_string)
+        else:
+            await ctx.send("invalid datatype")
+            return
+
+        await ctx.send(embed=message)
+
+
+def get_fm_data(method, user="", period="overall"):
     url = f"http://ws.audioscrobbler.com/2.0/?method={method}" \
           f"&user={user}&api_key={LASTFM_APPID}&format=json&period={period}"
+    #print(url)
     response = requests.get(url)
     if response.status_code == 200:
         fm_data = json.loads(response.content.decode('utf-8'))
@@ -303,6 +388,14 @@ def get_fm_data(method, user, period="overall"):
     else:
         print(f"Error: status code {response.status_code}")
         return None
+
+
+def esc(string):
+    return string.replace("*", "\\*")
+
+
+def esc2(string):
+    return string.replace("*", "*** \\****")
 
 
 def setup(client):
