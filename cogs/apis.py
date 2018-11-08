@@ -6,6 +6,7 @@ import requests
 from discord.ext import commands
 import spotipy.util as util
 import spotipy
+import re
 
 with open('dont commit\keys.txt', 'r') as filehandle:
     keys = json.load(filehandle)
@@ -56,7 +57,6 @@ class Apis:
         print(f"{ctx.message.author} >define {args}")
         search_string = ' '.join(args).lower()
         api_url = 'https://od-api.oxforddictionaries.com:443/api/v1'
-        print('searching with query ' + search_string)
         query = f'''/search/en?q={search_string}&prefix=false'''
         id_response = requests.get(api_url + query, headers={
             'Accept': 'application/json',
@@ -157,22 +157,28 @@ class Apis:
             print(response)
 
     @commands.command(name='spotify', brief='Analyze a spotify playlist from URI')
-    async def spotify(self, ctx, *args):
-        print(f"{ctx.message.author} >spotify {args}")
+    async def spotify(self, ctx, url=None, amount=10):
+        print(f"{ctx.message.author} >spotify {url}")
         try:
-            data = args[0].split(":")
+            if url.startswith("https://open."):
+                # its playlist link
+                user_id = re.search(r'user/(.*?)/playlist', url).group(1)
+                playlist_id = re.search(r'playlist/(.*?)\?', url).group(1)
+            else:
+                # its URI (probably)
+                data = url.split(":")
+                playlist_id = data[4]
+                user_id = data[2]
         except Exception:
-            await ctx.send("Usage: >spotify [Spotify playlist URI] [amount to show](optional)\n"
+            await ctx.send("Usage: `>spotify {url/URI} {amount to show}(optional)`\n"
                            "How to get Spotify URI?: Right click playlist -> Share -> Copy Spotify URI")
             return
+
         try:
-            amount = int(args[1])
             if amount > 50:
                 amount = 50
         except IndexError:
             amount = 10
-        playlist_id = data[4]
-        user_id = data[2]
 
         token = util.oauth2.SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET)
         cache_token = token.get_access_token()
