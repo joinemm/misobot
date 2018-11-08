@@ -7,6 +7,7 @@ import wikipedia as wp
 from discord.ext import commands
 from lxml import html
 import urllib.parse
+import time
 
 
 def load_data():
@@ -51,6 +52,16 @@ class Commands:
         pong_msg = await ctx.send(":ping_pong:")
         ms = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
         await pong_msg.edit(content=f":ping_pong: {ms}ms")
+
+    async def on_ready(self):
+        self.start_time = time.time()
+
+    @commands.command(name="uptime", brief="Get the bot's uptime")
+    async def uptime(self, ctx):
+        up_time = time.time() - self.start_time
+        m, s = divmod(up_time, 60)
+        h, m = divmod(m, 60)
+        await ctx.send("Current process uptime: %d hours %d minutes %d seconds" % (h, m, s))
 
     @commands.command(name='random', brief='Gives random integer from range 0-{input}')
     async def random(self, ctx, cap=1):
@@ -184,36 +195,6 @@ class Commands:
                         print("Found nothing, sorry!")
                 else:
                     print("Found nothing, sorry!")
-        except Exception as e:
-            print(str(e))
-            await ctx.send(f"```{e}```")
-
-    @commands.command()
-    async def twtsource(self, ctx, *args):
-        try:
-            print(f"{ctx.message.author} >twtsource {args}")
-            requested_url = args[0]
-            id = requested_url.split("/")[-1].split("?")[0]
-            url = f"https://api.twitter.com/1.1/videos/tweet/config/{id}.json"
-            response = requests.get(url, headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:64.0) Gecko/20100101 Firefox/64.0",
-                "authorization": "Bearer AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE",
-                "Accept": "*/*",
-                "Accept-Encoding": "gzip, deflate, br",
-                "x-csrf-token": "31164d088085ad00e74060d8f08043c4"})
-            if response.status_code == 200:
-                json_data = json.loads(response.content.decode('utf-8'))
-                # print(json.dumps(json_data, indent=4))
-                try:
-                    video_url = json_data['track']['playbackUrl']
-                    if "mp4" in video_url:
-                        await ctx.send(video_url)
-                    else:
-                        await ctx.send("Unable to fetch source video, encoded in .m3u8 format!")
-                except Exception as e:
-                    await ctx.send(f"Error code {json_data['errors'][0]['code']} : {json_data['errors'][0]['message']}")
-            else:
-                await ctx.send(f"Error: status code {response.status_code}")
         except Exception as e:
             print(str(e))
             await ctx.send(f"```{e}```")
