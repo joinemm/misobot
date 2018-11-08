@@ -15,13 +15,11 @@ def save_data():
         print('guilds.json saved')
 
 
-guilds_json = load_data()
-
-
 class Owner:
 
     def __init__(self, client):
         self.client = client
+        self.guilds_json = load_data()
 
     @commands.command(hidden=True)
     @commands.is_owner()
@@ -39,10 +37,10 @@ class Owner:
             if args[0] == "welcome":
                 try:
                     welcome_channel = int(args[1])
-                    if str(ctx.guild.id) in guilds_json['guilds']:
-                        guilds_json['guilds'][ctx.guild.id]['welcome_channel'] = welcome_channel
+                    if str(ctx.guild.id) in self.guilds_json['guilds']:
+                        self.guilds_json['guilds'][ctx.guild.id]['welcome_channel'] = welcome_channel
                     else:
-                        guilds_json['guilds'][ctx.guild.id] = {'welcome_channel': welcome_channel}
+                        self.guilds_json['guilds'][ctx.guild.id] = {'welcome_channel': welcome_channel}
                     save_data()
                     await ctx.send(f"Welcome channel for {ctx.guild.id} saved as {welcome_channel}")
                 except Exception as e:
