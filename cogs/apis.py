@@ -7,10 +7,10 @@ from discord.ext import commands
 import spotipy.util as util
 import spotipy
 import re
+from datetime import datetime
 
 with open('dont commit\keys.txt', 'r') as filehandle:
     keys = json.load(filehandle)
-    WEATHER_TOKEN = keys['WEATHER_API']
     OXFORD_APPID = keys['OXFORD_APPID']
     OXFORD_TOKEN = keys['OXFORD_TOKEN']
     NAVER_APPID = keys['NAVER_APPID']
@@ -20,6 +20,9 @@ with open('dont commit\keys.txt', 'r') as filehandle:
     TIMEZONE_API_KEY = keys['TIMEZONEDB_API_KEY']
     SPOTIFY_CLIENT_ID = keys['SPOTIFY_CLIENT_ID']
     SPOTIFY_CLIENT_SECRET = keys['SPOTIFY_CLIENT_SECRET']
+    GOOGLE_API_KEY = keys['GOOGLE_KEY']
+    DARKSKY_API_KEY = keys['DARK_SKY_KEY']
+    STEAM_API_KEY = keys['STEAM_WEB_API_KEY']
 
 
 class Apis:
@@ -27,30 +30,40 @@ class Apis:
     def __init__(self, client):
         self.client = client
 
-    @commands.command(name='weather', brief='Get the weather of a city')
+    @commands.command(name='weather', brief='dark sky weather')
     async def weather(self, ctx, *args):
         print(f"{ctx.message.author} >weather {args}")
-        # noinspection PyBroadException
-        try:
-            city = " ".join(args).capitalize().replace('"', '')
-            response = requests.get(f"http://api.openweathermap.org/data/2.5/weather?q={city}"
-                                    f"&appid={WEATHER_TOKEN}&units=metric")
-            rescode = response.status_code
-            print(f"requested weather for {city} with rescode {rescode}")
-            if rescode == 200:
-                weather_data = json.loads(response.content.decode('utf-8'))
-                weather = weather_data['weather'][0]['description'].capitalize()
-                temperature = weather_data['main']['temp']
+        address = "+".join(args)
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={GOOGLE_API_KEY}"
+        response = requests.get(url=url)
+        if response.status_code == 200:
+            json_data = json.loads(response.content.decode('utf-8'))['results'][0]
+            # print(json.dumps(json_data, indent=4))
+            formatted_name = json_data['formatted_address']
+            lat = json_data['geometry']['location']['lat']
+            lon = json_data['geometry']['location']['lng']
+            for comp in json_data['address_components']:
+                if 'country' in comp['types']:
+                    country = comp['short_name'].lower()
+
+            # we have lat and lon now, plug them into dark sky
+            response = requests.get(url=f"https://api.darksky.net/forecast/{DARKSKY_API_KEY}/{lat},{lon}?units=si")
+            if response.status_code == 200:
+                json_data = json.loads(response.content.decode('utf-8'))['currently']
+                time = get_timezone({'lat': lat, 'lon': lon})
+                temperature = json_data['temperature']
                 temperature_f = (temperature * (9.0 / 5.0) + 32)
-                country = weather_data['sys']['country']
-                city = weather_data['name']
-                time = get_timezone(weather_data['coord'])
-                await ctx.send(f":flag_{country.lower()}: `{city}, {country} — {weather}, "
-                               f"{temperature:.1f} °C / {temperature_f:.1f} °F, local time: {time}`\n")
-            else:
-                await ctx.send(f"Error: status code {rescode}")
-        except Exception as error:
-            await ctx.send(f"Error: {error}")
+                summary = json_data['summary']
+                windspeed = json_data['windSpeed']
+
+                message = discord.Embed(color=discord.Color.dark_purple())
+                message.description = f":flag_{country}: **{formatted_name}**\n" \
+                                      f"**{summary}**\n " \
+                                      f"Temperature: **{temperature} °C / {temperature_f:.2f} °F**\n" \
+                                      f"Wind speed: **{windspeed} m/s**\n" \
+                                      f"Local time: **{time}**\n"
+
+                await ctx.send(embed=message)
 
     @commands.command(name='define', brief='Search from oxford dictionary')
     async def define(self, ctx, *args):
@@ -252,6 +265,97 @@ class Apis:
         else:
             await ctx.send(f"Error {response.status_code}")
 
+    @commands.command(name="steam", brief="steam profile data")
+    async def steam(self, ctx, steam_id, *args):
+        print(f"{ctx.message.author} >steam {steam_id}")\
+
+        try:
+            steam_id = int(steam_id)
+        except Exception as e:
+            print(e)
+            response = requests.get(url=f"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1?key={STEAM_API_KEY}"
+                                        f"&vanityurl={steam_id}")
+            if response.status_code == 200:
+                resolved = json.loads(response.content.decode('utf-8'))['response']
+                if resolved['success'] == 1:
+                    steam_id = resolved['steamid']
+                else:
+                    await ctx.send(f"Error: {resolved['message']} (ResolveVanityUrl)")
+                    return
+            else:
+                await ctx.send(f"Error {response.status_code} (ResolveVanityUrl)")
+                return
+
+        response = requests.get(url=f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?"
+                                    f"key={STEAM_API_KEY}&steamids={steam_id}&format=json")
+        if response.status_code == 200:
+            profile_json = json.loads(response.content.decode('utf-8'))['response']['players'][0]
+        else:
+            await ctx.send(f"Error {response.status_code} (GetPlayerSummaries)")
+            return
+        response = requests.get(url=f"http://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?"
+                                    f"key={STEAM_API_KEY}&steamid={steam_id}&format=json")
+        if response.status_code == 200:
+            recent_games_json = json.loads(response.content.decode('utf-8'))['response']
+        else:
+            await ctx.send(f"Error {response.status_code} (GetRecentlyPlayedGames)")
+            return
+        response = requests.get(url=f"http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?"
+                                    f"key={STEAM_API_KEY}&steamid={steam_id}&format=json")
+        if response.status_code == 200:
+            owned_games_json = json.loads(response.content.decode('utf-8'))['response']
+        else:
+            await ctx.send(f"Error {response.status_code} (GetOwnedGames)")
+            return
+
+        message = discord.Embed(color=discord.Color.blue())
+        try:
+            if args[0] in ['top', "mostplayed", "topgames"]:
+                print("soontm")
+        except IndexError:
+            # show profile
+
+            created_at = datetime.utcfromtimestamp(int(profile_json['timecreated'])).strftime('%Y-%m-%d %H:%M:%S')
+            profile_states = ["Offline", "Online", "Busy", "Away", "Snooze", "Looking to trade", "Looking to play"]
+            recent_games_string = ""
+            total_playtime_2weeks = 0
+
+            message.title = f"{profile_json['personaname']} ({profile_json['steamid']})"
+            message.set_thumbnail(url=profile_json['avatarfull'])
+            try:
+                for i in range(recent_games_json['total_count']):
+                    total_playtime_2weeks += recent_games_json['games'][i]['playtime_2weeks']
+                    recent_games_string += f"{recent_games_json['games'][i]['name']} - " \
+                                           f"**{recent_games_json['games'][i]['playtime_2weeks']/60:.1f}** Hours " \
+                                           f"(total **{recent_games_json['games'][i]['playtime_forever']/60:.1f}** hours)\n"
+
+                total_playtime = 0
+                games = []
+                for i in range(owned_games_json['game_count']):
+                    playtime = owned_games_json['games'][i]['playtime_forever']
+                    total_playtime += playtime
+
+                try:
+                    state = f"In-Game: **{profile_json['gameextrainfo']}**"
+                except KeyError:
+                    state = f"State: {profile_states[profile_json['personastate']]}"
+
+                message.description = f"Country: **{profile_json['loccountrycode']}**\n" \
+                                      f"{state}\n" \
+                                      f"Owned games: **{owned_games_json['game_count']}**\n" \
+                                      f"Total playtime: **{total_playtime/60:.1f} hours**\n" \
+                                      f"Created at: {created_at}"
+            except KeyError:
+                message.description = "Error: please set your steam privacy settings as public!"
+                recent_games_string = "N/A"
+
+            message.add_field(name=f"Recently played - **{total_playtime_2weeks/60:.1f}** hours past two weeks",
+                              value=recent_games_string)
+            # message.add_field(name=f"Most played - Total playtime {total_playtime/60:.1f} hours",
+            #                  value=top_games_string)
+
+        await ctx.send(embed=message)
+
 
 def get_timezone(coord):
     url = f"http://api.timezonedb.com/v2.1/get-time-zone?key={TIMEZONE_API_KEY}&format=json&by=position&" \
@@ -260,7 +364,7 @@ def get_timezone(coord):
     if response.status_code == 200:
         json_data = json.loads(response.content.decode('utf-8'))
         time = json_data['formatted'].split(" ")
-        return time[1]
+        return ":".join(time[1].split(":")[:2])
     else:
         return f"<error{response.status_code}>"
 
@@ -292,6 +396,22 @@ def get_ucum_code(search_query):
         return urllib.parse.quote_plus(ucum_code), name
     else:
         print(f"Error getting ucum code for {search_query}")
+
+
+def n_max_elements(list1, n):
+    final_list = []
+    for i in range(0, n):
+        max1 = 0
+        maxtuple = (0, 0)
+        for j in range(len(list1)):
+            if list1[j][1] > max1:
+                max1 = list1[j][1]
+                maxtuple = list1[j]
+
+        list1.remove(maxtuple)
+        final_list.append(maxtuple)
+
+    return final_list
 
 
 def setup(client):
