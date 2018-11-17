@@ -58,7 +58,7 @@ class Lastfm:
                 elif method_call in ["np", "nowplaying"]:
                     method_call = "nowplaying"
                     method = "user.getrecenttracks"
-                elif method_call in ["recent", "recents"]:
+                elif method_call in ["recent", "recents", "re"]:
                     method_call = "recent"
                     method = "user.getrecenttracks"
                 elif method_call in ["toptracks", "tt"]:
@@ -70,6 +70,24 @@ class Lastfm:
                 elif method_call in ["topalbums", "talb"]:
                     method_call = "topalbums"
                     method = "user.gettopalbums"
+                elif method_call in ["help"]:
+                    #help
+                    help_msg = "```\n" \
+                               ">fm     nowplaying (np)   week\n" \
+                               "        recent (re)       month\n" \
+                               "        toptracks (tt)    3month\n" \
+                               "        topartists (ta)   halfyear\n" \
+                               "        topalbums (talb)  year\n" \
+                               "\n" \
+                               ">fmgeo  toptracks (tt)    [country]\n" \
+                               "        topartists (ta)   [country]\n" \
+                               "\n" \
+                               ">fmdata track   [name] by [artist]\n" \
+                               "        album   [name] by [artist]\n" \
+                               "        artist  [artist]" \
+                               "```"
+                    await ctx.send(help_msg)
+                    return
                 else:
                     await ctx.send(f'argument {args[0]} not found, use ">fm help" to get help')
                     return
@@ -86,17 +104,17 @@ class Lastfm:
 
             try:
                 timeframe = args[1]
-                if timeframe in ["week", "7day"]:
+                if timeframe in ["week", "7day", "7days"]:
                     period = "7day"
-                elif timeframe in ["month", "30day"]:
+                elif timeframe in ["month", "30day", "30days"]:
                     period = "1month"
                 elif timeframe in ["3month", "3months"]:
                     period = "3month"
-                elif timeframe in ["halfyear", "6month"]:
+                elif timeframe in ["halfyear", "6month", "6months"]:
                     period = "6month"
-                elif timeframe in ["year"]:
+                elif timeframe in ["year", "12month", "12months"]:
                     period = "12month"
-                elif timeframe in ["alltime", "all"]:
+                elif timeframe in ["alltime", "all", "overall"]:
                     period = "overall"
                 else:
                     period = "overall"
