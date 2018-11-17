@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import json
+from datetime import datetime
 
 
 def load_data():
@@ -42,12 +43,17 @@ class Fishy:
                 save_data(users_json)
                 await ctx.send(f"Caught trash!  :boot: Better luck next time.")
             else:
-                rare = random.randint(1, 10) == 1
-                amount = random.randint(5, 30)
-                if rare:
-                    amount = amount*10
-                    await ctx.send(f"Caught a rare fish! ({amount} fishies) :blowfish:")
+                rand = random.randint(1, 100)
+                if rand < 5:
+                    # rare
+                    amount = random.randint(10, 50) * 10
+                    await ctx.send(f":star: **Caught a super rare fish! :star: ({amount} fishies)** :tropical_fish:")
+                elif rand < 20:
+                    # uncommon
+                    amount = random.randint(10, 33)*3
+                    await ctx.send(f"Caught an uncommon fish! ({amount} fishies) :blowfish:")
                 else:
+                    amount = random.randint(5, 33)
                     await ctx.send(f"Caught {amount} fishies! :fishing_pole_and_fish: ")
                 try:
                     users_json['users'][user_id]['fishy'] += amount
@@ -87,6 +93,41 @@ class Fishy:
             message += f"\n{elem[0]} - {elem[1]} fishy"
         await ctx.send(message)
 
+    @commands.command()
+    async def profile(self, ctx):
+        users_json = load_data()
+        user_id = str(ctx.message.author.id)
+        member = ctx.message.guild.get_member(int(user_id))
+        user_name = self.client.get_user(int(user_id)).name
+        author = ctx.message.author
+        try:
+            fishy_amount = users_json['users'][user_id]['fishy']
+            timespan = ctx.message.created_at.timestamp() - users_json['users'][user_id]['fishy_timestamp']
+            hours = int(timespan//3600)
+            minutes = int(timespan%3600//60)
+            fishy_time = f"{hours} hours {minutes} minutes ago"
+        except KeyError:
+            fishy_amount = 0
+            fishy_time = "Never"
+
+        message = discord.Embed(color=author.color)
+        if member.nick is not None:
+            message.title = f"{member.nick} ({user_name})"
+        else:
+            message.title = user_name
+        message.description = user_id
+        message.add_field(name="Fishy", value=fishy_amount)
+        message.add_field(name="Last fishy", value=fishy_time)
+        message.add_field(name="Account created", value=author.created_at.strftime('%Y-%m-%d'))
+        message.add_field(name="Joined server", value=member.joined_at.strftime('%Y-%m-%d'))
+        roles_names = []
+        for role in member.roles:
+            roles_names.append(role.mention)
+        role_string = " ".join(roles_names)
+        message.add_field(name="Roles", value=role_string)
+        message.set_thumbnail(url=author.avatar_url)
+
+        await ctx.send(embed=message)
 
 
 def setup(client):
