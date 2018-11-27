@@ -19,8 +19,11 @@ class Owner:
 
     @commands.command()
     @commands.is_owner()
-    async def get_guilds(self, ctx):
-        self.client.guilds
+    async def guilds(self, ctx):
+        content = "**Connected guilds:**\n"
+        for guild in self.client.guilds:
+            content += f"{guild.name} - {guild.member_count} users\n"
+        await ctx.send(content)
 
     @commands.command(hidden=True)
     @commands.is_owner()
