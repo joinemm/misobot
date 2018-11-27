@@ -3,20 +3,20 @@ from discord.ext import commands
 import json
 import traceback
 import sys
-import time
+from miso_utils import logger as misolog
 
 
 def load_data():
     with open('guilds.json', 'r') as filehandle:
         data = json.load(filehandle)
-        print('guilds.json loaded')
+        # print('guilds.json loaded')
         return data
 
 
 def save_data(guilds_json):
     with open('guilds.json', 'w') as filehandle:
         json.dump(guilds_json, filehandle, indent=4)
-        print('guilds.json saved')
+        # print('guilds.json saved')
 
 
 class Events:
@@ -26,43 +26,50 @@ class Events:
         self.guilds_json = load_data()
         self.delete_log_channel_id = 508668369269162005
         self.log_channel_id = 508668551658471424
+        self.logger = misolog.create_logger(__name__)
 
     async def on_ready(self):
+        """The event triggered when bot is done loading extensions and is ready to use"""
         await self.client.change_presence(activity=discord.Game(name='>info'))
-        print('Bot is ready...')
+        self.logger.info('Loading complete : Bot state = READY')
 
     async def on_member_join(self, member):
+        """The event triggered when user joins a guild"""
         try:
+            self.guilds_json = load_data()
             guild = str(member.guild.id)
             channel_id = self.guilds_json['guilds'][guild]['welcome_channel']
             await self.client.get_channel(channel_id).send(f'Hello {member.mention}')
-            print(f"Welcomed {member} to {guild}")
+            self.logger.info(f"Welcomed {member} to {guild}")
         except KeyError:
-            print(f"no welcome channel set for {guild}")
+            self.logger.warning(f"no welcome channel set for {guild}")
 
     async def on_member_remove(self, member):
+        """The event triggered when user leaves a guild"""
         try:
+            self.guilds_json = load_data()
             guild = str(member.guild.id)
             channel_id = self.guilds_json['guilds'][guild]['welcome_channel']
             await self.client.get_channel(channel_id).send(f'Goodbye {member.mention}...')
-            print(f"Said goodbye to {member} from {guild}")
+            self.logger.info(f"Said goodbye to {member} from {guild}")
         except KeyError:
-            print(f"no welcome channel set for {guild}")
+            self.logger.warning(f"no welcome channel set for {guild}")
 
     async def on_message_delete(self, message):
+        """The event triggered when a cached message is deleted"""
         if not int(message.author.id) == self.client.user.id:
-            print(f"deleted message by {message.author} in {message.channel.guild.name} logged")
+            self.logger.info(f"message by {message.author} logged")
             embed = discord.Embed(color=discord.Color.red())
-            embed.set_author(name=f"{message.author} in {message.channel.guild.name}", icon_url=message.author.avatar_url)
+            embed.set_author(name=f"{message.author} in {message.channel.guild.name}",
+                             icon_url=message.author.avatar_url)
             embed.description = message.content
-
+            if len(message.attachments) > 0:
+                embed.set_image(url=message.attachments[0].proxy_url)
             channel = self.client.get_channel(self.delete_log_channel_id)
             await channel.send(embed=embed)
 
     async def on_command_error(self, ctx, error):
-        """The event triggered when an error is raised while invoking a command.
-        ctx   : Context
-        error : Exception"""
+        """The event triggered when an error is raised while invoking a command"""
 
         # This prevents any commands with local handlers being handled here in on_command_error.
         if hasattr(ctx.command, 'on_error'):
@@ -76,38 +83,27 @@ class Events:
 
         # Anything in ignored will return and prevent anything happening.
         if isinstance(error, commands.CommandNotFound):
-            print(f"{ctx.message} : {error}")
+            self.logger.error(misolog.format_log(ctx, str(error)))
             return
-        elif isinstance(error, commands.NotOwner):
-            await ctx.send("Sorry, only Joinemm can use this command!")
-            return
-        else:
-            print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-            await ctx.send(f"```{error}```")
-
-        """
-        http://discordpy.readthedocs.io/en/rewrite/ext/commands/api.html#errors
-        
         elif isinstance(error, commands.DisabledCommand):
-            return await ctx.send(f'{ctx.command} has been disabled.')
-
+            self.logger.error(misolog.format_log(ctx, str(error)))
+            await ctx.send(f'{ctx.command} has been disabled.')
+            return
         elif isinstance(error, commands.NoPrivateMessage):
+            self.logger.error(misolog.format_log(ctx, str(error)))
             try:
                 return await ctx.author.send(f'{ctx.command} can not be used in Private Messages.')
             except:
                 pass
-
-        # For this error example we check to see where it came from...
-        # elif isinstance(error, commands.BadArgument):
-        #     if ctx.command.qualified_name == 'tag list':  # Check if the command being invoked is 'tag list'
-        #         return await ctx.send('I could not find that member. Please try again.')
-
-        # All other Errors not returned come here... And we can just print the default TraceBack.
-        print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-
-        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-        """
+            return
+        elif isinstance(error, commands.NotOwner):
+            self.logger.error(misolog.format_log(ctx, str(error)))
+            await ctx.send("Sorry, only Joinemm can use this command!")
+            return
+        else:
+            self.logger.error(f'Ignoring exception in command {ctx.command}:')
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+            await ctx.send(f"```{error}```")
 
 
 def setup(client):
