@@ -4,6 +4,7 @@ import json
 import discord
 from datetime import datetime
 import re
+from miso_utils import logger as misolog
 
 with open('dont commit\keys.txt', 'r') as keys_filehandle:
     keys = json.load(keys_filehandle)
@@ -14,14 +15,14 @@ with open('dont commit\keys.txt', 'r') as keys_filehandle:
 def load_data():
     with open('users.json', 'r') as filehandle:
         data = json.load(filehandle)
-        print('users.json loaded')
+        # print('users.json loaded')
         return data
 
 
 def save_data(users_json):
     with open('users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
-        print('users.json saved')
+        # print('users.json saved')
         filehandle.close()
 
 
@@ -29,10 +30,12 @@ class Lastfm:
 
     def __init__(self, client):
         self.client = client
+        self.logger = misolog.create_logger(__name__)
 
     @commands.command(name="fm", brief="Get user data from LastFM", aliases=["Fm", "FM"])
     async def fm(self, ctx, *args):
-        print(f"{ctx.message.author} >fm {args}")
+        """Get various lastfm data depending on arguments given from lastfm api"""
+        self.logger.info(misolog.format_log(ctx, f""))
         users_json = load_data()
 
         if str(ctx.message.author.id) not in users_json['users']:
@@ -256,6 +259,8 @@ class Lastfm:
 
     @commands.command(name="fmgeo", brief="Get country specific data from LastFM")
     async def fmgeo(self, ctx, *args):
+        """get lastfm data about a given country"""
+        self.logger.info(misolog.format_log(ctx, f""))
         try:
             method_call = args[0]
             country = " ".join(args[1:])
@@ -315,6 +320,8 @@ class Lastfm:
 
     @commands.command(name="fmdata", brief="Get data about a song, album or artist")
     async def fmdata(self, ctx, datatype, *args):
+        """Get lastfm data about a given artist, album or song"""
+        self.logger.info(misolog.format_log(ctx, f""))
         query = " ".join(args)
         message = discord.Embed(colour=discord.Colour.magenta())
 
@@ -396,9 +403,9 @@ class Lastfm:
 
 
 def get_fm_data(method, user="", period="overall"):
+    """Get json data from lastfm api and return it"""
     url = f"http://ws.audioscrobbler.com/2.0/?method={method}" \
           f"&user={user}&api_key={LASTFM_APPID}&format=json&period={period}"
-    #print(url)
     response = requests.get(url)
     if response.status_code == 200:
         fm_data = json.loads(response.content.decode('utf-8'))
@@ -409,10 +416,12 @@ def get_fm_data(method, user="", period="overall"):
 
 
 def esc(string):
+    """escape asterisks to not mess with markdown"""
     return string.replace("*", "\\*")
 
 
 def esc2(string):
+    """escape asterisks inside bold italiced string to not mess with markdown"""
     return string.replace("*", "*** \\****")
 
 

@@ -8,19 +8,20 @@ from discord.ext import commands
 from lxml import html
 import urllib.parse
 import time
+from miso_utils import logger as misolog
 
 
 def load_data():
     with open('data.json', 'r') as filehandle:
         data = json.load(filehandle)
-        print('data.json loaded')
+        # print('data.json loaded')
         return data
 
 
 def save_data():
     with open('data.json', 'w') as filehandle:
         json.dump(data_json, filehandle, indent=4)
-        print('data.json saved')
+        # print('data.json saved')
 
 
 data_json = load_data()
@@ -30,89 +31,89 @@ class Commands:
 
     def __init__(self, client):
         self.client = client
+        self.start_time = time.time()
         self.artists = data_json['artists']
+        self.logger = misolog.create_logger(__name__)
 
-    @commands.command(name='info', brief='Get information about the bot')
+    @commands.command(name='info')
     async def info(self, ctx):
-        print(f"{ctx.message.author} >info")
+        """Get information about the bot"""
+        self.logger.info(misolog.format_log(ctx, f""))
         info_embed = discord.Embed(title='Hello',
                                    description='I am Miso Bot, created by Joinemm. Use >help for a list of commands.'
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 0.3.3')
+        info_embed.set_footer(text='version 0.5.5')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
 
         await ctx.send(embed=info_embed)
 
-    @commands.command(name='ping', brief="Get the bot's ping")
+    @commands.command(name='ping')
     async def ping(self, ctx):
-        print(f"{ctx.message.author} >ping")
+        """Get the bot's ping"""
         pong_msg = await ctx.send(":ping_pong:")
         ms = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
         await pong_msg.edit(content=f":ping_pong: {ms}ms")
+        self.logger.info(misolog.format_log(ctx, f"ping={ms}ms"))
 
-    async def on_ready(self):
-        self.start_time = time.time()
-
-    @commands.command(name="uptime", brief="Get the bot's uptime")
+    @commands.command(name="uptime")
     async def uptime(self, ctx):
+        """Get the bot's uptime"""
         up_time = time.time() - self.start_time
         m, s = divmod(up_time, 60)
         h, m = divmod(m, 60)
         await ctx.send("Current process uptime: %d hours %d minutes %d seconds" % (h, m, s))
+        self.logger.info(misolog.format_log(ctx, f"uptime={up_time}"))
 
-    @commands.command(name='random', brief='Gives random integer from range 0-{input}')
+    @commands.command(name='random')
     async def random(self, ctx, cap=1):
-        print(f"{ctx.message.author} >random")
+        """Gives random integer from 0 to given input"""
         content = rd.randint(0, int(cap))
         await ctx.send(content)
+        self.logger.info(misolog.format_log(ctx, f"range=[0,{cap}], result={content}"))
 
-    @commands.command(name='youtube', brief='Search a video from youtube')
+    @commands.command(name='youtube')
     async def youtube(self, ctx, *args):
-        try:
-            print(f"{ctx.message.author} >youtube {args}")
-            search_string = " ".join(args)
-            search_string = urllib.parse.urlencode({'search_query': search_string})
-            response = requests.get('http://www.youtube.com/results?search_query=' + search_string)
-            if response.status_code == 200:
-                search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
-                first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
-                await ctx.send(first_result_url)
-            else:
-                await ctx.send("Error: status code " + str(response.status_code))
-        except Exception as e:
-            print(str(e))
-            await ctx.send(f"```{e}```")
+        """Search youtube for the given search query and return first result"""
+        search_string = " ".join(args)
+        search_string = urllib.parse.urlencode({'search_query': search_string})
+        response = requests.get('http://www.youtube.com/results?search_query=' + search_string)
+        if response.status_code == 200:
+            search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
+            first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
+            await ctx.send(first_result_url)
+            self.logger.info(misolog.format_log(ctx, f"{first_result_url}"))
+        else:
+            await ctx.send("Error: status code " + str(response.status_code))
+            self.logger.info(misolog.format_log(ctx, f"error{response.status_code}"))
 
-    @commands.command(name='wikipedia', brief='Search from wikipedia')
+    @commands.command(name='wikipedia')
     async def wikipedia(self, ctx, *args):
+        """Search wikipedia for the given search query"""
+        if args[0] == 'random':
+            search_string = wp.random()
+        else:
+            search_string = ' '.join(args)
         try:
-            print(f"{ctx.message.author} >wikipedia {args}")
-            if args[0] == 'random':
-                search_string = wp.random()
-            else:
-                search_string = ' '.join(args)
-            try:
-                page = wp.page(search_string)
-                await ctx.send(page.url)
-            except wp.exceptions.DisambiguationError as error:
-                print(error)
-                await ctx.send(('```' + str(error)) + '```')
-        except Exception as e:
-            print(str(e))
-            await ctx.send(f"```{e}```")
+            page = wp.page(search_string)
+            await ctx.send(page.url)
+            self.logger.info(misolog.format_log(ctx, f""))
+        except wp.exceptions.DisambiguationError as error:
+            await ctx.send(f"```{str(error)}```")
+            self.logger.info(misolog.format_log(ctx, f"Disambiguation page"))
 
-    @commands.command(name='navyseal',brief='What the fuck did you just-')
+    @commands.command(name='navyseal')
     async def navyseal(self, ctx):
-        print(f"{ctx.message.author} >navyseal")
+        """Navy seal copypasta"""
+        self.logger.info(misolog.format_log(ctx, f""))
         copypasta = data_json['strings']['navyseal_copypasta']
         await ctx.send(copypasta)
 
-    @commands.command(name='stan', brief='Get a random korean artist to stan', aliases=['Stan'])
+    @commands.command(name='stan', aliases=['Stan'])
     async def stan(self, ctx, *args):
-        print(f"{ctx.message.author} >stan {args}")
+        """Gets a random kpop artist from a list scraped from kprofiles.com"""
         if args:
             if args[0] == 'update':
                 amount = len(self.artists)
@@ -125,82 +126,82 @@ class Commands:
                 for url in urls_to_scrape:
                     self.artists += scrape_kprofiles(url)
 
-                print(f"Artist list succesfully updated, {len(self.artists) - amount} new entries, "
-                      f"{len(self.artists)} total entries")
-
                 data_json['artists'] = self.artists
                 save_data()
 
                 await ctx.send(f"Artist list succesfully updated, {len(self.artists) - amount} new entries, "
                                f"{len(self.artists)} total entries")
+                self.logger.info(misolog.format_log(ctx, f"artist list updated; {len(self.artists) - amount} new, "
+                                                         f"{len(self.artists)} total"))
                 return
 
             elif args[0] == 'clear':
-                print('Clearing artist list...')
                 self.artists = []
                 data_json['artists'] = self.artists
                 save_data()
+                self.logger.info(misolog.format_log(ctx, f"artist list cleared"))
                 return
-            else:
-                print(f'invalid argument {args}')
         try:
             artist = str(rd.choice(self.artists))
             await ctx.send('stan ' + artist)
-            print(f"{ctx.message.author} >stan: {artist}")
+            self.logger.info(misolog.format_log(ctx, f"artist={artist}"))
         except IndexError as e:
             print(f"{ctx.message.author} >stan: " + str(e))
             await ctx.send("Error: artist list is empty, please use >stan update")
+            self.logger.warning(misolog.format_log(ctx, f"artist list empty"))
 
     @commands.command()
     async def igsource(self, ctx, *args):
-        try:
-            print(f"{ctx.message.author} >igsource {args}")
-            if len(args) > 1:
-                url = args[1]
-                filetype = args[0]
-            else:
-                url = args[0]
-                filetype = "video"
-            if filetype == "image":
+        """Get the source video or image from an instagram post"""
+        if len(args) > 1:
+            url = args[1]
+            filetype = args[0]
+        else:
+            url = args[0]
+            filetype = "video"
+        if filetype == "image":
+            file_extension = ".jpg"
+        elif filetype == "video":
+            file_extension = ".mp4"
+        else:
+            print(f'Invalid filetype "{filetype}"')
+            return
+        response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
+        tree = html.fromstring(response.content)
+        results = tree.xpath('//meta[@content]')
+        contents = []
+        for result in results:
+            contents.append(result.attrib['content'])
+        sources = []
+        for content in contents:
+            if content.endswith(file_extension):
+                sources.append(content)
+        if sources:
+            await ctx.send(sources[0])
+            self.logger.info(misolog.format_log(ctx, f"Success"))
+
+        else:
+            if file_extension == ".mp4":
+                self.logger.info(f"No video found, searching for image now...")
                 file_extension = ".jpg"
-            elif filetype == "video":
-                file_extension = ".mp4"
-            else:
-                print(f'"{filetype}" not found on this page')
-                return
-            response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
-            tree = html.fromstring(response.content)
-            results = tree.xpath('//meta[@content]')
-            contents = []
-            for result in results:
-                contents.append(result.attrib['content'])
-            sources = []
-            for content in contents:
-                if content.endswith(file_extension):
-                    sources.append(content)
-            if sources:
-                print(sources[0])
-                await ctx.send(sources[0])
-            else:
-                if file_extension == ".mp4":
-                    print(f"No video found, searching for image now...")
-                    file_extension = ".jpg"
-                    for content in contents:
-                        if content.endswith(file_extension):
-                            sources.append(content)
-                    if sources:
-                        print(sources[0])
-                        await ctx.send(sources[0])
-                    else:
-                        print("Found nothing, sorry!")
+                for content in contents:
+                    if content.endswith(file_extension):
+                        sources.append(content)
+                if sources:
+                    await ctx.send(sources[0])
+                    self.logger.info(misolog.format_log(ctx, f"Success"))
+
                 else:
-                    print("Found nothing, sorry!")
-        except Exception as e:
-            print(str(e))
-            await ctx.send(f"```{e}```")
+                    await ctx.send("Found nothing, sorry!")
+                    self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
+
+            else:
+                await ctx.send("Found nothing, sorry!")
+                self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
 
 
 def scrape_kprofiles(url):
+    """Scrape the given kprofiles url for artist names and return the results"""
     page = requests.get(url)
     tree = html.fromstring(page.content)
     results = tree.xpath('//article/div/div/div/p/a[@href]/text()')
