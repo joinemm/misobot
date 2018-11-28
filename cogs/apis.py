@@ -24,6 +24,7 @@ with open('dont commit\keys.txt', 'r') as filehandle:
     GOOGLE_API_KEY = keys['GOOGLE_KEY']
     DARKSKY_API_KEY = keys['DARK_SKY_KEY']
     STEAM_API_KEY = keys['STEAM_WEB_API_KEY']
+    CURRENCY_API_KEY = keys['CURRENCYLAYER_KEY']
 
 
 class Apis:
@@ -270,6 +271,29 @@ class Apis:
 
         else:
             await ctx.send(f"Error {response.status_code}")
+
+    @commands.command(name="currency")
+    async def currency(self, ctx, *args):
+        # >currency 20 usd in eur
+        try:
+            source_q = float(args[0])
+            source_curr = args[1]
+            target_curr = args[3]
+        except IndexError:
+            await ctx.send("Invalid syntax! example: `>currency 20 usd in eur`")
+            return
+
+        response = requests.get(url=f"https://free.currencyconverterapi.com/api/v6/convert"
+                                    f"?q={source_curr}_{target_curr}")
+        if response.status_code == 200:
+            json_data = json.loads(response.content.decode('utf-8'))
+            if json_data['results']:
+                conversion = json_data['results'][f'{source_curr}_{target_curr}'.upper()]
+                rate = conversion['val']
+                target_q = source_q*rate
+                await ctx.send(f"**{source_q:.2f} {conversion['fr']}** is **{target_q:.2f} {conversion['to']}**")
+            else:
+                await ctx.send("Invalid currency code!")
 
     @commands.command(name="steam", brief="steam profile data")
     async def steam(self, ctx, steam_id, *args):
