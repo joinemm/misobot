@@ -1,6 +1,6 @@
 from discord.ext import commands
 import json
-from miso_utils import logger as misolog
+from utils import logger as misolog
 
 client = commands.Bot(command_prefix=">")
 extensions = ["cogs.commands", "cogs.nsfw", "cogs.owner", "cogs.lastfm", "cogs.apis", "cogs.voice", "cogs.events",

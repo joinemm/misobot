@@ -8,7 +8,7 @@ from discord.ext import commands
 from lxml import html
 import urllib.parse
 import time
-from miso_utils import logger as misolog
+from utils import logger as misolog
 from bs4 import BeautifulSoup
 
 
@@ -45,7 +45,7 @@ class Commands:
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 0.5.5')
+        info_embed.set_footer(text='version 0.6.3')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
 

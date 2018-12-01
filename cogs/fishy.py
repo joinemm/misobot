@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import json
-from miso_utils import logger as misolog
+from utils import logger as misolog
 
 
 def load_data():

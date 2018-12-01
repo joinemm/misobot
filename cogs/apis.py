@@ -8,7 +8,7 @@ import spotipy.util as util
 import spotipy
 import re
 from datetime import datetime
-from miso_utils import logger as misolog
+from utils import logger as misolog
 import random
 
 with open('dont commit\keys.txt', 'r') as filehandle:

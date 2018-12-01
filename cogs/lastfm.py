@@ -4,7 +4,7 @@ import json
 import discord
 from datetime import datetime
 import re
-from miso_utils import logger as misolog
+from utils import logger as misolog
 
 with open('dont commit\keys.txt', 'r') as keys_filehandle:
     keys = json.load(keys_filehandle)

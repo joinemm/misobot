@@ -3,7 +3,7 @@ from discord.ext import commands
 import json
 import traceback
 import sys
-from miso_utils import logger as misolog
+from utils import logger as misolog
 
 
 def load_data():
