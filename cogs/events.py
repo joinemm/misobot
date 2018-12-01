@@ -58,7 +58,7 @@ class Events:
     async def on_message_delete(self, message):
         """The event triggered when a cached message is deleted"""
         if not int(message.author.id) == self.client.user.id:
-            self.logger.info(f"message by {message.author} logged")
+            self.logger.info(f'{message.author} Deleted message: "{message.content}"')
             embed = discord.Embed(color=discord.Color.red())
             embed.set_author(name=f"{message.author} in {message.channel.guild.name}",
                              icon_url=message.author.avatar_url)
