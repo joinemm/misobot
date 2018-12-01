@@ -160,7 +160,6 @@ class Fishy:
 
             self.logger.info(misolog.format_log(ctx, f"fail (wait_time={wait_time:.3f}s)"))
 
-
     @commands.command()
     @commands.is_owner()
     async def fishyreset(self, ctx, user_id=None):
@@ -184,29 +183,34 @@ class Fishy:
         save_data(users_json)
 
     @commands.command()
-    async def leaderboard(self, ctx):
+    async def leaderboard(self, ctx, mode=None):
         """The fishy leaderboard"""
         self.logger.info(misolog.format_log(ctx, f""))
         leaderboard = {}
         users_json = load_data()
         for user in users_json['users']:
+            if not mode == "global":
+                if ctx.message.guild.get_member(int(user)) is None:
+                    continue
             try:
                 userdata = users_json['users'][user]
                 leaderboard[self.client.get_user(int(user)).name] = userdata['fishy']
             except KeyError:
                 continue
         leaderboard = sorted(leaderboard.items(), reverse=True, key=lambda x: x[1])
-        message = f"**Fishy leaderboard:**"
+        message = discord.Embed()
+        message.title = f"Fishy leaderboard:"
+        message.description = ""
         ranking = 1
         for elem in leaderboard[:9]:
             if ranking < 4:
                 rank_icon = [':first_place:', ':second_place:', ':third_place:'][ranking-1]
-                message += f"\n{rank_icon} {elem[0]} - {elem[1]} fishy"
+                message.description += f"\n{rank_icon} {elem[0]} - **{elem[1]}** fishy"
             else:
-                message += f"\n{ranking}. {elem[0]} - {elem[1]} fishy"
+                message.description += f"\n**{ranking}.** {elem[0]} - **{elem[1]}** fishy"
             ranking += 1
-        message += f"\n+ {len(leaderboard[9:])} more users"
-        await ctx.send(message)
+        message.set_footer(text=f"\n+ {len(leaderboard[9:])} more users")
+        await ctx.send(embed=message)
 
     @commands.command()
     async def profile(self, ctx):
@@ -266,6 +270,76 @@ class Fishy:
         message.set_thumbnail(url=author.avatar_url)
 
         await ctx.send(embed=message)
+
+    @commands.command()
+    async def fishystats(self, ctx, arg=None):
+        """Get total fishing stats"""
+        fishy_total = 0
+        fishy_gifted_total = 0
+        trash = 0
+        common = 0
+        uncommon = 0
+        rare = 0
+        legendary = 0
+        users_json = load_data()
+        message = discord.Embed()
+        if arg == "global":
+            users_to_parse = users_json['users']
+            message.title = "Global fishy stats"
+        else:
+            if ctx.message.mentions:
+                userid = str(ctx.message.mentions[0].id)
+            else:
+                userid = str(ctx.message.author.id)
+            users_to_parse = [userid]
+            username = ctx.message.guild.get_member(int(userid)).name
+            message.title = f"{username} fishy stats"
+        for user in users_to_parse:
+            try:
+                userdata = users_json['users'][user]
+            except KeyError:
+                await ctx.send("User not found in database")
+                self.logger.warning(misolog.format_log(ctx, f"UserError"))
+                return
+            try:
+                fishy_total += userdata['fishy']
+            except KeyError:
+                pass
+            try:
+                fishy_gifted_total += userdata['fishy_gifted']
+            except KeyError:
+                pass
+            try:
+                trash += userdata['fish_trash']
+            except KeyError:
+                pass
+            try:
+                common += userdata['fish_common']
+            except KeyError:
+                pass
+            try:
+                uncommon += userdata['fish_uncommon']
+            except KeyError:
+                pass
+            try:
+                rare += userdata['fish_rare']
+            except KeyError:
+                pass
+            try:
+                legendary += userdata['fish_legendary']
+            except KeyError:
+                pass
+
+        message.description = f"Total fishies fished: {fishy_total}\n" \
+                              f"Total fishies gifted: {fishy_gifted_total}\n\n" \
+                              f"Trash: {trash}\n" \
+                              f"Common: {common}\n" \
+                              f"Uncommon: {uncommon}\n" \
+                              f"Rare: {rare}\n" \
+                              f"Legendary: {legendary}\n\n" \
+                              f"Total fish count: {trash+common+uncommon+rare+legendary}"
+        await ctx.send(embed=message)
+        self.logger.info(misolog.format_log(ctx, f""))
 
     @commands.command(name="avatar")
     async def avatar(self, ctx, userid=None):
