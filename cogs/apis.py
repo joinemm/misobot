@@ -9,6 +9,7 @@ import spotipy
 import re
 from datetime import datetime
 from miso_utils import logger as misolog
+import random
 
 with open('dont commit\keys.txt', 'r') as filehandle:
     keys = json.load(filehandle)
@@ -24,7 +25,6 @@ with open('dont commit\keys.txt', 'r') as filehandle:
     GOOGLE_API_KEY = keys['GOOGLE_KEY']
     DARKSKY_API_KEY = keys['DARK_SKY_KEY']
     STEAM_API_KEY = keys['STEAM_WEB_API_KEY']
-    CURRENCY_API_KEY = keys['CURRENCYLAYER_KEY']
 
 
 class Apis:
@@ -294,6 +294,33 @@ class Apis:
                 await ctx.send(f"**{source_q:.2f} {conversion['fr']}** is **{target_q:.2f} {conversion['to']}**")
             else:
                 await ctx.send("Invalid currency code!")
+
+    @commands.command(name="color", aliases=["colour"])
+    async def color(self, ctx, color, mode=None):
+        if color == "random":
+            color = "{:06x}".format(random.randint(0, 0xFFFFFF))
+        elif ctx.message.mentions:
+            color = str(ctx.message.mentions[0].color).replace("#", "")
+        url = f"http://thecolorapi.com/id?hex={color}&format=json"
+        response = requests.get(url=url)
+        if response.status_code == 200:
+            data = json.loads(response.content.decode('utf-8'))
+            if mode == "debug":
+                await ctx.send(f"```json\n{json.dumps(data, indent=4)}\n```")
+                return
+            hexvalue = data['hex']['value']
+            rgbvalue = data['rgb']['value']
+            name = data['name']['value']
+            image_url = f"http://www.colourlovers.com/img/{color}/200/200/color.png"
+
+            content = discord.Embed(colour=int(color, 16))
+            content.set_image(url=image_url)
+            content.title = name
+            content.description = f"{hexvalue} - {rgbvalue}"
+            await ctx.send(embed=content)
+            self.logger.info(misolog.format_log(ctx, f"color={hexvalue}"))
+        else:
+            self.logger.error(misolog.format_log(ctx, f"statuscode={response.status_code}"))
 
     @commands.command(name="steam", brief="steam profile data")
     async def steam(self, ctx, steam_id, *args):
