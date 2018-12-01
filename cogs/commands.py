@@ -9,6 +9,7 @@ from lxml import html
 import urllib.parse
 import time
 from miso_utils import logger as misolog
+from bs4 import BeautifulSoup
 
 
 def load_data():
@@ -151,21 +152,17 @@ class Commands:
             self.logger.warning(misolog.format_log(ctx, f"artist list empty"))
 
     @commands.command()
-    async def igsource(self, ctx, *args):
-        """Get the source video or image from an instagram post"""
-        if len(args) > 1:
-            url = args[1]
-            filetype = args[0]
-        else:
-            url = args[0]
-            filetype = "video"
-        if filetype == "image":
-            file_extension = ".jpg"
-        elif filetype == "video":
-            file_extension = ".mp4"
-        else:
-            print(f'Invalid filetype "{filetype}"')
-            return
+    async def ascii(self, ctx, *args):
+        self.logger.info(misolog.format_log(ctx, f""))
+        text = " ".join(args)
+        response = requests.get(f"https://artii.herokuapp.com/make?text={text}")
+        content = f"```{response.content.decode('utf-8')}```"
+        await ctx.send(content)
+
+    @commands.command()
+    async def igvideo(self, ctx, url):
+        """Get the source video from an instagram post"""
+
         response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
         tree = html.fromstring(response.content)
         results = tree.xpath('//meta[@content]')
@@ -174,30 +171,34 @@ class Commands:
             contents.append(result.attrib['content'])
         sources = []
         for content in contents:
-            if content.endswith(file_extension):
+            if content.endswith(".mp4"):
                 sources.append(content)
         if sources:
             await ctx.send(sources[0])
             self.logger.info(misolog.format_log(ctx, f"Success"))
-
         else:
-            if file_extension == ".mp4":
-                self.logger.info(f"No video found, searching for image now...")
-                file_extension = ".jpg"
-                for content in contents:
-                    if content.endswith(file_extension):
-                        sources.append(content)
-                if sources:
-                    await ctx.send(sources[0])
-                    self.logger.info(misolog.format_log(ctx, f"Success"))
+            await ctx.send("Found nothing, sorry!")
+            self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
 
-                else:
-                    await ctx.send("Found nothing, sorry!")
-                    self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
+    @commands.command()
+    async def ig(self, ctx, url):
+        """Get the source images from an instagram post"""
 
-            else:
-                await ctx.send("Found nothing, sorry!")
-                self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
+        response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
+        soup = BeautifulSoup(response.text, 'html.parser')
+        script = soup.find_all('script')
+        sources = re.findall('"display_url":"(.*?)"', script[4].text)
+        sources = list(set(sources))
+
+        if sources:
+            content = ""
+            for url in sources:
+                content += f"{url}\n"
+            await ctx.send(content)
+            self.logger.info(misolog.format_log(ctx, f"Success"))
+        else:
+            await ctx.send("Found nothing, sorry!")
+            self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
 
 
 def scrape_kprofiles(url):
