@@ -43,6 +43,8 @@ class Lastfm:
 
         if len(args) > 0:
 
+            chart = "chart" in args
+
             try:
                 method_call = args[0]
                 if method_call in ["set"]:
@@ -74,11 +76,10 @@ class Lastfm:
                     method_call = "topalbums"
                     method = "user.gettopalbums"
                 elif method_call in ["help"]:
-                    #help
                     help_msg = "```\n" \
-                               ">fm     nowplaying (np)   week\n" \
-                               "        recent (re)       month\n" \
-                               "        toptracks (tt)    3month\n" \
+                               ">fm     nowplaying (np)   week      chart 3x3\n" \
+                               "        recent (re)       month     chart 4x4\n" \
+                               "        toptracks (tt)    3month    chart 5x5\n" \
                                "        topartists (ta)   halfyear\n" \
                                "        topalbums (talb)  year\n" \
                                "\n" \
@@ -130,6 +131,7 @@ class Lastfm:
             method_call = "userinfo"
             period = "overall"
             amount = 10
+            chart = False
         try:
             user = users_json["users"][str(ctx.message.author.id)]['lastfm_username']
         except Exception:
@@ -137,125 +139,145 @@ class Lastfm:
             return
 
         # all arguments parsed, get data based on the given arguments
-        fm_data = get_fm_data(method, user, period)
-        if fm_data is None:
-            await ctx.send("Error getting data from LastFM")
-            return
-
-        # parse data and set embed settings
         message = discord.Embed(colour=discord.Colour.magenta())
-        total = 0
+        if chart:
+            if args[-1] in ['3x3', '4x4', '5x5']:
+                size = args[-1]
+            else:
+                size = "3x3"
+            url = f"http://tapmusic.net/collage.php?user={user}&type={period}&size={size}&caption=true&playcount=true"
+            chart_type = "Album"
+            if method_call == "topartists":
+                chart_type = "Artist"
+                url += "&artistonly=true"
+            elif method_call == "toptracks":
+                await ctx.send("Cannot generate chart for tracks")
+                return
+            async with ctx.typing():
+                image = requests.get(url)
+                with open("downloads/tapmusic.jpeg", 'wb') as f:
+                    f.write(image.content)
+                with open("downloads/tapmusic.jpeg", 'rb') as f:
+                    await ctx.send(f"`{user} {period} {size} {chart_type} chart`", file=discord.File(f))
+        else:
+            fm_data = get_fm_data(method, user, period)
+            if fm_data is None:
+                await ctx.send("Error getting data from LastFM")
+                return
 
-        if method_call == "nowplaying":
-            user_attr = fm_data['recenttracks']['@attr']
-            tracks = fm_data['recenttracks']['track']
-            artist = esc(tracks[0]['artist']['#text'])
-            album = esc(tracks[0]['album']['#text'])
-            if album == "":
-                album = "<unknown album>"
-            name = esc(tracks[0]['name'])
-            try:
-                if tracks[0]['@attr']['nowplaying'] == "true":
-                    message.set_author(name=f"{user_attr['user']} — Now Playing",
-                                       icon_url=ctx.message.author.avatar_url)
-                    message.description = f"**{artist}** — ***{name}*** :notes:\n{album}"
-                else:
-                    await ctx.send("lastfm error :thinking:")
-            except KeyError:
-                message.set_author(name=f"{user_attr['user']} — Most recent track:",
-                                   icon_url=ctx.message.author.avatar_url)
-                message.description = f"**{artist}** — ***{name}***\n{album}"
-            message.set_thumbnail(url=tracks[0]['image'][3]['#text'])
+            # parse data and set embed settings
+            total = 0
 
-        elif method_call == "recent":
-            user_attr = fm_data['recenttracks']['@attr']
-            tracks = fm_data['recenttracks']['track']
-            description = ""
-            for i in range(amount):
-                artist = esc(tracks[i]['artist']['#text'])
-                album = esc(tracks[i]['album']['#text'])
+            if method_call == "nowplaying":
+                user_attr = fm_data['recenttracks']['@attr']
+                tracks = fm_data['recenttracks']['track']
+                artist = esc(tracks[0]['artist']['#text'])
+                album = esc(tracks[0]['album']['#text'])
                 if album == "":
                     album = "<unknown album>"
-                name = esc2(tracks[i]['name'])
-                description += f"**{artist}** — ***{name}***\n"
-                total += 1
-            message.description = description
-            message.set_thumbnail(url=tracks[0]['image'][3]['#text'])
-            message.set_footer(text=f"Total plays: {user_attr['total']}")
-            message.set_author(name=f"{user_attr['user']} — {total} Recent tracks",
-                               icon_url=ctx.message.author.avatar_url)
+                name = esc(tracks[0]['name'])
+                try:
+                    if tracks[0]['@attr']['nowplaying'] == "true":
+                        message.set_author(name=f"{user_attr['user']} — Now Playing",
+                                           icon_url=ctx.message.author.avatar_url)
+                        message.description = f"**{artist}** — ***{name}*** :notes:\n{album}"
+                    else:
+                        await ctx.send("lastfm error :thinking:")
+                except KeyError:
+                    message.set_author(name=f"{user_attr['user']} — Most recent track:",
+                                       icon_url=ctx.message.author.avatar_url)
+                    message.description = f"**{artist}** — ***{name}***\n{album}"
+                message.set_thumbnail(url=tracks[0]['image'][3]['#text'])
 
-        elif method_call == "toptracks":
-            user_attr = fm_data['toptracks']['@attr']
-            tracks = fm_data['toptracks']['track']
-            largest = len(tracks[0]['playcount'])
-            description = ""
-            for i in range(amount):
-                artist = esc(tracks[i]['artist']['name'])
-                name = esc2(tracks[i]['name'])
-                plays = tracks[i]['playcount']
-                rank = tracks[i]['@attr']['rank']
-                description += f"**{plays:{largest}}** plays - ***{name}*** — **{artist}**\n"
-                total += 1
-            message.description = description
-            message.set_thumbnail(url=tracks[0]['image'][3]['#text'])
-            message.set_footer(text=f"Total unique tracks: {user_attr['total']}")
-            message.set_author(name=f"{user_attr['user']} — {total} Most played tracks {period}",
-                               icon_url=ctx.message.author.avatar_url)
+            elif method_call == "recent":
+                user_attr = fm_data['recenttracks']['@attr']
+                tracks = fm_data['recenttracks']['track']
+                description = ""
+                for i in range(amount):
+                    artist = esc(tracks[i]['artist']['#text'])
+                    album = esc(tracks[i]['album']['#text'])
+                    if album == "":
+                        album = "<unknown album>"
+                    name = esc2(tracks[i]['name'])
+                    description += f"**{artist}** — ***{name}***\n"
+                    total += 1
+                message.description = description
+                message.set_thumbnail(url=tracks[0]['image'][3]['#text'])
+                message.set_footer(text=f"Total plays: {user_attr['total']}")
+                message.set_author(name=f"{user_attr['user']} — {total} Recent tracks",
+                                   icon_url=ctx.message.author.avatar_url)
 
-        elif method_call == "topartists":
-            user_attr = fm_data['topartists']['@attr']
-            artists = fm_data['topartists']['artist']
-            largest = len(artists[0]['playcount'])
-            description = ""
-            for i in range(amount):
-                artist = esc(artists[i]['name'])
-                plays = esc(artists[i]['playcount'])
-                rank = artists[i]['@attr']['rank']
-                description += f"**{plays:{largest}}** plays — **{artist}**\n"
-                total += 1
-            message.description = description
-            message.set_thumbnail(url=artists[0]['image'][3]['#text'])
-            message.set_footer(text=f"Total unique artists: {user_attr['total']}")
-            message.set_author(name=f"{user_attr['user']} — {total} Most played artists {period}",
-                               icon_url=ctx.message.author.avatar_url)
+            elif method_call == "toptracks":
+                user_attr = fm_data['toptracks']['@attr']
+                tracks = fm_data['toptracks']['track']
+                largest = len(tracks[0]['playcount'])
+                description = ""
+                for i in range(amount):
+                    artist = esc(tracks[i]['artist']['name'])
+                    name = esc2(tracks[i]['name'])
+                    plays = tracks[i]['playcount']
+                    rank = tracks[i]['@attr']['rank']
+                    description += f"**{plays:{largest}}** plays - ***{name}*** — **{artist}**\n"
+                    total += 1
+                message.description = description
+                message.set_thumbnail(url=tracks[0]['image'][3]['#text'])
+                message.set_footer(text=f"Total unique tracks: {user_attr['total']}")
+                message.set_author(name=f"{user_attr['user']} — {total} Most played tracks {period}",
+                                   icon_url=ctx.message.author.avatar_url)
 
-        elif method_call == "topalbums":
-            user_attr = fm_data['topalbums']['@attr']
-            albums = fm_data['topalbums']['album']
-            largest = len(albums[0]['playcount'])
-            description = ""
-            for i in range(amount):
-                album = esc2(albums[i]['name'])
-                artist = esc(albums[i]['artist']['name'])
-                plays = albums[i]['playcount']
-                rank = albums[i]['@attr']['rank']
-                description += f"**{plays:{largest}}** plays - ***{album}*** — **{artist}**\n"
-                total += 1
-            message.description = description
-            message.set_thumbnail(url=albums[0]['image'][3]['#text'])
-            message.set_footer(text=f"Total unique albums: {user_attr['total']}")
-            message.set_author(name=f"{user_attr['user']} — {total} Most played albums {period}",
-                               icon_url=ctx.message.author.avatar_url)
+            elif method_call == "topartists":
+                user_attr = fm_data['topartists']['@attr']
+                artists = fm_data['topartists']['artist']
+                largest = len(artists[0]['playcount'])
+                description = ""
+                for i in range(amount):
+                    artist = esc(artists[i]['name'])
+                    plays = esc(artists[i]['playcount'])
+                    rank = artists[i]['@attr']['rank']
+                    description += f"**{plays:{largest}}** plays — **{artist}**\n"
+                    total += 1
+                message.description = description
+                message.set_thumbnail(url=artists[0]['image'][3]['#text'])
+                message.set_footer(text=f"Total unique artists: {user_attr['total']}")
+                message.set_author(name=f"{user_attr['user']} — {total} Most played artists {period}",
+                                   icon_url=ctx.message.author.avatar_url)
 
-        elif method_call == "userinfo":
-            username = fm_data['user']['name']
-            playcount = fm_data['user']['playcount']
-            profile_url = fm_data['user']['url']
-            profile_pic_url = fm_data['user']['image'][3]['#text']
-            timestamp = int(fm_data['user']['registered']['unixtime'])
-            utc_time = datetime.utcfromtimestamp(timestamp)
-            time = utc_time.strftime("%d/%m/%Y")
+            elif method_call == "topalbums":
+                user_attr = fm_data['topalbums']['@attr']
+                albums = fm_data['topalbums']['album']
+                largest = len(albums[0]['playcount'])
+                description = ""
+                for i in range(amount):
+                    album = esc2(albums[i]['name'])
+                    artist = esc(albums[i]['artist']['name'])
+                    plays = albums[i]['playcount']
+                    rank = albums[i]['@attr']['rank']
+                    description += f"**{plays:{largest}}** plays - ***{album}*** — **{artist}**\n"
+                    total += 1
+                message.description = description
+                message.set_thumbnail(url=albums[0]['image'][3]['#text'])
+                message.set_footer(text=f"Total unique albums: {user_attr['total']}")
+                message.set_author(name=f"{user_attr['user']} — {total} Most played albums {period}",
+                                   icon_url=ctx.message.author.avatar_url)
 
-            message.set_author(name=f"{username}",
-                               icon_url=ctx.message.author.avatar_url)
-            message.add_field(name="LastFM profile", value=f"[link]({profile_url})", inline=True)
-            message.add_field(name="Registered on", value=f"{time}", inline=True)
-            message.set_thumbnail(url=profile_pic_url)
-            message.set_footer(text=f"Total plays: {playcount}")
+            elif method_call == "userinfo":
+                username = fm_data['user']['name']
+                playcount = fm_data['user']['playcount']
+                profile_url = fm_data['user']['url']
+                profile_pic_url = fm_data['user']['image'][3]['#text']
+                timestamp = int(fm_data['user']['registered']['unixtime'])
+                utc_time = datetime.utcfromtimestamp(timestamp)
+                time = utc_time.strftime("%d/%m/%Y")
 
-        # settings done, send embed
-        await ctx.send(embed=message)
+                message.set_author(name=f"{username}",
+                                   icon_url=ctx.message.author.avatar_url)
+                message.add_field(name="LastFM profile", value=f"[link]({profile_url})", inline=True)
+                message.add_field(name="Registered on", value=f"{time}", inline=True)
+                message.set_thumbnail(url=profile_pic_url)
+                message.set_footer(text=f"Total plays: {playcount}")
+
+            # settings done, send embed
+            await ctx.send(embed=message)
 
     @commands.command(name="fmgeo", brief="Get country specific data from LastFM")
     async def fmgeo(self, ctx, *args):
