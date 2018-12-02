@@ -68,6 +68,18 @@ code {
   display: inline-block;
 }
 
+.arguments {
+  background: #d7d6d6;
+  color: #FD3155;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  padding: 2px 8px;
+  padding-top: 4px;
+  display: inline-block;
+  border-radius: 5px;
+}
+
 .btn, a.btn {
   -webkit-transition: all 0.4s ease-in-out;
   -moz-transition: all 0.4s ease-in-out;
@@ -454,12 +466,15 @@ select {
 }
 
 .section-block {
-  padding-top: 15px;
-  padding-bottom: 15px;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding-left: 10px;
+  border-left: 5px solid #d7d6d6;
 }
 
 .section-block .block-title {
   margin-top: 0;
+  color: #e73c87;
 }
 
 .section-block .list > li {
@@ -513,8 +528,8 @@ select {
 }
 
 .code-block {
-  margin-top: 30px;
-  margin-bottom: 30px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .callout-block {
