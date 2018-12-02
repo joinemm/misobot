@@ -212,64 +212,6 @@ class Fishy:
         message.set_footer(text=f"\n+ {len(leaderboard[9:])} more users")
         await ctx.send(embed=message)
 
-    @commands.command()
-    async def profile(self, ctx):
-        """User profile"""
-        self.logger.info(misolog.format_log(ctx, f""))
-        users_json = load_data()
-        if ctx.message.mentions:
-            user_id = str(ctx.message.mentions[0].id)
-            author = ctx.message.mentions[0]
-        else:
-            user_id = str(ctx.message.author.id)
-            author = ctx.message.author
-        member = ctx.message.guild.get_member(int(user_id))
-        user_name = self.client.get_user(int(user_id)).name
-        try:
-            fishy_amount = users_json['users'][user_id]['fishy']
-            try:
-                fishy_gifted = users_json['users'][user_id]['fishy_gifted']
-            except KeyError:
-                fishy_gifted = 0
-            timespan = ctx.message.created_at.timestamp() - users_json['users'][user_id]['fishy_timestamp']
-            hours = int(timespan//3600)
-            minutes = int(timespan%3600//60)
-            fishy_time = f"{hours} hours {minutes} minutes ago"
-
-            fish_collection = ""
-            for fishtype in ['trash', 'common', 'uncommon', 'rare', 'legendary']:
-                try:
-                    qty = users_json['users'][user_id][f'fish_{fishtype}']
-                except KeyError:
-                    continue
-                fish_collection += f"{fishtype}: {qty}\n"
-
-        except KeyError:
-            fishy_amount = 0
-            fishy_gifted = 0
-            fishy_time = "Never"
-            fish_collection = "N/A"
-
-        message = discord.Embed(color=author.color)
-        if member.nick is not None:
-            message.title = f"{member.nick} ({user_name})"
-        else:
-            message.title = user_name
-        message.description = user_id
-        message.add_field(name="Fishy", value=fishy_amount)
-        message.add_field(name="Fishy gifted", value=fishy_gifted)
-        message.add_field(name="Last fishy", value=fishy_time)
-        message.add_field(name="Fish collection", value=fish_collection)
-        message.add_field(name="Account created", value=author.created_at.strftime('%Y-%m-%d'))
-        message.add_field(name="Joined server", value=member.joined_at.strftime('%Y-%m-%d'))
-        roles_names = []
-        for role in member.roles:
-            roles_names.append(role.mention)
-        role_string = " ".join(roles_names)
-        message.add_field(name="Roles", value=role_string)
-        message.set_thumbnail(url=author.avatar_url)
-
-        await ctx.send(embed=message)
 
     @commands.command()
     async def fishystats(self, ctx, arg=None):
@@ -329,42 +271,18 @@ class Fishy:
                 legendary += userdata['fish_legendary']
             except KeyError:
                 pass
-
-        message.description = f"Total fishies fished: {fishy_total}\n" \
-                              f"Total fishies gifted: {fishy_gifted_total}\n\n" \
-                              f"Trash: {trash}\n" \
-                              f"Common: {common}\n" \
-                              f"Uncommon: {uncommon}\n" \
-                              f"Rare: {rare}\n" \
-                              f"Legendary: {legendary}\n\n" \
-                              f"Total fish count: {trash+common+uncommon+rare+legendary}"
+        total = trash+common+uncommon+rare+legendary
+        message.description = f"Total fishies fished: **{fishy_total}**\n" \
+                              f"Total fishies gifted: **{fishy_gifted_total}**\n\n" \
+                              f"Trash: **{trash}** - {(trash/total)*100:.1f}%\n" \
+                              f"Common: **{common}** - {(common/total)*100:.1f}%\n" \
+                              f"Uncommon: **{uncommon}** - {(uncommon/total)*100:.1f}%\n" \
+                              f"Rare: **{rare}** - {(rare/total)*100:.1f}%\n" \
+                              f"Legendary: **{legendary}** - {(legendary/total)*100:.1f}%\n\n" \
+                              f"Total fish count: **{total}**\n" \
+                              f"Average fishy: **{fishy_total/total:.2f}**"
         await ctx.send(embed=message)
         self.logger.info(misolog.format_log(ctx, f""))
-
-    @commands.command(name="avatar")
-    async def avatar(self, ctx, userid=None):
-        if ctx.message.mentions:
-            user = ctx.message.mentions[0]
-        else:
-            if userid is not None:
-                try:
-                    user = ctx.message.guild.get_member(int(userid))
-                except Exception:
-                    user = None
-                if user is None:
-                    await ctx.send(f"Couldn't find user {userid}")
-                    self.logger.warning(misolog.format_log(ctx, f"Couldn't find user {userid}"))
-                    return
-            else:
-                user = ctx.message.author
-
-        self.logger.info(misolog.format_log(ctx, f"user={user.name}"))
-
-        content = discord.Embed(color=discord.Color.light_grey())
-        url = user.avatar_url
-        content.set_image(url=url)
-
-        await ctx.send(embed=content)
 
 
 def setup(client):
