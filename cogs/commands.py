@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import json
 import random as rd
 import re
@@ -10,6 +11,8 @@ import urllib.parse
 import time
 from utils import logger as misolog
 from bs4 import BeautifulSoup
+import youtube_dl
+import os
 
 
 def load_data():
@@ -35,6 +38,10 @@ class Commands:
         self.start_time = time.time()
         self.artists = data_json['artists']
         self.logger = misolog.create_logger(__name__)
+
+    @commands.command()
+    async def website(self, ctx):
+        await ctx.send("http://joinemm.me/misobot/")
 
     @commands.command(name='info')
     async def info(self, ctx):
@@ -69,11 +76,11 @@ class Commands:
         self.logger.info(misolog.format_log(ctx, f"uptime={up_time}"))
 
     @commands.command(name='random')
-    async def random(self, ctx, cap=1):
+    async def rng(self, ctx, _range=1):
         """Gives random integer from 0 to given input"""
-        content = rd.randint(0, int(cap))
+        content = rd.randint(0, int(_range))
         await ctx.send(content)
-        self.logger.info(misolog.format_log(ctx, f"range=[0,{cap}], result={content}"))
+        self.logger.info(misolog.format_log(ctx, f"range=[0,{_range}], result={content}"))
 
     @commands.command(name='youtube')
     async def youtube(self, ctx, *args):
@@ -162,7 +169,6 @@ class Commands:
     @commands.command()
     async def igvideo(self, ctx, url):
         """Get the source video from an instagram post"""
-
         response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
         tree = html.fromstring(response.content)
         results = tree.xpath('//meta[@content]')
@@ -183,7 +189,6 @@ class Commands:
     @commands.command()
     async def ig(self, ctx, url):
         """Get the source images from an instagram post"""
-
         response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
         soup = BeautifulSoup(response.text, 'html.parser')
         script = soup.find_all('script')
@@ -199,6 +204,31 @@ class Commands:
         else:
             await ctx.send("Found nothing, sorry!")
             self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
+
+    @commands.command(name="ytmp3")
+    async def ytmp3(self, ctx, url):
+        async with ctx.typing():
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': 'downloads/%(title)s.mp3',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192'
+                }]
+            }
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+                title = ydl.extract_info(url=url).get('title', None).replace('"', "'")
+
+            with open(f"downloads/{title}.mp3", "rb") as f:
+                await ctx.send(file=discord.File(f))
+                self.logger.info(misolog.format_log(ctx, f""))
+            try:
+                os.remove(f"downloads/{title}.mp3")
+            except OSError as e:
+                self.logger.warning(f"Failed to delete {title}.mp3")
+                print(str(e))
 
 
 def scrape_kprofiles(url):
