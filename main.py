@@ -3,7 +3,7 @@ import json
 from utils import logger as misolog
 
 client = commands.Bot(command_prefix=">")
-extensions = ["cogs.commands", "cogs.nsfw", "cogs.owner", "cogs.lastfm", "cogs.apis", "cogs.voice", "cogs.events",
+extensions = ["cogs.commands", "cogs.owner", "cogs.lastfm", "cogs.apis", "cogs.voice", "cogs.events",
               "cogs.tictactoe", "cogs.fishy", "cogs.mod", "cogs.user"]
 
 logger = misolog.create_logger(__name__)
