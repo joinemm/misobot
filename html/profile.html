@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style type="text/css">
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  background-color: #000;
+}
+
+.card {
+  width: 500px;
+  background-color: #ddd;
+  height: 350px;
+  overflow: hidden;
+  margin-top: 20vh;
+}
+
+.header {
+  height: 90px;
+  background-color: $headercolor$;
+}
+
+.text-wrapper {
+  padding-top: 20px;
+  padding-left: 180px;
+  margin: 0;
+  position: parent;
+  color: #fff;
+}
+
+#name {
+  margin: 0;
+}
+
+#disc {
+  margin: 0;
+  font-weight: 100;
+}
+
+.avatar-border {
+  background-color: #fff;
+  width: 140px;
+  height: 140px;
+  float:left;
+  margin-left: 30px;
+  margin-top: 20px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.avatar-wrapper {
+  margin-left: 6px;
+  margin-top: 6px;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background-color: white;
+  overflow: hidden;
+}
+
+.badges-wrapper {
+  height: 70px;
+}
+
+.info-wrapper {
+  height: inherit;
+  overflow: hidden;
+}
+
+#info {
+  padding-left: 35px;
+  font-size: 20px;
+}
+    </style>
+    <title>Profile</title>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="avatar-border">
+      <div class="avatar-wrapper">
+        <img id="avatar" src="$avatar_url$">
+      </div>
+    </div>
+    <div class="text-wrapper">
+      <h1 id="name">$username$</h1>
+      <h3 id="disc">$discriminator$</h3>
+    </div>
+  </div>
+  <div class="badges-wrapper">
+
+  </div>
+  <div class="info-wrapper">
+    <div id="info">
+      <ul>
+        <li>
+          there will be stuff here
+        </li>
+        <li>
+          soon
+        </li>
+        <li>
+          yes hi
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

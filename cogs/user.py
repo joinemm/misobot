@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import json
 from utils import logger as misolog
+import imgkit
 
 
 def load_data():
@@ -103,10 +104,51 @@ class User:
         self.logger.info(misolog.format_log(ctx, f"user={user.name}"))
 
         content = discord.Embed(color=discord.Color.light_grey())
-        url = user.avatar_url
+        url = user.avatar_url_as(static_format="png")
         content.set_image(url=url)
 
         await ctx.send(embed=content)
+
+    @commands.command()
+    async def profile2(self, ctx):
+
+        member = ctx.message.author
+
+        header_color = str(ctx.message.guild.get_member(member.id).color)
+        avatar_url = member.avatar_url_as(static_format="png", size=128)
+        username = member.display_name
+        discriminator = "#" + member.discriminator
+
+        config = imgkit.config(wkhtmltoimage='C:/Program Files/wkhtmltopdf/bin/wkhtmltoimage.exe')
+        options = {
+            'format': 'png',
+            'crop-h': '350',
+            'crop-w': '500',
+        }
+
+        # 1. open file
+        lines = []
+        with open("html/profile.html", "r", encoding="utf-8") as file:
+            for line in file:
+                lines.append(line.rstrip())
+        # 2. edit it, save file as a copy
+        with open("html/edited_profile.html", "w", encoding="utf-8") as file:
+            for line in lines:
+                line = line.replace("$headercolor$", header_color)
+                line = line.replace("$avatar_url$", avatar_url)
+                line = line.replace("$username$", username)
+                line = line.replace("$discriminator$", discriminator)
+                print(line, file=file)
+                #print(line)
+        # 3. generate and send
+        imgkit.from_file("html/edited_profile.html", "downloads/profile.png", config=config, options=options)
+        with open("downloads/profile.png", "rb") as img:
+            await ctx.send(file=discord.File(img))
+        # 4. delete
+
+       # with open("html/profile.html", "rb") as f:
+        #imgkit.from_file("html/profile.html", "downloads/profile.png", config=config, options=options)
+
 
 
 def setup(client):
