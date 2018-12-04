@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Bootstrap 4 project documentation theme for developers</title>
+    <title>Miso Bot / Joinemm</title>
     <!-- Meta -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -137,9 +137,17 @@
 
                                 <div id="ig" class="section-block">
                                     <h3 class="block-title">Instagram</h3>
-                                    <p>Pulls all the source images from instagram post in the highest quality possible.<br />For videos use <b>>igvideo.</b>.</p>
+                                    <p>Pulls all the source images from instagram post in the highest quality possible.<br />For videos use <b>>igvideo.</b></p>
                                     <div class="code-block">
-                                        <h6 style="vertical-align: text-top;">Usage: <code>>ig [url]</code></h6>
+                                        <h6>Usage: <code>>ig [url]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
+                                <div id="ytmp3" class="section-block">
+                                    <h3 class="block-title">Youtube to mp3</h3>
+                                    <p>Downloads the audio from a youtube video and posts it as an mp3 file</p>
+                                    <div class="code-block">
+                                        <h6>Usage: <code>>ytmp3 [url]</code></h6>
                                     </div><!--//code-block-->
                                 </div><!--//section-block-->
 
@@ -147,7 +155,7 @@
 
 
                             <section id="apis-section" class="doc-section">
-                                <h2 class="section-title">API call commands</h2>
+                                <h2 class="section-title">API commands</h2>
 
                                 <div id="weather" class="section-block">
                                     <h3 class="block-title">Weather</h3>
@@ -285,9 +293,33 @@
                                     </div><!--//code-block-->
                                 </div><!--//section-block-->
 
+                                <div id="fishy" class="section-block">
+                                    <h3 class="block-title">Fishy</h3>
+                                    <p>Go fishing. Receive random fish. Optionally mention someone to fish for them.</p>
+                                    <div class="code-block">
+                                         <h6>Usage: <code>>fishy [@mention]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
+                                <div id="fishystats" class="section-block">
+                                    <h3 class="block-title">Fishy stats</h3>
+                                    <p>See statistics about your fishing. Mention someone to see their stats. Use global to see global stats.</p>
+                                    <div class="code-block">
+                                         <h6>Usage: <code>>fishystats [@mention | global]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
+                                 <div id="leaderboard" class="section-block">
+                                    <h3 class="block-title">Fishy leaderboard</h3>
+                                    <p>See the fishy leaderboard</p>
+                                    <div class="code-block">
+                                         <h6>Usage: <code>>leaderboard</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
                             </section><!--//doc-section-->
 
-                            <section id="mod" class="doc-section">
+                            <section id="mod-section" class="doc-section">
                                 <h2 class="section-title">Moderator</h2>
 
                                  <div id="mute" class="section-block">
@@ -312,6 +344,36 @@
 
                             </section><!--//doc-section-->
 
+                            <section id="music-section" class="doc-section">
+                                <h2 class="section-title">Music</h2>
+
+                                 <div id="join" class="section-block">
+                                    <h3 class="block-title">Join</h3>
+                                    <p>Join the given voice channel</p>
+                                    <div class="code-block">
+                                         <h6>Usage: <code>>join [voice_channel]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
+                                <div id="play" class="section-block">
+                                    <h3 class="block-title">Play</h3>
+                                    <p>Search youtube for the given song and play it. Automatically joins the voice channel you're in.</p>
+                                    <div class="code-block">
+                                         <h6>Usage: <code>>play [search query]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
+                                <div id="stop" class="section-block">
+                                    <h3 class="block-title">Stop</h3>
+                                    <p>Stops playback and disconnects from voice channel.</p>
+                                    <div class="code-block">
+                                         <h6>Usage: <code>>stop</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
+                            </section><!--//doc-section-->
+
+
 
 
                         </div><!--//content-inner-->
@@ -322,6 +384,7 @@
 	                            <nav id="doc-menu" class="nav doc-menu flex-column sticky">
 	                                <a class="nav-link scrollto" href="#info-section">Info</a>
 	                                <a class="nav-link scrollto" href="#commands-section">Basic Commands</a>
+                                    <!--
                                     <nav class="doc-sub-menu nav flex-column">
                                         <a class="nav-link scrollto" href="#info">Info</a>
                                         <a class="nav-link scrollto" href="#ping">Ping</a>
@@ -333,7 +396,8 @@
                                         <a class="nav-link scrollto" href="#ascii">Ascii</a>
                                         <a class="nav-link scrollto" href="#ig">Instagram</a>
                                     </nav><!--//nav-->
-	                                <a class="scrollto" href="#apis-section">Api Call Commands</a>
+	                                <a class="nav-link scrollto" href="#apis-section">API Commands</a>
+                                    <!--
                                     <nav class="doc-sub-menu nav flex-column">
                                         <a class="nav-link scrollto" href="#weather">Weather</a>
                                         <a class="nav-link scrollto" href="#define">Define</a>
@@ -345,20 +409,30 @@
                                         <a class="nav-link scrollto" href="#color">Color</a>
                                     </nav><!--//nav-->
 	                                <a class="nav-link scrollto" href="#lastfm-section">LastFM</a>
+                                    <!--
                                     <nav class="doc-sub-menu nav flex-column">
                                         <a class="nav-link scrollto" href="#fm">FM</a>
                                         <a class="nav-link scrollto" href="#fmgeo">FM Geo</a>
                                         <a class="nav-link scrollto" href="#fmdata">FM Data</a>
                                     </nav><!--//nav-->
                                     <a class="nav-link scrollto" href="#user-section">User</a>
+                                    <!--
                                     <nav class="doc-sub-menu nav flex-column">
                                         <a class="nav-link scrollto" href="#profile">Profile</a>
                                         <a class="nav-link scrollto" href="#avatar">Avatar</a>
                                     </nav><!--//nav-->
 	                                <a class="nav-link scrollto" href="#mod-section">Moderator</a>
+                                    <!--
                                     <nav class="doc-sub-menu nav flex-column">
                                         <a class="nav-link scrollto" href="#mute">Mute</a>
                                         <a class="nav-link scrollto" href="#config">Config</a>
+                                    </nav><!--//nav-->
+                                    <a class="nav-link scrollto" href="#music-section">Music</a>
+                                    <!--
+                                    <nav class="doc-sub-menu nav flex-column">
+                                        <a class="nav-link scrollto" href="#join">Join</a>
+                                        <a class="nav-link scrollto" href="#play">Play</a>
+                                        <a class="nav-link scrollto" href="#stop">Stop</a>
                                     </nav><!--//nav-->
 
 	                            </nav><!--//doc-menu-->
@@ -369,36 +443,7 @@
             </div><!--//container-->
         </div><!--//doc-wrapper-->
         
-        <div id="promo-block" class="promo-block">
-            <div class="container">
-                <div class="promo-block-inner">
-                    <h3 class="promo-title text-center"><i class="fas fa-heart"></i> <a href="https://themes.3rdwavemedia.com/bootstrap-templates/portfolio/instance-bootstrap-portfolio-theme-for-developers/" target="_blank">Are you an ambitious and entrepreneurial developer?</a></h3>
-                    <div class="row">
-                        <div class="figure-holder col-lg-5 col-md-6 col-12">
-                            <div class="figure-holder-inner">
-                                <a href="https://themes.3rdwavemedia.com/bootstrap-templates/portfolio/instance-bootstrap-portfolio-theme-for-developers/" target="_blank"><img class="img-fluid" src="assets/images/demo/instance-promo.jpg" alt="Instance Theme" /></a>
-                                <a class="mask" href="https://themes.3rdwavemedia.com/bootstrap-templates/portfolio/instance-bootstrap-portfolio-theme-for-developers/"><i class="icon fa fa-heart pink"></i></a>
-                                
-                            </div>
-                        </div><!--//figure-holder-->
-                        <div class="content-holder col-lg-7 col-md-6 col-12">
-                            <div class="content-holder-inner">
-                                <div class="desc">
-                                    <h4 class="content-title"><strong> Instance - Bootstrap 4 Portfolio Theme for Aspiring Developers</strong></h4>
-                                    <p>Check out <a href="https://themes.3rdwavemedia.com/bootstrap-templates/portfolio/instance-bootstrap-portfolio-theme-for-developers/" target="_blank">Instance</a> - a Bootstrap personal portfolio theme I created for developers. The UX design is focused on selling a developer’s skills and experience to potential employers or clients, and has <strong class="highlight">all the winning ingredients to get you hired</strong>. It’s not only a HTML site template but also a marketing framework for you to <strong class="highlight">build an impressive online presence with a high conversion rate</strong>. </p>
-                                    <p><strong class="highlight">[Tip for developers]:</strong> If your project is Open Source, you can use this area to promote your other projects or hold third party adverts like Bootstrap and FontAwesome do!</p>
-                                    <a class="btn btn-cta" href="https://themes.3rdwavemedia.com/bootstrap-templates/portfolio/instance-bootstrap-portfolio-theme-for-developers/" target="_blank"><i class="fas fa-external-link-alt"></i> View Demo</a>
-                                    
-                                </div><!--//desc-->
-                                
-                                
-                                <div class="author"><a href="https://themes.3rdwavemedia.com">Xiaoying Riley</a></div>
-                            </div><!--//content-holder-inner-->
-                        </div><!--//content-holder-->
-                    </div><!--//row-->
-                </div><!--//promo-block-inner-->  
-            </div><!--//container-->
-        </div><!--//promo-block-->
+
         
     </div><!--//page-wrapper-->
     
