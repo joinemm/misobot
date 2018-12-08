@@ -3,6 +3,7 @@ from discord.ext import commands
 import random
 import json
 from utils import logger as misolog
+import cogs.user as usercog
 
 
 def load_data():
@@ -50,7 +51,7 @@ class Fishy:
 
         if time_since_fishy > cooldown:
             trash = random.randint(1, 10) == 1
-            if trash:
+            if trash and self_fishy:
                 trash_icons = [':moyai:', ':stopwatch:', ':wrench:', ':hammer:', ':pick:', ':nut_and_bolt:', ':gear:',
                                ':toilet:', ':alembic:', ':bathtub:', ':paperclip:', ':scissors:', ':boot:',
                                ':high_heel:', ':spoon:', ':saxophone:', ':trumpet:', ':scooter:', ':anchor:'
@@ -126,8 +127,14 @@ class Fishy:
 
             if self_fishy:
                 self.logger.info(misolog.format_log(ctx, f"success [{amount}] ({rarity})"))
+                if users_json['users'][user_id_fisher]['fishy'] > 9999:
+                    await usercog.add_badge(ctx, ctx.message.author, "master_fisher")
             else:
                 self.logger.info(misolog.format_log(ctx, f"success [gift for {receiver_name}] [{amount}] ({rarity})"))
+                if users_json['users'][user_id_fisher]['fishy_gifted'] > 999:
+                    await usercog.add_badge(ctx, ctx.message.author, "generous_fisher")
+            if rarity == "legendary":
+                await usercog.add_badge(ctx, ctx.message.author, "lucky_fisher")
 
         else:
             wait_time = cooldown - time_since_fishy
@@ -181,6 +188,13 @@ class Fishy:
         users_json = load_data()
         users_json['users'][user_id]['fishy'] -= int(amount)
         save_data(users_json)
+
+    @commands.command(hidden=True)
+    @commands.is_owner()
+    async def badgetest(self, ctx):
+        users_json = load_data()
+        if users_json['users'][str(ctx.message.author.id)]['test_variable'] > 999:
+            await usercog.add_badge(ctx, ctx.message.author, "generous_fisher")
 
     @commands.command()
     async def leaderboard(self, ctx, mode=None):

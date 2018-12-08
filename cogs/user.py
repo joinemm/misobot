@@ -24,9 +24,15 @@ class User:
     def __init__(self, client):
         self.client = client
         self.logger = misolog.create_logger(__name__)
+        self.badges = {"developer": {"name": "Developer", "description": "Program the bot.", "icon": "fab fa-dev"},
+                       "super_hugger": {"name": "Super Hugger", "description": "Hug 10 different people.", "icon": "fas fa-hand-holding-heart"},
+                       "best_friend": {"name": "Best Friend", "description": "Hug the same person 10 times.", "icon": "fas fa-heart"},
+                       "master_fisher": {"name": "Master Fisher", "description": "Catch 10k fishy.", "icon": "fas fa-fish"},
+                       "lucky_fisher": {"name": "Lucky Fisher", "description": "Catch a legendary fish."},
+                       "generous_fisher": {"name": "Generous Fisher", "description": "Catch 1000 fishy for others."}}
 
     @commands.command()
-    async def profile(self, ctx):
+    async def userinfo(self, ctx):
         """User profile"""
         self.logger.info(misolog.format_log(ctx, f""))
         users_json = load_data()
@@ -110,11 +116,37 @@ class User:
         await ctx.send(embed=content)
 
     @commands.command()
-    async def profile2(self, ctx):
+    async def hug(self, ctx, *args):
+        if ctx.message.mentions:
+            data = load_data()
+            hugged_user = ctx.message.mentions[0]
+            await ctx.send(f"{hugged_user.mention} <a:hug:519667489940963328>")
 
-        member = ctx.message.author
+            try:
+                data['users'][str(ctx.message.author.id)]['hugs']
+            except KeyError:
+                data['users'][str(ctx.message.author.id)]['hugs'] = {}
+            try:
+                data['users'][str(ctx.message.author.id)]['hugs'][str(hugged_user.id)] += 1
+            except KeyError:
+                data['users'][str(ctx.message.author.id)]['hugs'][str(hugged_user.id)] = 1
+            save_data(data)
+            # check for badges
+            if data['users'][str(ctx.message.author.id)]['hugs'][str(hugged_user.id)] > 9:
+                await self.add_badge(ctx, ctx.message.author, "best_friend")
+            if len(data['users'][str(ctx.message.author.id)]['hugs']) > 9:
+                await self.add_badge(ctx, ctx.message.author, "super_hugger")
+        else:
+            await ctx.send(f"{' '.join(args)} <a:hug:519667489940963328>")
 
-        header_color = str(ctx.message.guild.get_member(member.id).color)
+    @commands.command()
+    async def profile(self, ctx):
+        if ctx.message.mentions:
+            member = ctx.message.mentions[0]
+        else:
+            member = ctx.message.author
+
+        usercolor = str(ctx.message.guild.get_member(member.id).color)
         avatar_url = member.avatar_url_as(static_format="png", size=128)
         username = member.display_name
         discriminator = "#" + member.discriminator
@@ -127,28 +159,44 @@ class User:
         }
 
         # 1. open file
-        lines = []
         with open("html/profile.html", "r", encoding="utf-8") as file:
-            for line in file:
-                lines.append(line.rstrip())
+            html_data = file.read().replace('\n', '')
         # 2. edit it, save file as a copy
         with open("html/edited_profile.html", "w", encoding="utf-8") as file:
-            for line in lines:
-                line = line.replace("$headercolor$", header_color)
-                line = line.replace("$avatar_url$", avatar_url)
-                line = line.replace("$username$", username)
-                line = line.replace("$discriminator$", discriminator)
-                print(line, file=file)
-                #print(line)
+            formatted_html = html_data.format(usercolor=usercolor,
+                                              avatar_url=avatar_url,
+                                              username=username,
+                                              discriminator=discriminator)
+            file.write(formatted_html)
         # 3. generate and send
         imgkit.from_file("html/edited_profile.html", "downloads/profile.png", config=config, options=options)
         with open("downloads/profile.png", "rb") as img:
             await ctx.send(file=discord.File(img))
-        # 4. delete
 
-       # with open("html/profile.html", "rb") as f:
-        #imgkit.from_file("html/profile.html", "downloads/profile.png", config=config, options=options)
+    @commands.command()
+    @commands.is_owner()
+    async def forcebadge(self, ctx, name):
+        await add_badge(ctx, ctx.message.author, name, True)
 
+
+async def add_badge(ctx, user, name, force=False):
+    data = load_data()
+    userid = str(user.id)
+    if 'badges' not in data['users'][userid]:
+        data['users'][userid]['badges'] = []
+    if name not in data['users'][userid]['badges']:
+        data['users'][userid]['badges'].append(name)
+    else:
+        print("Already has this badge")
+        if not force:
+            return
+    display_name = badges[name]['name']
+    desc = badges[name]['description']
+    content = discord.Embed()
+    content.title = f":military_medal: **{display_name}**"
+    content.description = desc
+    await ctx.send(f'{user.mention} just gained the badge:', embed=content)
+    save_data(data)
 
 
 def setup(client):
