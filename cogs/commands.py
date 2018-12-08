@@ -52,9 +52,10 @@ class Commands:
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 0.6.3')
+        info_embed.set_footer(text='version 0.7.1')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
+        info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
 
         await ctx.send(embed=info_embed)
 
@@ -192,7 +193,11 @@ class Commands:
         response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
         soup = BeautifulSoup(response.text, 'html.parser')
         script = soup.find_all('script')
-        sources = re.findall('"display_url":"(.*?)"', script[4].text)
+        sources = []
+        for i in range(len(script)):
+            urls = re.findall('"display_url":"(.*?)"', script[i].text)
+            if urls:
+                sources = urls
         sources = list(set(sources))
 
         if sources:
@@ -229,6 +234,21 @@ class Commands:
             except OSError as e:
                 self.logger.warning(f"Failed to delete {title}.mp3")
                 print(str(e))
+
+    @commands.command()
+    async def question(self, ctx, *args):
+        if args:
+            choices = ["Yes, definitely.", "Yes.", "I think so, yes.", "Maybe.", "No.", "Most likely not.", "Definitely not."]
+            answer = rd.choice(choices)
+            await ctx.send(f"**{answer}**")
+        else:
+            await ctx.send("You must ask something to receive an answer!")
+
+    @commands.command()
+    async def choose(self, ctx, *args):
+        query = " ".join(args)
+        choices = query.split(" or ")
+        await ctx.send(f"I choose **{rd.choice(choices).strip()}**")
 
 
 def scrape_kprofiles(url):
