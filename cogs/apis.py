@@ -25,6 +25,7 @@ with open('dont commit\keys.txt', 'r') as filehandle:
     GOOGLE_API_KEY = keys['GOOGLE_KEY']
     DARKSKY_API_KEY = keys['DARK_SKY_KEY']
     STEAM_API_KEY = keys['STEAM_WEB_API_KEY']
+    WOLFRAM_APPID = keys['WOLFRAM_APPID']
 
 
 class Apis:
@@ -247,8 +248,9 @@ class Apis:
 
         await ctx.send(embed=message)
 
-    @commands.command(name="convert", brief="convert units")
+    @commands.command(name="convert")
     async def convert(self, ctx, *args):
+        """Convert various units, C to F doesn't work"""
         source_quantity = args[0]
         source_unit, source_name = self.get_ucum_code(args[1])
         target_unit, target_name = self.get_ucum_code(args[len(args)-1])
@@ -274,13 +276,14 @@ class Apis:
 
     @commands.command(name="currency")
     async def currency(self, ctx, *args):
-        # >currency 20 usd in eur
+        """Perform currency conversion"""
         try:
             source_q = float(args[0])
             source_curr = args[1]
             target_curr = args[3]
         except IndexError:
             await ctx.send("Invalid syntax! example: `>currency 20 usd in eur`")
+            self.logger.warning(misolog.format_log(ctx, f"Invalid Syntax"))
             return
 
         response = requests.get(url=f"https://free.currencyconverterapi.com/api/v6/convert"
@@ -292,11 +295,14 @@ class Apis:
                 rate = conversion['val']
                 target_q = source_q*rate
                 await ctx.send(f"**{source_q:.2f} {conversion['fr']}** is **{target_q:.2f} {conversion['to']}**")
+                self.logger.info(misolog.format_log(ctx, f""))
             else:
                 await ctx.send("Invalid currency code!")
+                self.logger.warning(misolog.format_log(ctx, f"Invalid Currency"))
 
     @commands.command(name="color", aliases=["colour"])
     async def color(self, ctx, color, mode=None):
+        """Get a hex color, the color of discord user, or a random color."""
         if color == "random":
             color = "{:06x}".format(random.randint(0, 0xFFFFFF))
         elif ctx.message.mentions:
@@ -322,8 +328,23 @@ class Apis:
         else:
             self.logger.error(misolog.format_log(ctx, f"statuscode={response.status_code}"))
 
-    @commands.command(name="steam", brief="steam profile data")
+    @commands.command()
+    async def question(self, ctx, *args):
+        query = " ".join(args)
+        url = f"http://api.wolframalpha.com/v1/result?appid={WOLFRAM_APPID}&i={query}&output=json"
+        response = requests.get(url.replace("+", "%2B"))
+        if response.status_code == 200:
+            result = response.content.decode('utf-8')
+            self.logger.info(misolog.format_log(ctx, f"Success"))
+        else:
+            result = "Sorry I did not understand your question."
+            self.logger.warning(misolog.format_log(ctx, f"Invalid question"))
+
+        await ctx.send(f"**{result}**")
+
+    @commands.command(name="steam")
     async def steam(self, ctx, steam_id, *args):
+        """Get steam profile data"""
         self.logger.info(misolog.format_log(ctx, f""))
 
         try:

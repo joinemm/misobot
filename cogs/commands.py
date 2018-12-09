@@ -235,20 +235,24 @@ class Commands:
                 self.logger.warning(f"Failed to delete {title}.mp3")
                 print(str(e))
 
-    @commands.command()
-    async def question(self, ctx, *args):
+    @commands.command(name="8ball")
+    async def eightball(self, ctx, *args):
         if args:
             choices = ["Yes, definitely.", "Yes.", "I think so, yes.", "Maybe.", "No.", "Most likely not.", "Definitely not."]
             answer = rd.choice(choices)
             await ctx.send(f"**{answer}**")
+            self.logger.info(misolog.format_log(ctx, f"{answer}"))
         else:
             await ctx.send("You must ask something to receive an answer!")
+            self.logger.warning(misolog.format_log(ctx, f"question=None"))
 
     @commands.command()
     async def choose(self, ctx, *args):
         query = " ".join(args)
         choices = query.split(" or ")
-        await ctx.send(f"I choose **{rd.choice(choices).strip()}**")
+        choice = rd.choice(choices).strip()
+        await ctx.send(f"I choose **{choice}**")
+        self.logger.info(misolog.format_log(ctx, f"{choice}"))
 
 
 def scrape_kprofiles(url):
