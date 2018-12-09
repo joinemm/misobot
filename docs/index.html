@@ -46,7 +46,7 @@
             <div class="container">
                 <div id="doc-header" class="doc-header text-center">
                     <h1 class="doc-title"><i class="icon fa fa-paper-plane"></i> Documentation</h1>
-                    <div class="meta"><i class="far fa-clock"></i> Last updated: December 2nd, 2018</div>
+                    <div class="meta"><i class="far fa-clock"></i> Last updated: December 9nd, 2018</div>
                 </div><!--//doc-header-->
                 <div class="doc-body row">
                     <div class="doc-content col-md-9 col-12 order-1">
@@ -151,11 +151,35 @@
                                     </div><!--//code-block-->
                                 </div><!--//section-block-->
 
+                                <div id="8ball" class="section-block">
+                                    <h3 class="block-title">8 Ball</h3>
+                                    <p>Ask a question and receive a yes / no answer.</p>
+                                    <div class="code-block">
+                                        <h6>Usage: <code>>8ball [question]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
+                                <div id="choose" class="section-block">
+                                    <h3 class="block-title">Choose</h3>
+                                    <p>Chooses one of the given choices. Give as many choices as you wish.</p>
+                                    <div class="code-block">
+                                        <h6>Usage: <code>>choose [option1] or [option2] or...</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
                             </section><!--//doc-section-->
 
 
                             <section id="apis-section" class="doc-section">
                                 <h2 class="section-title">API commands</h2>
+
+                                <div id="question" class="section-block">
+                                    <h3 class="block-title">Question</h3>
+                                    <p>Ask almost anything and Miso will tell you the answer. Uses wolfram alpha API.</p>
+                                    <div class="code-block">
+                                        <h6>Usage: <code>&gt;question [question]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
 
                                 <div id="weather" class="section-block">
                                     <h3 class="block-title">Weather</h3>
@@ -278,7 +302,7 @@
                                  <h2 class="section-title">User</h2>
 
                                  <div id="profile" class="section-block">
-                                    <h3 class="block-title">Profile</h3>
+                                    <h3 class="block-title">Profile [WIP]</h3>
                                     <p>Gets your profile. Optionally mention someone to get their profile</p>
                                     <div class="code-block">
                                          <h6>Usage: <code>>profile [@mention]</code></h6>
@@ -317,6 +341,14 @@
                                     </div><!--//code-block-->
                                 </div><!--//section-block-->
 
+                                <div id="hug" class="section-block">
+                                    <h3 class="block-title">Hug</h3>
+                                    <p>Hug someone</p>
+                                    <div class="code-block">
+                                         <h6>Usage: <code>>hug [@mention]</code></h6>
+                                    </div><!--//code-block-->
+                                </div><!--//section-block-->
+
                             </section><!--//doc-section-->
 
                             <section id="mod-section" class="doc-section">
@@ -335,10 +367,10 @@
                                     <p>Configure server specific parameters.</p>
                                     <div class="code-block">
                                         <h6>Arguments</h6>
-                                        <p>Setting: <code class="arguments">[welcome | muterole]</code></p>
+                                        <p>Setting: <code class="arguments">[welcome | muterole | autorole]</code></p>
                                     </div><!--//code-block-->
                                     <div class="code-block">
-                                         <h6>Usage:</h6><code>>config welcome [channel id]<br>>config muterole [@mention role]</code>
+                                         <h6>Usage:</h6><code>>config welcome [channel id]<br>>config muterole [@mention role | role id]<br>>config autorole [@mention role | role id]</code>
                                     </div><!--//code-block-->
                                 </div><!--//section-block-->
 
