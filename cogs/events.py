@@ -35,20 +35,26 @@ class Events:
 
     async def on_member_join(self, member):
         """The event triggered when user joins a guild"""
+        self.guilds_json = load_data()
+        guild = member.guild
         try:
-            self.guilds_json = load_data()
-            guild = str(member.guild.id)
-            channel_id = self.guilds_json['guilds'][guild]['welcome_channel']
-            await self.client.get_channel(channel_id).send(f'Hello {member.mention}')
-            self.logger.info(f"Welcomed {member} to {guild}")
+            channel_id = self.guilds_json['guilds'][str(guild.id)]['welcome_channel']
+            await self.client.get_channel(channel_id).send(f'Welcome {member.mention}')
+            self.logger.info(f"Welcomed {member} to {guild.name}")
         except KeyError:
-            self.logger.warning(f"no welcome channel set for {guild}")
+            self.logger.warning(f"no welcome channel set for {guild.name}")
+
+        try:
+            autorole = guild.get_role(self.guilds_json['guilds'][str(guild.id)]['autorole'])
+            await member.add_roles(autorole)
+        except KeyError:
+            self.logger.warning(f"no autorole set for {guild.name}")
 
     async def on_member_remove(self, member):
         """The event triggered when user leaves a guild"""
+        self.guilds_json = load_data()
+        guild = str(member.guild.id)
         try:
-            self.guilds_json = load_data()
-            guild = str(member.guild.id)
             channel_id = self.guilds_json['guilds'][guild]['welcome_channel']
             await self.client.get_channel(channel_id).send(f'Goodbye {member.mention}...')
             self.logger.info(f"Said goodbye to {member} from {guild}")

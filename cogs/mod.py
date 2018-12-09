@@ -32,7 +32,7 @@ class Mod:
             await member.add_roles(muterole)
             await ctx.send(f"Muted {member.name} ({member.id})")
         except KeyError:
-            await ctx.send(f"Muterole not set, please use >set muterole")
+            await ctx.send(f"Muterole not set, please use >config muterole")
         except IndexError:
             await ctx.send(f"Give me someone to mute!")
 
@@ -47,13 +47,13 @@ class Mod:
             await member.remove_roles(muterole)
             await ctx.send(f"Unmuted {member.name} ({member.id})")
         except KeyError:
-            await ctx.send(f"Muterole not set, please use >set muterole")
+            await ctx.send(f"Muterole not set, please use >config muterole")
         except IndexError:
             await ctx.send(f"Give me someone to unmute!")
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def set(self, ctx, mode, arg=None):
+    async def config(self, ctx, mode, arg=None):
         """Set bot parameters like welcome channel and mute role"""
         guild = str(ctx.guild.id)
         if mode == "welcome":
@@ -69,16 +69,35 @@ class Mod:
                 await ctx.send(f"Error: Please give a channel id to set the welcome channel to")
 
         elif mode == "muterole":
-            muterole_id = ctx.message.role_mentions[0].id
             if guild not in self.guilds_json['guilds']:
                 self.guilds_json['guilds'][guild] = {}
-            self.guilds_json['guilds'][guild]['muterole'] = muterole_id
 
-            await ctx.send(f"Mute role for {ctx.guild.name} saved as {muterole_id}")
-        elif mode == "test":
-            await ctx.send(f"{arg} :: {ctx.message.role_mentions}")
+            if ctx.message.role_mentions:
+                role = ctx.message.role_mentions[0]
+                role_id = role.id
+            else:
+                role_id = int(arg)
+
+            self.guilds_json['guilds'][guild]['muterole'] = role_id
+
+            await ctx.send(f"Mute role for {ctx.guild.name} saved as {role_id}")
+
+        elif mode == "autorole":
+            if guild not in self.guilds_json['guilds']:
+                self.guilds_json['guilds'][guild] = {}
+
+            if ctx.message.role_mentions:
+                role = ctx.message.role_mentions[0]
+                role_id = role.id
+            else:
+                role_id = int(arg)
+
+            self.guilds_json['guilds'][guild]['autorole'] = role_id
+
+            await ctx.send(f"Automatically assigned role for {ctx.guild.name} set to {role_id}")
+
         else:
-            await ctx.send("Error: Please give something to set")
+            await ctx.send("Error: Please give a parameter to configure.")
 
         save_data(self.guilds_json)
         self.guilds_json = load_data()

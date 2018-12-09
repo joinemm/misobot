@@ -90,6 +90,14 @@ class User:
 
         await ctx.send(embed=message)
 
+    @commands.command()
+    async def roleslist(self, ctx):
+        list = f"**Roles for {ctx.message.guild.name}**\n"
+        for role in ctx.message.guild.roles[1:]:
+            list += f"{role.name} ({role.id}) - {len(role.members)} members\n"
+
+        await ctx.send(list)
+
     @commands.command(name="avatar")
     async def avatar(self, ctx, userid=None):
         if ctx.message.mentions:
