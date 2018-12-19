@@ -40,15 +40,22 @@ class Commands:
         self.logger = misolog.create_logger(__name__)
 
     @commands.command()
-    async def website(self, ctx):
-        await ctx.send("http://joinemm.me/misobot/")
+    async def patreon(self, ctx):
+        await ctx.send("https://www.patreon.com/joinemm")
+
+    @commands.command(hidden=True)
+    async def patrons(self, ctx):
+        content = discord.Embed()
+        content.title = "Current Patrons:"
+        content.description = "Azizul Haji Adenan :heart:"
+        await ctx.send()
 
     @commands.command(name='info')
     async def info(self, ctx):
         """Get information about the bot"""
         self.logger.info(misolog.format_log(ctx, f""))
         info_embed = discord.Embed(title='Hello',
-                                   description='I am Miso Bot, created by Joinemm. Use >help for a list of commands.'
+                                   description='I am Miso Bot, created by Joinemm#1998. See the documentation website for a list of commands.'
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
@@ -170,7 +177,7 @@ class Commands:
     @commands.command()
     async def igvideo(self, ctx, url):
         """Get the source video from an instagram post"""
-        response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
+        response = requests.get(url.replace("`", ""), headers={"Accept-Encoding": "utf-8"})
         tree = html.fromstring(response.content)
         results = tree.xpath('//meta[@content]')
         contents = []
@@ -190,7 +197,7 @@ class Commands:
     @commands.command()
     async def ig(self, ctx, url):
         """Get the source images from an instagram post"""
-        response = requests.get(url, headers={"Accept-Encoding": "utf-8"})
+        response = requests.get(url.replace("`", ""), headers={"Accept-Encoding": "utf-8"})
         soup = BeautifulSoup(response.text, 'html.parser')
         script = soup.find_all('script')
         sources = []

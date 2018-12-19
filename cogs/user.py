@@ -19,17 +19,24 @@ def save_data(users_json):
         filehandle.close()
 
 
+badges = {"developer": {"name": "Developer", "description": "Program the bot.", "icon": "fab fa-dev"},
+          "super_hugger": {"name": "Super Hugger", "description": "Hug 10 different people.",
+                           "icon": "far fa-smile", "img": "https://i.imgur.com/MbJnCks.png"},
+          "best_friend": {"name": "Best Friend", "description": "Hug the same person 10 times.",
+                          "icon": "fas fa-heart", "img": "https://i.imgur.com/znHxtP3.png"},
+          "master_fisher": {"name": "Master Fisher", "description": "Catch 10k fishy.",
+                            "icon": "fas fa-fish", "img": "https://i.imgur.com/spO97nH.png"},
+          "lucky_fisher": {"name": "Lucky Fisher", "description": "Catch a legendary fish.",
+                           "icon": "fas fa-dragon", "img": "https://i.imgur.com/H7WORY5.png"},
+          "generous_fisher": {"name": "Generous Fisher", "description": "Catch 1000 fishy for others.",
+                              "icon": "fas fa-hand-holding-heart", "img": "https://i.imgur.com/dcP9XaL.png"}}
+
+
 class User:
 
     def __init__(self, client):
         self.client = client
         self.logger = misolog.create_logger(__name__)
-        self.badges = {"developer": {"name": "Developer", "description": "Program the bot.", "icon": "fab fa-dev"},
-                       "super_hugger": {"name": "Super Hugger", "description": "Hug 10 different people.", "icon": "fas fa-hand-holding-heart"},
-                       "best_friend": {"name": "Best Friend", "description": "Hug the same person 10 times.", "icon": "fas fa-heart"},
-                       "master_fisher": {"name": "Master Fisher", "description": "Catch 10k fishy.", "icon": "fas fa-fish"},
-                       "lucky_fisher": {"name": "Lucky Fisher", "description": "Catch a legendary fish."},
-                       "generous_fisher": {"name": "Generous Fisher", "description": "Catch 1000 fishy for others."}}
 
     @commands.command()
     async def userinfo(self, ctx):
@@ -130,6 +137,8 @@ class User:
             hugged_user = ctx.message.mentions[0]
             await ctx.send(f"{hugged_user.mention} <a:hug:519667489940963328>")
 
+            if str(ctx.message.author.id) not in data['users']:
+                data['users'][str(ctx.message.author.id)] = {}
             try:
                 data['users'][str(ctx.message.author.id)]['hugs']
             except KeyError:
@@ -141,9 +150,9 @@ class User:
             save_data(data)
             # check for badges
             if data['users'][str(ctx.message.author.id)]['hugs'][str(hugged_user.id)] > 9:
-                await self.add_badge(ctx, ctx.message.author, "best_friend")
+                await add_badge(ctx, ctx.message.author, "best_friend")
             if len(data['users'][str(ctx.message.author.id)]['hugs']) > 9:
-                await self.add_badge(ctx, ctx.message.author, "super_hugger")
+                await add_badge(ctx, ctx.message.author, "super_hugger")
         else:
             await ctx.send(f"{' '.join(args)} <a:hug:519667489940963328>")
 
@@ -170,11 +179,22 @@ class User:
         with open("html/profile.html", "r", encoding="utf-8") as file:
             html_data = file.read().replace('\n', '')
         # 2. edit it, save file as a copy
+
+        data = load_data()
+        badge_html = ""
+        try:
+            for badge in data['users'][str(member.id)]['badges']:
+                icon = badges[badge]['icon']
+                badge_html += f'<i class="badge {icon} fa-2x"></i>'
+        except KeyError:
+            pass
+
         with open("html/edited_profile.html", "w", encoding="utf-8") as file:
             formatted_html = html_data.format(usercolor=usercolor,
                                               avatar_url=avatar_url,
                                               username=username,
-                                              discriminator=discriminator)
+                                              discriminator=discriminator,
+                                              badge_icons=badge_html)
             file.write(formatted_html)
         # 3. generate and send
         imgkit.from_file("html/edited_profile.html", "downloads/profile.png", config=config, options=options)
@@ -183,8 +203,30 @@ class User:
 
     @commands.command()
     @commands.is_owner()
-    async def forcebadge(self, ctx, name):
-        await add_badge(ctx, ctx.message.author, name, True)
+    async def forcebadge(self, ctx, arg, arg2=""):
+        if ctx.message.mentions:
+            await add_badge(ctx, ctx.message.mentions[0], arg2, True)
+        else:
+            await add_badge(ctx, ctx.message.author, arg, True)
+
+    @commands.command()
+    @commands.is_owner()
+    async def badgetest(self, ctx):
+        options = {'quiet': '', 'format': 'png', 'crop-h': "35", 'crop-w': "35"}
+        imgkit.from_file("html/badge.html", "downloads/badge.jpeg", options=options)
+        with open("downloads/badge.jpeg", "rb") as img:
+            await ctx.send(file=discord.File(img))
+
+    @commands.command()
+    async def badges(self, ctx):
+        data = load_data()
+        try:
+            content = f"**{ctx.message.author.display_name}'s badges:**"
+            for badge in data['users'][str(ctx.message.author.id)]['badges']:
+                content += f"\n{badges[badge]['name']}"
+        except KeyError:
+            content = "**You have no badges.**"
+        await ctx.send(content)
 
 
 async def add_badge(ctx, user, name, force=False):
@@ -201,9 +243,10 @@ async def add_badge(ctx, user, name, force=False):
     display_name = badges[name]['name']
     desc = badges[name]['description']
     content = discord.Embed()
-    content.title = f":military_medal: **{display_name}**"
-    content.description = desc
-    await ctx.send(f'{user.mention} just gained the badge:', embed=content)
+    content.description = f":military_medal: **{display_name}**\n"
+    content.description += desc
+    content.set_thumbnail(url=badges[name]['img'])
+    await ctx.send(f'{user.mention} just earned a new badge!', embed=content)
     save_data(data)
 
 
