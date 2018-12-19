@@ -4,6 +4,7 @@ import json
 import traceback
 import sys
 from utils import logger as misolog
+import main as main
 
 
 def load_data():
@@ -63,7 +64,8 @@ class Events:
 
     async def on_message_delete(self, message):
         """The event triggered when a cached message is deleted"""
-        if not int(message.author.id) == self.client.user.id:
+        ignored_users = [self.client.user.id]
+        if not int(message.author.id) in ignored_users and not message.author.bot:
             self.logger.info(f'{message.author} Deleted message: "{message.content}"')
             embed = discord.Embed(color=discord.Color.red())
             embed.set_author(name=f"{message.author} in {message.channel.guild.name}",
@@ -104,7 +106,7 @@ class Events:
             return
         elif isinstance(error, commands.NotOwner):
             self.logger.error(misolog.format_log(ctx, str(error)))
-            await ctx.send("Sorry, only Joinemm can use this command!")
+            await ctx.send("Sorry, only Joinemm#1998 can use this command!")
             return
         else:
             self.logger.error(f'Ignoring exception in command {ctx.command}:')
