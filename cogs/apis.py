@@ -10,6 +10,8 @@ import re
 from datetime import datetime
 from utils import logger as misolog
 import random
+import tweepy
+from tweepy import OAuthHandler
 
 with open('dont commit\keys.txt', 'r') as filehandle:
     keys = json.load(filehandle)
@@ -26,7 +28,12 @@ with open('dont commit\keys.txt', 'r') as filehandle:
     DARKSKY_API_KEY = keys['DARK_SKY_KEY']
     STEAM_API_KEY = keys['STEAM_WEB_API_KEY']
     WOLFRAM_APPID = keys['WOLFRAM_APPID']
+    TWITTER_CKEY = keys['TWITTER_CKEY']
+    TWITTER_CSECRET = keys['TWITTER_CSECRET']
 
+auth = OAuthHandler(TWITTER_CKEY, TWITTER_CSECRET)
+#auth.set_access_token(access_token, access_secret)
+twt = tweepy.API(auth)
 
 class Apis:
 
@@ -149,28 +156,27 @@ class Apis:
         self.logger.info(misolog.format_log(ctx, f""))
         search_string = urllib.parse.quote(' '.join(args))
         detected_lang = self.detect_language(search_string)
-        if detected_lang == 'ko':
-            source_lang = 'ko'
-            target_lang = 'en'
-        elif detected_lang == 'ja':
-            source_lang = 'ja'
+        if detected_lang in ['ko', 'zh-CN', 'zh-TW', 'vi', 'th']:
+            source_lang = detected_lang
             target_lang = 'en'
         else:
             source_lang = 'en'
             target_lang = 'ko'
-        query = f'''source={source_lang}&target={target_lang}&text={search_string}'''
+
+        query = f"source={source_lang}&target={target_lang}&text={search_string}"
         api_url = 'https://openapi.naver.com/v1/papago/n2mt'
         request = urllib.request.Request(api_url)
         request.add_header('X-Naver-Client-Id', NAVER_APPID)
         request.add_header('X-Naver-Client-Secret', NAVER_TOKEN)
         response = urllib.request.urlopen(request, data=query.encode('utf-8'))
         rescode = response.getcode()
+
         if rescode == 200:
             response_body = json.loads(response.read().decode('utf-8'))
             translation = response_body['message']['result']['translatedText']
             await ctx.send(translation)
         else:
-            print('Error Code:' + str(rescode))
+            await ctx.send(f"Error {rescode}")
             print(response)
 
     @commands.command(name='spotify', brief='Analyze a spotify playlist from URI')
@@ -301,32 +307,58 @@ class Apis:
                 self.logger.warning(misolog.format_log(ctx, f"Invalid Currency"))
 
     @commands.command(name="color", aliases=["colour"])
-    async def color(self, ctx, color, mode=None):
+    async def color(self, ctx, *args):
         """Get a hex color, the color of discord user, or a random color."""
-        if color == "random":
-            color = "{:06x}".format(random.randint(0, 0xFFFFFF))
+        if args[0] == "random":
+            colors = []
+            try:
+                amount = int(args[1])
+            except IndexError:
+                amount = 1
+            for i in range(amount):
+                colors += ["{:06x}".format(random.randint(0, 0xFFFFFF))]
         elif ctx.message.mentions:
-            color = str(ctx.message.mentions[0].color).replace("#", "")
-        url = f"http://thecolorapi.com/id?hex={color}&format=json"
-        response = requests.get(url=url)
-        if response.status_code == 200:
-            data = json.loads(response.content.decode('utf-8'))
-            if mode == "debug":
-                await ctx.send(f"```json\n{json.dumps(data, indent=4)}\n```")
-                return
-            hexvalue = data['hex']['value']
-            rgbvalue = data['rgb']['value']
-            name = data['name']['value']
-            image_url = f"http://www.colourlovers.com/img/{color}/200/200/color.png"
-
-            content = discord.Embed(colour=int(color, 16))
-            content.set_image(url=image_url)
-            content.title = name
-            content.description = f"{hexvalue} - {rgbvalue}"
-            await ctx.send(embed=content)
-            self.logger.info(misolog.format_log(ctx, f"color={hexvalue}"))
+            colors = [str(x.color).replace("#", "") for x in ctx.message.mentions]
         else:
-            self.logger.error(misolog.format_log(ctx, f"statuscode={response.status_code}"))
+            colors = [x.replace("#", "") for x in args]
+        content = discord.Embed(colour=int(colors[0], 16))
+        if len(colors) == 1:
+            color = colors[0]
+            url = f"http://thecolorapi.com/id?hex={color}&format=json"
+            response = requests.get(url=url)
+            if response.status_code == 200:
+                data = json.loads(response.content.decode('utf-8'))
+                hexvalue = data['hex']['value']
+                rgbvalue = data['rgb']['value']
+                name = data['name']['value']
+                image_url = f"http://www.colourlovers.com/img/{color}/200/200/color.png"
+                content.title = name
+                content.description = f"{hexvalue} - {rgbvalue}"
+            else:
+                self.logger.error(misolog.format_log(ctx, f"color={color}&statuscode={response.status_code}"))
+                await ctx.send(f"Error {response.status_code} on color {color}")
+                return
+        else:
+            palette = ""
+            for color in colors:
+                url = f"http://thecolorapi.com/id?hex={color}&format=json"
+                response = requests.get(url=url)
+                if response.status_code == 200:
+                    data = json.loads(response.content.decode('utf-8'))
+                    hexvalue = data['hex']['value']
+                    rgbvalue = data['rgb']['value']
+                    name = data['name']['value']
+                    content.add_field(name=name, value=f"{hexvalue}")
+                    palette += color + "/"
+                else:
+                    self.logger.error(misolog.format_log(ctx, f"color={color}&statuscode={response.status_code}"))
+                    await ctx.send(f"Error {response.status_code} on color {color}")
+                    return
+            image_url = f"https://www.colourlovers.com/paletteImg/{palette}palette.png"
+
+        content.set_image(url=image_url)
+        await ctx.send(embed=content)
+        self.logger.info(misolog.format_log(ctx, f"colors={colors}"))
 
     @commands.command()
     async def question(self, ctx, *args):
@@ -335,12 +367,59 @@ class Apis:
         response = requests.get(url.replace("+", "%2B"))
         if response.status_code == 200:
             result = response.content.decode('utf-8')
-            self.logger.info(misolog.format_log(ctx, f"Success"))
+            self.logger.info(misolog.format_log(ctx, f""))
         else:
             result = "Sorry I did not understand your question."
             self.logger.warning(misolog.format_log(ctx, f"Invalid question"))
 
         await ctx.send(f"**{result}**")
+
+    @commands.command()
+    async def twitter(self, ctx, tweet_url, delete=None):
+        self.logger.info(misolog.format_log(ctx, f""))
+        if "status" in tweet_url:
+            tweet_id = re.search(r'status/(\d+)', tweet_url).group(1)
+            tweet = twt.get_status(tweet_id)
+        else:
+            tweet = twt.get_status(tweet_url, tweet_mode='extended')
+
+        media_files = []
+        try:
+            media = tweet.extended_entities.get('media', [])
+        except AttributeError:
+            await ctx.send("This tweet appears to contain no media!")
+            return
+        hashtags = []
+        for hashtag in tweet.entities.get('hashtags', []):
+            hashtags.append(f"#{hashtag['text']}")
+        for i in range(len(media)):
+            media_url = media[i]['media_url']
+            video_url = None
+            if not media[i]['type'] == "photo":
+                video_urls = media[i]['video_info']['variants']
+                largest_rate = 0
+                for x in range(len(video_urls)):
+                    if video_urls[x]['content_type'] == "video/mp4":
+                        if video_urls[x]['bitrate'] > largest_rate:
+                            largest_rate = video_urls[x]['bitrate']
+                            video_url = video_urls[x]['url']
+                            media_url = video_urls[x]['url']
+            media_files.append((" ".join(hashtags), media_url, video_url))
+
+        for file in media_files:
+            content = discord.Embed(colour=int(tweet.user.profile_link_color, 16))
+            content.set_image(url=file[1])
+            content.set_author(icon_url=tweet.user.profile_image_url, name=f"@{tweet.user.screen_name}\n{file[0]}",
+                               url=f"https://twitter.com/{tweet.user.screen_name}/status/{tweet.id}")
+
+            await ctx.send(embed=content)
+
+            if file[2] is not None:
+                #content.description = f"Contains video/gif [Click here to view]({file[2]})"
+                await ctx.send(file[2])
+
+        if delete == "delete":
+            await ctx.message.delete()
 
     @commands.command(name="steam")
     async def steam(self, ctx, steam_id, *args):
