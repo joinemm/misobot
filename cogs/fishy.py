@@ -189,12 +189,6 @@ class Fishy:
         users_json['users'][user_id]['fishy'] -= int(amount)
         save_data(users_json)
 
-    @commands.command(hidden=True)
-    @commands.is_owner()
-    async def badgetest(self, ctx):
-        users_json = load_data()
-        if users_json['users'][str(ctx.message.author.id)]['test_variable'] > 999:
-            await usercog.add_badge(ctx, ctx.message.author, "generous_fisher")
 
     @commands.command()
     async def leaderboard(self, ctx, mode=None):
@@ -245,10 +239,16 @@ class Fishy:
         else:
             if ctx.message.mentions:
                 userid = str(ctx.message.mentions[0].id)
+            elif arg is not None:
+                userid = arg
             else:
                 userid = str(ctx.message.author.id)
             users_to_parse = [userid]
-            username = ctx.message.guild.get_member(int(userid)).name
+            member = ctx.message.guild.get_member(int(userid))
+            if member is not None:
+                username = member.name
+            else:
+                username = userid
             message.title = f"{username} fishy stats"
         for user in users_to_parse:
             try:
