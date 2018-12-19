@@ -5,6 +5,8 @@ import discord
 from datetime import datetime
 import re
 from utils import logger as misolog
+import imgkit
+import time as t
 
 with open('dont commit\keys.txt', 'r') as keys_filehandle:
     keys = json.load(keys_filehandle)
@@ -31,19 +33,27 @@ class Lastfm:
     def __init__(self, client):
         self.client = client
         self.logger = misolog.create_logger(__name__)
+        with open("html/fm_chart_flex.html", "r", encoding="utf-8") as file:
+            self.chart_html_flex = file.read().replace('\n', '')
 
     @commands.command(name="fm", brief="Get user data from LastFM", aliases=["Fm", "FM"])
     async def fm(self, ctx, *args):
         """Get various lastfm data depending on arguments given from lastfm api"""
+
+        timer_start = t.time()
+
         self.logger.info(misolog.format_log(ctx, f""))
         users_json = load_data()
 
         if str(ctx.message.author.id) not in users_json['users']:
             users_json['users'][str(ctx.message.author.id)] = {}
 
-        if len(args) > 0:
+        chart = "chart" in args
+        chartold = "chartold" in args
+        if chartold:
+            chart = False
 
-            chart = "chart" in args
+        if len(args) > 0:
 
             try:
                 method_call = args[0]
@@ -140,11 +150,20 @@ class Lastfm:
 
         # all arguments parsed, get data based on the given arguments
         message = discord.Embed(colour=discord.Colour.magenta())
-        if chart:
-            if args[-1] in ['3x3', '4x4', '5x5']:
+        if chartold:
+
+            timer_chart = t.time()
+
+            debug = False
+            if "x" in args[-1]:
                 size = args[-1]
+            elif "x" in args[-2]:
+                size = args[-2]
+                debug = "debug" in args[-1]
             else:
                 size = "3x3"
+                debug = "debug" in args[-1]
+
             url = f"http://tapmusic.net/collage.php?user={user}&type={period}&size={size}&caption=true&playcount=true"
             chart_type = "Album"
             if method_call == "topartists":
@@ -158,7 +177,96 @@ class Lastfm:
                 with open("downloads/tapmusic.jpeg", 'wb') as f:
                     f.write(image.content)
                 with open("downloads/tapmusic.jpeg", 'rb') as f:
+                    timer_upload = t.time()
                     await ctx.send(f"`{user} {period} {size} {chart_type} chart`", file=discord.File(f))
+                if debug:
+                    await ctx.send(f"```Chart begin = {timer_chart - timer_start:.4f}s"
+                                   f"\nChart gen = {timer_upload - timer_chart:.4f}s"
+                                   f"\nChart upload = {t.time() - timer_upload:.4f}s"
+                                   f"\nTotal = {t.time() - timer_start:.4f}s```")
+        elif chart:
+
+            timer_chart = t.time()
+
+            debug = False
+            if "x" in args[-1]:
+                size = args[-1]
+            elif "x" in args[-2]:
+                size = args[-2]
+                debug = "debug" in args[-1]
+            else:
+                size = "3x3"
+                debug = "debug" in args[-1]
+
+            perside = int(size.split("x")[0])
+            if perside > 14:
+                await ctx.send("```Error: Maximum supported chart size is 14x14```")
+                return
+            format_variables = [("N/A", "https://via.placeholder.com/300/?text=Miso+Bot")] * (perside*perside)
+
+            fm_data = get_fm_data(method, user, period, optional=f"&limit={len(format_variables)}")
+
+            if fm_data is None:
+                await ctx.send("Error getting data from LastFM")
+                return
+
+            if method_call == "recent":
+                chart_type = ""
+                period = "recent"
+                tracks = fm_data['recenttracks']['track']
+                for i in range(len(format_variables)):
+                    try:
+                        artist = tracks[i]['artist']['#text']
+                        name = tracks[i]['name']
+                        format_variables[i] = (f"<br>{name} - {artist}", tracks[i]['image'][3]['#text'])
+                    except IndexError:
+                        break
+            elif method_call == "topalbums":
+                chart_type = " Album"
+                albums = fm_data['topalbums']['album']
+                for i in range(len(format_variables)):
+                    try:
+                        album = albums[i]['name']
+                        artist = albums[i]['artist']['name']
+                        plays = albums[i]['playcount']
+                        format_variables[i] = (f"{plays} plays<br>{album} - {artist}", albums[i]['image'][3]['#text'])
+                    except IndexError:
+                        break
+            elif method_call == "topartists":
+                chart_type = " Artist"
+                artists = fm_data['topartists']['artist']
+                for i in range(len(format_variables)):
+                    try:
+                        artist = artists[i]['name']
+                        plays = artists[i]['playcount']
+                        format_variables[i] = (f"{plays} plays<br>{artist}", artists[i]['image'][3]['#text'])
+                    except IndexError:
+                        break
+            else:
+                await ctx.send("Sorry, chart generation is not supported for this datatype!")
+                return
+
+            #config = imgkit.config(wkhtmltoimage='C:/Program Files/wkhtmltopdf/bin/wkhtmltoimage.exe')
+
+            arts = ""
+            for i in range(len(format_variables)):
+                arts += '<div class="art"><img src="{' + str(i) + '[1]}"><p class="label">{' + str(i) + '[0]}</p></div>'
+
+            dimensions = str(300*perside)
+            options = {'quiet': '', 'format': 'jpeg', 'crop-h': dimensions, 'crop-w': dimensions}
+            formatted_html = self.chart_html_flex.format(dimension=dimensions, arts=arts).format(*format_variables)
+
+            async with ctx.typing():
+                imgkit.from_string(formatted_html, "downloads/fmchart.jpeg", options=options,
+                                   css='html/fm_chart_style.css')
+                with open("downloads/fmchart.jpeg", "rb") as img:
+                    timer_upload = t.time()
+                    await ctx.send(f"`{user} {period} {size}{chart_type} chart`", file=discord.File(img))
+                if debug:
+                    await ctx.send(f"```Chart begin = {timer_chart - timer_start:.4f}s"
+                                    f"\nChart gen = {timer_upload - timer_chart:.4f}s"
+                                    f"\nChart upload = {t.time() - timer_upload:.4f}s"
+                                    f"\nTotal = {t.time() - timer_start:.4f}s```")
         else:
             fm_data = get_fm_data(method, user, period)
             if fm_data is None:
@@ -423,11 +531,66 @@ class Lastfm:
 
         await ctx.send(embed=message)
 
+    @commands.command()
+    async def fmartist(self, ctx, *args):
+        artist = " ".join(args)
+        users_json = load_data()
+        try:
+            user = users_json["users"][str(ctx.message.author.id)]['lastfm_username']
+        except Exception:
+            await ctx.send("No username found in database, please use >fm set {username}")
+            return
+        method = "user.gettoptracks"
+        track_limit = int(get_fm_data(method, user)['toptracks']['@attr']['total'])
+        tracks = []
+        i = 1
+        async with ctx.typing():
+            for x in range(track_limit // 5000):
+                tracks += get_fm_data(method, user, optional=f"&limit={track_limit}&page={i}")['toptracks']['track']
+                track_limit -= 5000
+                i += 1
+            tracks += get_fm_data(method, user, optional=f"&limit={track_limit}&page={i}")['toptracks']['track']
+            artists = {}
+            for i in range(track_limit):
+                this_artist = tracks[i]['artist']['name']
+                if artist is not None:
+                    if not this_artist.casefold() == artist.casefold():
+                        continue
+                    elif not artists:
+                        artist_stylized = this_artist
+                this_song = tracks[i]['name']
+                this_playcount = tracks[i]['playcount']
+                if this_artist not in artists:
+                    artists[this_artist] = {}
+                artists[this_artist][this_song] = this_playcount
 
-def get_fm_data(method, user="", period="overall"):
+        # await ctx.send(f"```json\n{json.dumps(artists, indent=4)}```")
+        if artists:
+            content = discord.Embed()
+            content.title = f"{user}'s top tracks for {artist_stylized}"
+            additional_songs = 0
+            content.description = ""
+            full = False
+            for song in artists[artist_stylized]:
+                if full:
+                    additional_songs += 1
+                else:
+                    line = f"**{artists[artist_stylized][song]}** plays - **{song}**\n"
+                    if len(content.description) + len(line) < 2000:
+                        content.description += line
+                    else:
+                        full = True
+            if full:
+                content.set_footer(text=f"+ {additional_songs} more songs")
+            await ctx.send(embed=content)
+        else:
+            await ctx.send("You haven't listened to this artist!")
+
+
+def get_fm_data(method, user="", period="overall", optional=""):
     """Get json data from lastfm api and return it"""
     url = f"http://ws.audioscrobbler.com/2.0/?method={method}" \
-          f"&user={user}&api_key={LASTFM_APPID}&format=json&period={period}"
+          f"&user={user}&api_key={LASTFM_APPID}&format=json&period={period}" + optional
     response = requests.get(url)
     if response.status_code == 200:
         fm_data = json.loads(response.content.decode('utf-8'))
