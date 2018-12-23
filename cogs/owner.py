@@ -16,7 +16,7 @@ class Owner:
         channel = self.client.get_channel(channel_id)
         await channel.send(string)
 
-    @commands.command()
+    @commands.command(hidden=True)
     @commands.is_owner()
     async def guilds(self, ctx):
         content = "**Connected guilds:**\n"
@@ -30,7 +30,7 @@ class Owner:
         """Shut down the bot"""
         print(f"{ctx.message.author} >logout")
         print('logout')
-        await ctx.send("Logging out... :wave:")
+        await ctx.send("Shutting down... :wave:")
         await self.client.logout()
 
 

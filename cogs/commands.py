@@ -13,19 +13,18 @@ from utils import logger as misolog
 from bs4 import BeautifulSoup
 import youtube_dl
 import os
+import datetime
 
 
 def load_data():
     with open('data.json', 'r') as filehandle:
         data = json.load(filehandle)
-        # print('data.json loaded')
         return data
 
 
 def save_data():
     with open('data.json', 'w') as filehandle:
         json.dump(data_json, filehandle, indent=4)
-        # print('data.json saved')
 
 
 data_json = load_data()
@@ -41,10 +40,12 @@ class Commands:
 
     @commands.command()
     async def patreon(self, ctx):
+        """Link to the patreon page"""
         await ctx.send("https://www.patreon.com/joinemm")
 
-    @commands.command(hidden=True)
+    @commands.command(hidden=True, disabled=True)
     async def patrons(self, ctx):
+        """List the current patreons"""
         content = discord.Embed()
         content.title = "Current Patrons:"
         content.description = "Azizul Haji Adenan :heart:"
@@ -69,10 +70,17 @@ class Commands:
     @commands.command(name='ping')
     async def ping(self, ctx):
         """Get the bot's ping"""
+        time_beg = datetime.datetime.utcnow()
         pong_msg = await ctx.send(":ping_pong:")
-        ms = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
-        await pong_msg.edit(content=f":ping_pong: {ms}ms")
-        self.logger.info(misolog.format_log(ctx, f"ping={ms}ms"))
+        time_sent = datetime.datetime.utcnow()
+        sr_lat = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
+        re_lat = (time_beg-ctx.message.created_at).total_seconds() * 1000
+        se_lat = (time_sent-time_beg).total_seconds() * 1000
+        await pong_msg.edit(content=f"```send-receive latency = {sr_lat}ms\n"
+                                    f"receive latency = {re_lat:.1f}ms\n"
+                                    f"send latency = {se_lat:.1f}ms\n"
+                                    f"heartbeat = {self.client.latency*1000:.1f}ms```")
+        self.logger.info(misolog.format_log(ctx, f""))
 
     @commands.command(name="uptime")
     async def uptime(self, ctx):
@@ -168,6 +176,7 @@ class Commands:
 
     @commands.command()
     async def ascii(self, ctx, *args):
+        """Turn text into fancy ascii art"""
         self.logger.info(misolog.format_log(ctx, f""))
         text = " ".join(args)
         response = requests.get(f"https://artii.herokuapp.com/make?text={text}")
@@ -219,6 +228,7 @@ class Commands:
 
     @commands.command(name="ytmp3")
     async def ytmp3(self, ctx, url):
+        """Turn youtube video into downloadable mp3 file"""
         async with ctx.typing():
             ydl_opts = {
                 'format': 'bestaudio/best',
@@ -244,6 +254,7 @@ class Commands:
 
     @commands.command(name="8ball")
     async def eightball(self, ctx, *args):
+        """Ask a yes/no question"""
         if args:
             choices = ["Yes, definitely.", "Yes.", "I think so, yes.", "Maybe.", "No.", "Most likely not.", "Definitely not."]
             answer = rd.choice(choices)
@@ -255,8 +266,13 @@ class Commands:
 
     @commands.command()
     async def choose(self, ctx, *args):
+        """Choose from given options. split options with 'or'"""
         query = " ".join(args)
         choices = query.split(" or ")
+        if len(choices) < 2:
+            await ctx.send("Give me at least 2 options to choose from! (separate options with `or`)")
+            self.logger.warning(misolog.format_log(ctx, f"1 option"))
+            return
         choice = rd.choice(choices).strip()
         await ctx.send(f"I choose **{choice}**")
         self.logger.info(misolog.format_log(ctx, f"{choice}"))

@@ -8,14 +8,12 @@ import imgkit
 def load_data():
     with open('users.json', 'r') as filehandle:
         data = json.load(filehandle)
-        # print('users.json loaded')
         return data
 
 
 def save_data(users_json):
     with open('users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
-        # print('users.json saved')
         filehandle.close()
 
 
@@ -40,7 +38,7 @@ class User:
 
     @commands.command()
     async def userinfo(self, ctx):
-        """User profile"""
+        """Info about a discord user"""
         self.logger.info(misolog.format_log(ctx, f""))
         users_json = load_data()
         if ctx.message.mentions:
@@ -99,6 +97,7 @@ class User:
 
     @commands.command()
     async def roleslist(self, ctx):
+        """List the roles of this server"""
         list = f"**Roles for {ctx.message.guild.name}**\n"
         for role in ctx.message.guild.roles[1:]:
             list += f"{role.name} ({role.id}) - {len(role.members)} members\n"
@@ -107,6 +106,7 @@ class User:
 
     @commands.command(name="avatar")
     async def avatar(self, ctx, userid=None):
+        """Get a user's profile get"""
         if ctx.message.mentions:
             user = ctx.message.mentions[0]
         else:
@@ -132,6 +132,7 @@ class User:
 
     @commands.command()
     async def hug(self, ctx, *args):
+        """Hug someone"""
         if ctx.message.mentions:
             data = load_data()
             hugged_user = ctx.message.mentions[0]
@@ -158,6 +159,7 @@ class User:
 
     @commands.command()
     async def profile(self, ctx):
+        """Show user profile"""
         if ctx.message.mentions:
             member = ctx.message.mentions[0]
         else:
@@ -168,10 +170,10 @@ class User:
         username = member.display_name
         discriminator = "#" + member.discriminator
 
-        config = imgkit.config(wkhtmltoimage='C:/Program Files/wkhtmltopdf/bin/wkhtmltoimage.exe')
+        #config = imgkit.config(wkhtmltoimage='C:/Program Files/wkhtmltopdf/bin/wkhtmltoimage.exe')
         options = {
-            'format': 'png',
-            'crop-h': '350',
+            'format': 'jpeg',
+            'crop-h': '400',
             'crop-w': '500',
         }
 
@@ -189,19 +191,18 @@ class User:
         except KeyError:
             pass
 
-        with open("html/edited_profile.html", "w", encoding="utf-8") as file:
-            formatted_html = html_data.format(usercolor=usercolor,
-                                              avatar_url=avatar_url,
-                                              username=username,
-                                              discriminator=discriminator,
-                                              badge_icons=badge_html)
-            file.write(formatted_html)
+        formatted_html = html_data.format(usercolor=usercolor,
+                                          avatar_url=avatar_url,
+                                          username=username,
+                                          discriminator=discriminator,
+                                          badge_icons=badge_html)
+
         # 3. generate and send
-        imgkit.from_file("html/edited_profile.html", "downloads/profile.png", config=config, options=options)
+        imgkit.from_string(formatted_html, "downloads/profile.png", options=options, css='html/profile_main.css')
         with open("downloads/profile.png", "rb") as img:
             await ctx.send(file=discord.File(img))
 
-    @commands.command()
+    @commands.command(hidden=True)
     @commands.is_owner()
     async def forcebadge(self, ctx, arg, arg2=""):
         if ctx.message.mentions:
@@ -209,7 +210,7 @@ class User:
         else:
             await add_badge(ctx, ctx.message.author, arg, True)
 
-    @commands.command()
+    @commands.command(hidden=True)
     @commands.is_owner()
     async def badgetest(self, ctx):
         options = {'quiet': '', 'format': 'png', 'crop-h': "35", 'crop-w': "35"}
@@ -219,6 +220,7 @@ class User:
 
     @commands.command()
     async def badges(self, ctx):
+        """Show a list of your badges"""
         data = load_data()
         try:
             content = f"**{ctx.message.author.display_name}'s badges:**"
@@ -237,7 +239,6 @@ async def add_badge(ctx, user, name, force=False):
     if name not in data['users'][userid]['badges']:
         data['users'][userid]['badges'].append(name)
     else:
-        print("Already has this badge")
         if not force:
             return
     display_name = badges[name]['name']

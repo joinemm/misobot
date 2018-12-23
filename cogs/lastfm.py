@@ -8,7 +8,7 @@ from utils import logger as misolog
 import imgkit
 import time as t
 
-with open('dont commit\keys.txt', 'r') as keys_filehandle:
+with open('dont commit/keys.txt', 'r') as keys_filehandle:
     keys = json.load(keys_filehandle)
     LASTFM_APPID = keys['LASTFM_APIKEY']
     LASTFM_TOKEN = keys['LASTFM_SECRET']
@@ -533,6 +533,10 @@ class Lastfm:
 
     @commands.command()
     async def fmartist(self, ctx, *args):
+        """Get your most listened tracks for an artist"""
+        if len(args) == 0:
+            await ctx.send("ERROR: Parameter `artist` is missing")
+            return
         artist = " ".join(args)
         users_json = load_data()
         try:
