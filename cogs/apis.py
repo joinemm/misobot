@@ -12,28 +12,35 @@ from utils import logger as misolog
 import random
 import tweepy
 from tweepy import OAuthHandler
+import os
+import html
 
-with open('dont commit\keys.txt', 'r') as filehandle:
-    keys = json.load(filehandle)
-    OXFORD_APPID = keys['OXFORD_APPID']
-    OXFORD_TOKEN = keys['OXFORD_TOKEN']
-    NAVER_APPID = keys['NAVER_APPID']
-    NAVER_TOKEN = keys['NAVER_TOKEN']
-    LASTFM_APPID = keys['LASTFM_APIKEY']
-    LASTFM_TOKEN = keys['LASTFM_SECRET']
-    TIMEZONE_API_KEY = keys['TIMEZONEDB_API_KEY']
-    SPOTIFY_CLIENT_ID = keys['SPOTIFY_CLIENT_ID']
-    SPOTIFY_CLIENT_SECRET = keys['SPOTIFY_CLIENT_SECRET']
-    GOOGLE_API_KEY = keys['GOOGLE_KEY']
-    DARKSKY_API_KEY = keys['DARK_SKY_KEY']
-    STEAM_API_KEY = keys['STEAM_WEB_API_KEY']
-    WOLFRAM_APPID = keys['WOLFRAM_APPID']
-    TWITTER_CKEY = keys['TWITTER_CKEY']
-    TWITTER_CSECRET = keys['TWITTER_CSECRET']
+keys = os.environ
+OXFORD_APPID = keys['OXFORD_APPID']
+OXFORD_TOKEN = keys['OXFORD_TOKEN']
+NAVER_APPID = keys['NAVER_APPID']
+NAVER_TOKEN = keys['NAVER_TOKEN']
+LASTFM_APPID = keys['LASTFM_APIKEY']
+LASTFM_TOKEN = keys['LASTFM_SECRET']
+TIMEZONE_API_KEY = keys['TIMEZONEDB_API_KEY']
+SPOTIFY_CLIENT_ID = keys['SPOTIFY_CLIENT_ID']
+SPOTIFY_CLIENT_SECRET = keys['SPOTIFY_CLIENT_SECRET']
+GOOGLE_API_KEY = keys['GOOGLE_KEY']
+DARKSKY_API_KEY = keys['DARK_SKY_KEY']
+STEAM_API_KEY = keys['STEAM_WEB_API_KEY']
+WOLFRAM_APPID = keys['WOLFRAM_APPID']
+TWITTER_CKEY = keys['TWITTER_CONSUMER_KEY']
+TWITTER_CSECRET = keys['TWITTER_CONSUMER_SECRET']
 
 auth = OAuthHandler(TWITTER_CKEY, TWITTER_CSECRET)
 #auth.set_access_token(access_token, access_secret)
 twt = tweepy.API(auth)
+
+papago_pairs = ['ko/en', 'ko/ja', 'ko/zh-cn', 'ko/zh-tw', 'ko/vi', 'ko/id', 'ko/de', 'ko/ru', 'ko/es', 'ko/it',
+                'ko/fr', 'en/ja', 'ja/zh-cn', 'ja/zh-tw', 'zh-cn/zh-tw', 'en/ko', 'ja/ko', 'zh-cn/ko', 'zh-tw/ko',
+                'vi/ko', 'id/ko', 'th/ko', 'de/ko', 'ru/ko', 'es/ko', 'it/ko', 'fr/ko', 'ja/en', 'zh-cn/ja',
+                'zh-tw/ja', 'zh-tw/zh-tw']
+
 
 class Apis:
 
@@ -41,8 +48,9 @@ class Apis:
         self.client = client
         self.logger = misolog.create_logger(__name__)
 
-    @commands.command(name='weather', brief='dark sky weather')
+    @commands.command()
     async def weather(self, ctx, *args):
+        """Get weather of a location"""
         self.logger.info(misolog.format_log(ctx, f""))
         address = "+".join(args)
         url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={GOOGLE_API_KEY}"
@@ -76,8 +84,9 @@ class Apis:
 
                 await ctx.send(embed=message)
 
-    @commands.command(name='define', brief='Search from oxford dictionary')
+    @commands.command()
     async def define(self, ctx, *args):
+        """Search from oxford dictionary"""
         self.logger.info(misolog.format_log(ctx, f""))
         search_string = ' '.join(args).lower()
         api_url = 'https://od-api.oxforddictionaries.com:443/api/v1'
@@ -122,8 +131,9 @@ class Apis:
         else:
             await ctx.send('Error: status code' + str(id_response.status_code))
 
-    @commands.command(name="urban", brief="Search from urban dictionary")
+    @commands.command()
     async def urban(self, ctx, *args):
+        """Search from urban dictionary"""
         self.logger.info(misolog.format_log(ctx, f""))
         search_string = " ".join(args)
         url = "https://mashape-community-urban-dictionary.p.mashape.com/define?term="
@@ -151,36 +161,58 @@ class Apis:
         else:
             await ctx.send("Error: " + str(response.status_code))
 
-    @commands.command(name='translate', brief='Korean / Japanese / English Translator')
-    async def translate(self, ctx, *args):
-        self.logger.info(misolog.format_log(ctx, f""))
-        search_string = urllib.parse.quote(' '.join(args))
-        detected_lang = self.detect_language(search_string)
-        if detected_lang in ['ko', 'zh-CN', 'zh-TW', 'vi', 'th']:
-            source_lang = detected_lang
-            target_lang = 'en'
+    @commands.command()
+    async def translate(self, ctx, *text):
+        """Translator that uses naver papago when possible, using google translator otherwise"""
+        if text[0] == "help":
+            self.logger.info(misolog.format_log(ctx, f"help"))
+            await ctx.send('Format: `>translate source/target "text"`\n'
+                           'Example: `>translate ko/en 안녕하세요`\n\n'
+                           'Leave source empty to detect language automatically.\n'
+                           'Example: `>translate /en こんにちは`\n\n'
+                           'When no language codes given, defaults to detected -> english.\n'
+                           'Example: `>translate ㅋㅋㅋ`')
+            return
+        if "/" in text[0]:
+            source, target = text[0].split("/")
+            text = text[1:]
+            if source == "":
+                source = self.detect_language(" ".join(text))
+            if target == "":
+                target = "en"
         else:
-            source_lang = 'en'
-            target_lang = 'ko'
+            source = self.detect_language(" ".join(text))
+            target = "en"
+        query_text = " ".join(text)
+        language_pair = f"{source}/{target}"
+        # we have language and query, now choose the appropriate translator
 
-        query = f"source={source_lang}&target={target_lang}&text={search_string}"
-        api_url = 'https://openapi.naver.com/v1/papago/n2mt'
-        request = urllib.request.Request(api_url)
-        request.add_header('X-Naver-Client-Id', NAVER_APPID)
-        request.add_header('X-Naver-Client-Secret', NAVER_TOKEN)
-        response = urllib.request.urlopen(request, data=query.encode('utf-8'))
-        rescode = response.getcode()
+        if language_pair in papago_pairs:
+            # use papago
+            self.logger.info(misolog.format_log(ctx, f"papago [{language_pair}]"))
+            query = f"source={source}&target={target}&text={query_text}"
+            api_url = 'https://openapi.naver.com/v1/papago/n2mt'
+            request = urllib.request.Request(api_url)
+            request.add_header('X-Naver-Client-Id', NAVER_APPID)
+            request.add_header('X-Naver-Client-Secret', NAVER_TOKEN)
+            response = urllib.request.urlopen(request, data=query.encode('utf-8'))
+            data = json.loads(response.read().decode('utf-8'))
+            translation = data['message']['result']['translatedText']
 
-        if rescode == 200:
-            response_body = json.loads(response.read().decode('utf-8'))
-            translation = response_body['message']['result']['translatedText']
-            await ctx.send(translation)
         else:
-            await ctx.send(f"Error {rescode}")
-            print(response)
+            # use google
+            self.logger.info(misolog.format_log(ctx, f"google [{language_pair}]"))
+            url = f"https://translation.googleapis.com/language/translate/v2?key={GOOGLE_API_KEY}" \
+                  f"&model=nmt&target={target}&source={source}&q={query_text}"
+            response = requests.get(url)
+            data = json.loads(response.content.decode('utf-8'))
+            translation = html.unescape(data['data']['translations'][0]['translatedText'])
 
-    @commands.command(name='spotify', brief='Analyze a spotify playlist from URI')
+        await ctx.send(f"`{source}->{target}` " + translation)
+
+    @commands.command()
     async def spotify(self, ctx, url=None, amount=10):
+        """Analyze a spotify playlist from URI"""
         self.logger.info(misolog.format_log(ctx, f""))
         try:
             if url.startswith("https://open."):
@@ -256,7 +288,7 @@ class Apis:
 
     @commands.command(name="convert")
     async def convert(self, ctx, *args):
-        """Convert various units, C to F doesn't work"""
+        """Converts various units"""
         source_quantity = args[0]
         source_unit, source_name = self.get_ucum_code(args[1])
         target_unit, target_name = self.get_ucum_code(args[len(args)-1])
@@ -362,6 +394,7 @@ class Apis:
 
     @commands.command()
     async def question(self, ctx, *args):
+        """Ask something from wolfram alpha"""
         query = " ".join(args)
         url = f"http://api.wolframalpha.com/v1/result?appid={WOLFRAM_APPID}&i={query}&output=json"
         response = requests.get(url.replace("+", "%2B"))
@@ -376,6 +409,7 @@ class Apis:
 
     @commands.command()
     async def twitter(self, ctx, tweet_url, delete=None):
+        """Get all the images from a tweet"""
         self.logger.info(misolog.format_log(ctx, f""))
         if "status" in tweet_url:
             tweet_id = re.search(r'status/(\d+)', tweet_url).group(1)
@@ -532,18 +566,14 @@ class Apis:
             return f"<error{response.status_code}>"
 
     def detect_language(self, string):
-        api_url = 'https://openapi.naver.com/v1/papago/detectLangs'
-        query = 'query=' + string
-        request = urllib.request.Request(api_url)
-        request.add_header('X-Naver-Client-Id', NAVER_APPID)
-        request.add_header('X-Naver-Client-Secret', NAVER_TOKEN)
-        response = urllib.request.urlopen(request, data=query.encode('utf-8'))
-        rescode = response.getcode()
-        if rescode == 200:
-            response_body = json.loads(response.read().decode('utf-8'))
-            return response_body['langCode']
+        url = f"https://translation.googleapis.com/language/translate/v2/detect?key={GOOGLE_API_KEY}" \
+              f"&q={string}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = json.loads(response.content.decode('utf-8'))
+            return data['data']['detections'][0][0]['language']
         else:
-            self.logger.error(f"response_status_code={str(rescode)}")
+            self.logger.error(f"language detection error {str(response.status_code)}")
             return None
 
     def get_ucum_code(self, search_query):

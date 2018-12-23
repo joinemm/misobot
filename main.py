@@ -1,15 +1,15 @@
 from discord.ext import commands
 import json
 from utils import logger as misolog
+import os
 
 logger = misolog.create_logger(__name__)
 
-with open('dont commit\\keys.txt', 'r') as filehandle:
-    TOKEN = json.load(filehandle)["TOKEN"]
+TOKEN = os.environ.get('MISO_BOT_TOKEN')
 
 client = commands.Bot(command_prefix=">")
 extensions = ["cogs.commands", "cogs.owner", "cogs.lastfm", "cogs.apis", "cogs.voice", "cogs.events",
-              "cogs.tictactoe", "cogs.fishy", "cogs.mod", "cogs.user", "cogs.webhook"]
+              "cogs.fishy", "cogs.mod", "cogs.user"]
 
 
 def load_data():

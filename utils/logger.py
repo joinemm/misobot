@@ -12,7 +12,7 @@ def create_logger(name):
     handler.setLevel(logging.INFO)
 
     # Create formatters and add it to handlers
-    format = logging.Formatter('%(asctime)s %(levelname)-7s %(name)-15s %(funcName)20s() :: %(message)s', datefmt='[%d/%m/%Y|%H:%M:%S]')
+    format = logging.Formatter('%(asctime)s %(levelname)-7s %(funcName)18s() :: %(message)s', datefmt='[%H:%M:%S]')
     handler.setFormatter(format)
 
     # Add handlers to the logger
