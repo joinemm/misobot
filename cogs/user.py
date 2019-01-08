@@ -173,8 +173,11 @@ class User:
         #config = imgkit.config(wkhtmltoimage='C:/Program Files/wkhtmltopdf/bin/wkhtmltoimage.exe')
         options = {
             'format': 'jpeg',
-            'crop-h': '400',
+            'crop-h': '350',
             'crop-w': '500',
+            'crop-x': '0',
+            'crop-y': '0',
+            'xvfb': ''
         }
 
         # 1. open file
