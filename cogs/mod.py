@@ -29,6 +29,9 @@ class Mod:
         try:
             muterole = ctx.message.guild.get_role(self.guilds_json['guilds'][str(ctx.message.guild.id)]['muterole'])
             member = ctx.message.mentions[0]
+            if member.id == 133311691852218378:
+                await ctx.send(f"Sorry but I will not mute this person!")
+                return
             await member.add_roles(muterole)
             await ctx.send(f"Muted {member.name} ({member.id})")
         except KeyError:
@@ -39,7 +42,7 @@ class Mod:
 
     @commands.command()
     @commands.has_permissions(manage_roles=True)
-    async def unmute(self, ctx, time=None):
+    async def unmute(self, ctx):
         """Unmute the given user"""
         try:
             muterole = ctx.message.guild.get_role(self.guilds_json['guilds'][str(ctx.message.guild.id)]['muterole'])

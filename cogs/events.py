@@ -65,7 +65,7 @@ class Events:
     async def on_message_delete(self, message):
         """The event triggered when a cached message is deleted"""
         ignored_users = [self.client.user.id]
-        if not int(message.author.id) in ignored_users and not message.author.bot:
+        if not int(message.author.id) in ignored_users and not message.author.bot and not message.content.startswith(">"):
             self.logger.info(f'{message.author} Deleted message: "{message.content}"')
             embed = discord.Embed(color=discord.Color.red())
             embed.set_author(name=f"{message.author} in {message.channel.guild.name}",

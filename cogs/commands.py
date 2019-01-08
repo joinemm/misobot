@@ -55,8 +55,10 @@ class Commands:
     async def info(self, ctx):
         """Get information about the bot"""
         self.logger.info(misolog.format_log(ctx, f""))
+        appinfo = await self.client.application_info()
         info_embed = discord.Embed(title='Hello',
-                                   description='I am Miso Bot, created by Joinemm#1998. See the documentation website for a list of commands.'
+                                   description=f'I am Miso Bot, created by {appinfo.owner.mention}.\n'
+                                               'See the documentation website for a list of commands.'
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
@@ -64,6 +66,7 @@ class Commands:
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
+        info_embed.add_field(name='Patreon', value="https://www.patreon.com/joinemm", inline=False)
 
         await ctx.send(embed=info_embed)
 
@@ -98,7 +101,7 @@ class Commands:
         await ctx.send(content)
         self.logger.info(misolog.format_log(ctx, f"range=[0,{_range}], result={content}"))
 
-    @commands.command(name='youtube')
+    @commands.command(name='youtube', aliases=["yt"])
     async def youtube(self, ctx, *args):
         """Search youtube for the given search query and return first result"""
         search_string = " ".join(args)
@@ -189,13 +192,13 @@ class Commands:
         response = requests.get(url.replace("`", ""), headers={"Accept-Encoding": "utf-8"})
         tree = html.fromstring(response.content)
         results = tree.xpath('//meta[@content]')
-        contents = []
-        for result in results:
-            contents.append(result.attrib['content'])
         sources = []
-        for content in contents:
-            if content.endswith(".mp4"):
-                sources.append(content)
+        for result in results:
+            try:
+                if result.attrib['property'] == "og:video":
+                    sources.append(result.attrib['content'])
+            except KeyError:
+                pass
         if sources:
             await ctx.send(sources[0])
             self.logger.info(misolog.format_log(ctx, f"Success"))
@@ -217,10 +220,10 @@ class Commands:
         sources = list(set(sources))
 
         if sources:
-            content = ""
+            content = discord.Embed()
             for url in sources:
-                content += f"{url}\n"
-            await ctx.send(content)
+                content.set_image(url=url)
+                await ctx.send(embed=content)
             self.logger.info(misolog.format_log(ctx, f"Success"))
         else:
             await ctx.send("Found nothing, sorry!")

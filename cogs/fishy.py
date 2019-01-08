@@ -9,15 +9,12 @@ import cogs.user as usercog
 def load_data():
     with open('users.json', 'r') as filehandle:
         data = json.load(filehandle)
-        # print('users.json loaded')
         return data
 
 
 def save_data(users_json):
     with open('users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
-        # print('users.json saved')
-        filehandle.close()
 
 
 class Fishy:
@@ -26,7 +23,7 @@ class Fishy:
         self.client = client
         self.logger = misolog.create_logger(__name__)
 
-    @commands.command(name="fishy")
+    @commands.command(name="fishy", aliases=['fisy', 'fsihy', 'fihy', 'foshy', 'fihsy', 'fisyh', 'fsiyh'])
     async def fishy(self, ctx):
         """Go fishing and receive random amount of fishies"""
         user_id_fisher = str(ctx.message.author.id)
@@ -51,18 +48,28 @@ class Fishy:
 
         if time_since_fishy > cooldown:
             trash = random.randint(1, 10) == 1
-            if trash and self_fishy:
-                trash_icons = [':moyai:', ':stopwatch:', ':wrench:', ':hammer:', ':pick:', ':nut_and_bolt:', ':gear:',
-                               ':toilet:', ':alembic:', ':bathtub:', ':paperclip:', ':scissors:', ':boot:',
-                               ':high_heel:', ':spoon:', ':saxophone:', ':trumpet:', ':scooter:', ':anchor:'
-                               ]
-                rarity = "trash"
-                amount = 0
-                icon = random.choice(trash_icons)
-                if self_fishy:
-                    await ctx.send(f"Caught **trash!**  {icon} Better luck next time.")
+            if trash:
+                christmas = False
+                if christmas:
+                    rarity = "gift"
+                    amount = 0
+                    if self_fishy:
+                        await ctx.send(f"Caught a **christmas present!** :gift:")
+                    else:
+                        await ctx.send(f"Caught a **christmas present** :gift: for {receiver_name}!")
                 else:
-                    await ctx.send(f"Caught **trash**  {icon} for {receiver_name}! Better luck next time.")
+
+                    trash_icons = [':moyai:', ':stopwatch:', ':wrench:', ':hammer:', ':pick:', ':nut_and_bolt:', ':gear:',
+                                   ':toilet:', ':alembic:', ':bathtub:', ':paperclip:', ':scissors:', ':boot:',
+                                   ':high_heel:', ':spoon:', ':saxophone:', ':trumpet:', ':scooter:', ':anchor:'
+                                   ]
+                    rarity = "trash"
+                    amount = 0
+                    icon = random.choice(trash_icons)
+                    if self_fishy:
+                        await ctx.send(f"Caught **trash!**  {icon} Better luck next time.")
+                    else:
+                        await ctx.send(f"Caught **trash**  {icon} for {receiver_name}! Better luck next time.")
 
             else:
                 rand = random.randint(1, 100)
@@ -202,6 +209,8 @@ class Fishy:
                     continue
             try:
                 userdata = users_json['users'][user]
+                if self.client.get_user(int(user)) is None:
+                    continue
                 leaderboard[self.client.get_user(int(user)).name] = userdata['fishy']
             except KeyError:
                 continue
@@ -220,7 +229,6 @@ class Fishy:
         message.set_footer(text=f"\n+ {len(leaderboard[9:])} more users")
         await ctx.send(embed=message)
 
-
     @commands.command()
     async def fishystats(self, ctx, arg=None):
         """Get total fishing stats"""
@@ -231,6 +239,7 @@ class Fishy:
         uncommon = 0
         rare = 0
         legendary = 0
+        presents = 0
         users_json = load_data()
         message = discord.Embed()
         if arg == "global":
@@ -285,6 +294,10 @@ class Fishy:
                 legendary += userdata['fish_legendary']
             except KeyError:
                 pass
+            try:
+                presents += userdata['fish_gift']
+            except KeyError:
+                pass
         total = trash+common+uncommon+rare+legendary
         message.description = f"Total fishies fished: **{fishy_total}**\n" \
                               f"Total fishies gifted: **{fishy_gifted_total}**\n\n" \
@@ -294,9 +307,35 @@ class Fishy:
                               f"Rare: **{rare}** - {(rare/total)*100:.1f}%\n" \
                               f"Legendary: **{legendary}** - {(legendary/total)*100:.1f}%\n\n" \
                               f"Total fish count: **{total}**\n" \
-                              f"Average fishy: **{fishy_total/total:.2f}**"
+                              f"Average fishy: **{fishy_total/total:.2f}**" \
+                              f"\n\nChristmas presents: {presents}"
         await ctx.send(embed=message)
         self.logger.info(misolog.format_log(ctx, f""))
+
+    @commands.command()
+    async def presents(self, ctx, option):
+        data = load_data()
+        userid = str(ctx.message.author.id)
+        if 'fish_gift' not in data['users'][userid]:
+            await ctx.send("You don't have any presents!")
+            return
+        if option == "open":
+            pass
+        elif option == "gift":
+            try:
+                recipent = ctx.message.mentions[0]
+            except Exception:
+                await ctx.send("Please mention someone to gift to")
+                return
+            data['users'][userid]['fish_gift'] -= 1
+            if 'fish_gift' in data['users'][str(recipent.id)]:
+                data['users'][str(recipent.id)]['fish_gift'] += 1
+            else:
+                data['users'][str(recipent.id)]['fish_gift'] = 1
+
+        else:
+            await ctx.send(f"You have {data['users'][userid]['fish_gift']} unopened presents. "
+                           f"use `>presents open` to open one or `>presents gift` to give one to someone else")
 
 
 def setup(client):
