@@ -41,6 +41,15 @@ papago_pairs = ['ko/en', 'ko/ja', 'ko/zh-cn', 'ko/zh-tw', 'ko/vi', 'ko/id', 'ko/
                 'vi/ko', 'id/ko', 'th/ko', 'de/ko', 'ru/ko', 'es/ko', 'it/ko', 'fr/ko', 'ja/en', 'zh-cn/ja',
                 'zh-tw/ja', 'zh-tw/zh-tw']
 
+def load_data():
+    with open('users.json', 'r') as filehandle:
+        data = json.load(filehandle)
+        return data
+
+
+def save_data(users_json):
+    with open('users.json', 'w') as filehandle:
+        json.dump(users_json, filehandle, indent=4)
 
 class Apis:
 
@@ -83,6 +92,60 @@ class Apis:
                                       f"Local time: **{time}**\n"
 
                 await ctx.send(embed=message)
+
+    @commands.command(aliases=['hs'])
+    async def horoscope(self, ctx, setting=None, *args):
+        self.logger.info(misolog.format_log(ctx, f""))
+        hs = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn',
+              'aquarius', 'pisces']
+        user = str(ctx.message.author.id)
+        data = load_data()
+        if setting == "set":
+            if args[0].lower() in hs:
+                sign = args[0].lower()
+            else:
+                await ctx.send(f"`{args[0]}` is not a valid sunsign! use `>horoscope help` for a list of sunsigns.")
+                return
+            # set sign
+            if not user in data['users']:
+                data['users'][user] = {}
+            data['users'][user]['sunsign'] = sign
+            await ctx.send(f"Sunsign saved as `{sign}`")
+            save_data(data)
+            return
+        elif setting == "help":
+            list = "Aries (Mar 21-Apr 19)\nTaurus (Apr 20-May 20)\nGemini (May 21-June 20)\nCancer (Jun 21-Jul 22)\n" \
+                   "Leo (Jul 23-Aug 22)\nVirgo (Aug 23-Sep 22)\nLibra (Sep 23-Oct 22)\nScorpio (Oct 23-Nov 21)\n" \
+                   "Sagittarius (Nov 22-Dec 21)\nCapricorn (Dec 22-Jan 19)\nAquarius (Jan 20-Feb 18)\n" \
+                   "Pisces (Feb 19-Mar 20)"
+            content = discord.Embed()
+            content.title = f"Sunsign list"
+            content.description = list
+            await ctx.send(embed=content)
+            return
+        elif setting is not None:
+            # chosen sign
+            if setting in hs:
+                sign = setting
+            else:
+                await ctx.send(f"`{setting}` is not a valid sunsign! use `>horoscope help` for a list of sunsigns.")
+                return
+        else:
+            # get user's sign
+            try:
+                sign = data['users'][user]['sunsign']
+            except KeyError:
+                await ctx.send("Please save your sunsign using `>horoscope set`\n"
+                               "use `>horoscope help` if you don't know which one you are.")
+                return
+
+        response = requests.get(f"http://horoscope-api.herokuapp.com/horoscope/today/{sign}")
+        response_data = json.loads(response.content.decode('utf-8'))
+        content = discord.Embed()
+        content.title = f"{sign.capitalize()}"
+        content.set_footer(text=response_data['date'])
+        content.description = response_data['horoscope']
+        await ctx.send(embed=content)
 
     @commands.command()
     async def define(self, ctx, *args):
