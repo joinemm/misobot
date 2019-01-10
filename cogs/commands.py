@@ -17,13 +17,13 @@ import datetime
 
 
 def load_data():
-    with open('data.json', 'r') as filehandle:
+    with open('data/data.json', 'r') as filehandle:
         data = json.load(filehandle)
         return data
 
 
 def save_data():
-    with open('data.json', 'w') as filehandle:
+    with open('data/data.json', 'w') as filehandle:
         json.dump(data_json, filehandle, indent=4)
 
 
@@ -310,6 +310,29 @@ class Commands:
 
         await ctx.send(embed=content)
 
+    @commands.command()
+    async def ship(self, ctx, *args):
+        names = " ".join(args).split("and")
+        if not len(names) == 2:
+            await ctx.send("Please give two names separated with `and`")
+            return
+        url = f"https://www.calculator.net/love-calculator.html?cnameone={names[0]}&x=0&y=0&cnametwo={names[1]}"
+        source = requests.get(url)
+        tree = html.fromstring(source.content)
+        percentage = tree.xpath('//font[@color="green"]/b/text()')[0]
+        text = tree.xpath('//div[@id="content"]/p/text()')
+
+        perc = int(percentage[:-1])
+        if perc < 26:
+            emoji = ":broken_heart:"
+        elif perc > 74:
+            emoji = ":sparkling_heart:"
+        else:
+            emoji = ":hearts:"
+        content = discord.Embed(title=f"{names[0]} {emoji} {names[1]} - {percentage}", colour=discord.Colour.magenta())
+        content.description = text[2]
+
+        await ctx.send(embed=content)
 
 def scrape_kprofiles(url):
     """Scrape the given kprofiles url for artist names and return the results"""

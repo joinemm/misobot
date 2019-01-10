@@ -67,7 +67,7 @@ class LastFM:
                 await ctx.send(embed=content)
             else:
                 await ctx.send("LastFM Error")
-        elif method in ["userinfo", "info"]:
+        elif method in ["userinfo", "info", None]:
             content = self.userinfo(ctx, username)
             if content is not None:
                 await ctx.send(embed=content)
@@ -76,11 +76,15 @@ class LastFM:
             return
         elif method in ["help"]:
             help_msg = "```\n" \
-                       ">fm     nowplaying (np)   week      chart 3x3\n" \
-                       "        recent (re)       month     chart 4x4\n" \
-                       "        toptracks (tt)    3month    chart 5x5\n" \
-                       "        topartists (ta)   halfyear\n" \
-                       "        topalbums (talb)  year" \
+                       ">fm       nowplaying (np)   week\n" \
+                       "          recent (re)       month\n" \
+                       "          toptracks (tt)    3month\n" \
+                       "          topartists (ta)   6month\n" \
+                       "          topalbums (talb)  year\n\n" \
+                       ">fmchart  recent (re)        1x1\n" \
+                       "          topalbums (talb)    :\n" \
+                       "          topartists (ta)   14x14\n\n" \
+                       ">fmartist [artist name]" \
                        "```"
             await ctx.send(help_msg)
             return

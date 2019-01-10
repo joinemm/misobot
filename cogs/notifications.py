@@ -32,10 +32,11 @@ class Notifications:
                     triggerwords = list(self.notifications_json[str(message.guild.id)].keys())
                     matches = set()
                     for word in triggerwords:
-                        match = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
-                        if match.findall(message.content):
+                        pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
+                        if pattern.findall(message.content):
                             matches.add(word)
                     for word in matches:
+                        pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
                         for user_id in self.notifications_json[str(message.guild.id)][word]:
                             if not user_id == message.author.id:
                                 user = message.guild.get_member(user_id)
@@ -43,12 +44,12 @@ class Notifications:
                                     content = discord.Embed()
                                     content.set_author(name=f'{message.author} mentioned "{word}" in {message.guild.name}',
                                                        icon_url=message.author.avatar_url)
-                                    content.description = f">>> {message.content.replace(word, f'**{word}**')}\n\n" \
+                                    content.description = f">>> {re.sub(pattern, lambda x: f'**{x.group(0)}**', message.content)}\n\n" \
                                                           f"[Go to message]({message.jump_url})"
                                     content.set_thumbnail(url=message.guild.icon_url)
-                                    #content.add_field(name="[Click here to jump to message]", value=f"http://discordapp.com/channels/{message.guild.id}/{message.channel.id}/{message.id}")
 
                                     await user.send(embed=content)
+
                                     #await user.send(f"**{message.author.name}** mentioned `{word}` in **{message.guild.name}**/{message.channel.mention}\n"
                                     #                f">>> {message.content.replace(word, f'**{word}**')}\n"
                                     #                f">>> http://discordapp.com/channels/{message.guild.id}/{message.channel.id}/{message.id}\n")
