@@ -6,13 +6,13 @@ import imgkit
 
 
 def load_data():
-    with open('users.json', 'r') as filehandle:
+    with open('data/users.json', 'r') as filehandle:
         data = json.load(filehandle)
         return data
 
 
 def save_data(users_json):
-    with open('users.json', 'w') as filehandle:
+    with open('data/users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
         filehandle.close()
 
@@ -136,7 +136,7 @@ class User:
         if ctx.message.mentions:
             data = load_data()
             hugged_user = ctx.message.mentions[0]
-            await ctx.send(f"{hugged_user.mention} <a:hug:519667489940963328>")
+            await ctx.send(f"{hugged_user.mention} <a:hug:532923159586930700>")
 
             if str(ctx.message.author.id) not in data['users']:
                 data['users'][str(ctx.message.author.id)] = {}
@@ -155,7 +155,7 @@ class User:
             if len(data['users'][str(ctx.message.author.id)]['hugs']) > 9:
                 await add_badge(ctx, ctx.message.author, "super_hugger")
         else:
-            await ctx.send(f"{' '.join(args)} <a:hug:519667489940963328>")
+            await ctx.send(f"{' '.join(args)} <a:hug:532923159586930700>")
 
     @commands.command()
     async def profile(self, ctx):
@@ -177,7 +177,8 @@ class User:
             'crop-w': '500',
             'crop-x': '0',
             'crop-y': '0',
-            'xvfb': ''
+            'xvfb': '',
+            'quiet': ''
         }
 
         # 1. open file

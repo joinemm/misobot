@@ -15,13 +15,13 @@ LASTFM_TOKEN = keys['LASTFM_SECRET']
 
 
 def load_data():
-    with open('users.json', 'r') as filehandle:
+    with open('data/users.json', 'r') as filehandle:
         data = json.load(filehandle)
         return data
 
 
 def save_data(users_json):
-    with open('users.json', 'w') as filehandle:
+    with open('data/users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
 
 
@@ -369,7 +369,7 @@ class LastFM:
             arts += '<div class="art"><img src="{' + str(i) + '[1]}"><p class="label">{' + str(i) + '[0]}</p></div>'
 
         dimensions = str(300 * size)
-        options = {'quiet': '', 'format': 'jpeg', 'crop-h': dimensions, 'crop-w': dimensions}
+        options = {"xvfb": "", 'quiet': '', 'format': 'jpeg', 'crop-h': dimensions, 'crop-w': dimensions}
         formatted_html = self.chart_html_flex.format(dimension=dimensions, arts=arts).format(*chart)
 
         imgkit.from_string(formatted_html, "downloads/fmchart.jpeg", options=options,

@@ -42,13 +42,13 @@ papago_pairs = ['ko/en', 'ko/ja', 'ko/zh-cn', 'ko/zh-tw', 'ko/vi', 'ko/id', 'ko/
                 'zh-tw/ja', 'zh-tw/zh-tw']
 
 def load_data():
-    with open('users.json', 'r') as filehandle:
+    with open('data/users.json', 'r') as filehandle:
         data = json.load(filehandle)
         return data
 
 
 def save_data(users_json):
-    with open('users.json', 'w') as filehandle:
+    with open('data/users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
 
 class Apis:

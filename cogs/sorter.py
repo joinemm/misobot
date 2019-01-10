@@ -5,13 +5,13 @@ import json
 
 
 def load_data():
-    with open('data.json', 'r') as filehandle:
+    with open('data/data.json', 'r') as filehandle:
         data = json.load(filehandle)
         return data
 
 
 def save_data():
-    with open('data.json', 'w') as filehandle:
+    with open('data/data.json', 'w') as filehandle:
         json.dump(data_json, filehandle, indent=4)
 
 

@@ -5,12 +5,12 @@ import re
 
 
 def load_data():
-    with open('notifications.json', 'r') as filehandle:
+    with open('data/notifications.json', 'r') as filehandle:
         return json.load(filehandle)
 
 
 def save_data(data):
-    with open('notifications.json', 'w') as filehandle:
+    with open('data/notifications.json', 'w') as filehandle:
         json.dump(data, filehandle, indent=4)
 
 
@@ -24,7 +24,7 @@ class Notifications:
         if not message.author == self.client.user:
             # miso was pinged
             if self.client.user in message.mentions:
-                await message.channel.send("<:misoping:532686884359372801>")
+                await message.channel.send("<:misoping:532922215105036329>")
 
             # notifications
             if message.guild is not None:
@@ -73,12 +73,12 @@ class Notifications:
                 self.notifications_json[guild][word] = [user]
             else:
                 if user in self.notifications_json[guild][word]:
-                    await ctx.send("You already have this notification <:hyunjinwtf:488381832207794176>")
+                    await ctx.send("You already have this notification <:hyunjinwtf:532922316212928532>")
                     return
                 self.notifications_json[guild][word].append(user)
             save_data(self.notifications_json)
             await ctx.author.send(f"New notification for keyword `{word}` set for `{ctx.guild.name}` ")
-            await ctx.send("Set a notification! Check your DMs <:vivismirk:474641574803013638>")
+            await ctx.send("Set a notification! Check your DMs <:vivismirk:532923084026544128>")
             self.notifications_json = load_data()
 
         elif mode == "remove":
@@ -92,10 +92,10 @@ class Notifications:
                     del self.notifications_json[guild][word]
                 save_data(self.notifications_json)
                 await ctx.author.send(f"Notification for keyword `{word}` removed for `{ctx.guild.name}` ")
-                await ctx.send("removed a notification! Check your DMs <:vivismirk:474641574803013638>")
+                await ctx.send("removed a notification! Check your DMs <:vivismirk:532923084026544128>")
                 self.notifications_json = load_data()
             except KeyError:
-                await ctx.send("You don't even have this notification <:hyunjinwtf:488381832207794176>")
+                await ctx.send("You don't even have this notification <:hyunjinwtf:532922316212928532>")
 
         elif mode == "list":
             user = ctx.author.id

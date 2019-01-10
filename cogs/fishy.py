@@ -7,13 +7,13 @@ import cogs.user as usercog
 
 
 def load_data():
-    with open('users.json', 'r') as filehandle:
+    with open('data/users.json', 'r') as filehandle:
         data = json.load(filehandle)
         return data
 
 
 def save_data(users_json):
-    with open('users.json', 'w') as filehandle:
+    with open('data/users.json', 'w') as filehandle:
         json.dump(users_json, filehandle, indent=4)
 
 

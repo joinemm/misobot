@@ -4,14 +4,14 @@ import json
 
 
 def load_data():
-    with open('guilds.json', 'r') as filehandle:
+    with open('data/guilds.json', 'r') as filehandle:
         data = json.load(filehandle)
         # print('guilds.json loaded')
         return data
 
 
 def save_data(guilds_json):
-    with open('guilds.json', 'w') as filehandle:
+    with open('data/guilds.json', 'w') as filehandle:
         json.dump(guilds_json, filehandle, indent=4)
         # print('guilds.json saved')
 
