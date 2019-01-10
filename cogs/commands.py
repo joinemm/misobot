@@ -281,6 +281,35 @@ class Commands:
         await ctx.send(f"I choose **{choice}**")
         self.logger.info(misolog.format_log(ctx, f"{choice}"))
 
+    @commands.command()
+    async def melon(self, ctx, timeframe="", amount=10):
+        if timeframe not in ["day", "month", "rise", ""]:
+            if timeframe == "realtime":
+                timeframe = ""
+            else:
+                await ctx.send(f"ERROR: Invalid timeframe `{timeframe}`\ntry `[realtime | day | month | rise]`")
+                return
+        if amount > 100:
+            amount = 100
+        url = f"https://www.melon.com/chart/{timeframe}/index.htm"
+
+        source = requests.get(url, headers={
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0"})
+        tree = html.fromstring(source.content)
+
+        song_titles = tree.xpath('//div[@class="ellipsis rank01"]/span/a/text()')
+        artists = tree.xpath('//div[@class="ellipsis rank02"]/a/text()')
+        albums = tree.xpath('//div[@class="ellipsis rank03"]/a/text()')
+        image = tree.xpath('//img[@onerror="WEBPOCIMG.defaultAlbumImg(this);"]')[0].attrib['src']
+
+        content = discord.Embed(title=f"Melon top {amount} - {timeframe}", colour=discord.Colour.green())
+        content.set_thumbnail(url=image)
+        for i in range(amount):
+            content.add_field(name=f"{i + 1}. {song_titles[i]}", value=f"{artists[i]} - {albums[i]}", inline=False)
+
+        await ctx.send(embed=content)
+
 
 def scrape_kprofiles(url):
     """Scrape the given kprofiles url for artist names and return the results"""
