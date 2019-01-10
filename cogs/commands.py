@@ -43,12 +43,15 @@ class Commands:
         """Link to the patreon page"""
         await ctx.send("https://www.patreon.com/joinemm")
 
-    @commands.command(hidden=True, disabled=True)
+    @commands.command()
     async def patrons(self, ctx):
         """List the current patreons"""
+        patrons = [381491116853166080, 121757433507872768]
         content = discord.Embed()
         content.title = "Current Patrons:"
-        content.description = "Azizul Haji Adenan :heart:"
+        content.description = ""
+        for user in patrons:
+            content.description += f"{self.client.get_user(user).mention}"
         await ctx.send()
 
     @commands.command(name='info')
@@ -62,7 +65,7 @@ class Commands:
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 0.7.1')
+        info_embed.set_footer(text='version 0.9.4')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
@@ -73,15 +76,13 @@ class Commands:
     @commands.command(name='ping')
     async def ping(self, ctx):
         """Get the bot's ping"""
-        time_beg = datetime.datetime.utcnow()
+        #time_beg = datetime.datetime.utcnow()
         pong_msg = await ctx.send(":ping_pong:")
-        time_sent = datetime.datetime.utcnow()
+        #time_sent = datetime.datetime.utcnow()
         sr_lat = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
-        re_lat = (time_beg-ctx.message.created_at).total_seconds() * 1000
-        se_lat = (time_sent-time_beg).total_seconds() * 1000
-        await pong_msg.edit(content=f"```send-receive latency = {sr_lat}ms\n"
-                                    f"receive latency = {re_lat:.1f}ms\n"
-                                    f"send latency = {se_lat:.1f}ms\n"
+        #re_lat = (time_beg-ctx.message.created_at).total_seconds() * 1000
+        #se_lat = (time_sent-time_beg).total_seconds() * 1000
+        await pong_msg.edit(content=f"```latency = {sr_lat}ms\n"
                                     f"heartbeat = {self.client.latency*1000:.1f}ms```")
         self.logger.info(misolog.format_log(ctx, f""))
 

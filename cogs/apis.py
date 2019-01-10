@@ -224,7 +224,7 @@ class Apis:
         else:
             await ctx.send("Error: " + str(response.status_code))
 
-    @commands.command()
+    @commands.command(aliases=['tr', 'trans'])
     async def translate(self, ctx, *text):
         """Translator that uses naver papago when possible, using google translator otherwise"""
         if text[0] == "help":

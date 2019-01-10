@@ -203,10 +203,10 @@ class LastFM:
                 if tags:
                     content.set_footer(text=", ".join(tags))
 
-            if "nowplaying" in tracks[0]['@attr']:
-                state = "Now Playing :notes:"
-            else:
-                state = "Most recent track:"
+            state = "Most recent track:"
+            if '@attr' in tracks[0]:
+                if "nowplaying" in tracks[0]['@attr']:
+                    state = "Now Playing"
 
             content.set_author(name=f"{user_attr['user']} — {state}:",
                                icon_url=ctx.message.author.avatar_url)
@@ -381,6 +381,64 @@ class LastFM:
             await ctx.send(f"\nChart gen = {timer_upload - timer_start:.4f}s"
                            f"\nChart upload = {t.time() - timer_upload:.4f}s"
                            f"\nTotal = {t.time() - timer_start:.4f}s```")
+
+    @commands.command()
+    async def fmartist(self, ctx, *args):
+        """Get your most listened tracks for an artist"""
+        if len(args) == 0:
+            await ctx.send("ERROR: Parameter `artist` is missing")
+            return
+        artist = " ".join(args)
+        users_json = load_data()
+        try:
+            user = users_json["users"][str(ctx.message.author.id)]['lastfm_username']
+        except Exception:
+            await ctx.send("No username found in database, please use >fm set {username}")
+            return
+        track_limit = int(api_request({"method": "user.gettoptracks", "user": user})['toptracks']['@attr']['total'])
+        tracks = []
+        i = 1
+        async with ctx.typing():
+            for x in range(track_limit // 5000):
+                tracks += api_request({"method": "user.gettoptracks", "user": user, "limit": track_limit, "page": i})['toptracks']['track']
+                track_limit -= 5000
+                i += 1
+            tracks += api_request({"method": "user.gettoptracks", "user": user, "limit": track_limit, "page": i})['toptracks']['track']
+            artists = {}
+            for i in range(track_limit):
+                this_artist = tracks[i]['artist']['name']
+                if artist is not None:
+                    if not this_artist.casefold() == artist.casefold():
+                        continue
+                    elif not artists:
+                        artist_stylized = this_artist
+                this_song = tracks[i]['name']
+                this_playcount = tracks[i]['playcount']
+                if this_artist not in artists:
+                    artists[this_artist] = {}
+                artists[this_artist][this_song] = this_playcount
+
+        # await ctx.send(f"```json\n{json.dumps(artists, indent=4)}```")
+        if artists:
+            content = discord.Embed()
+            content.title = f"{user}'s top tracks for {artist_stylized}"
+            additional_songs = 0
+            content.description = ""
+            full = False
+            for song in artists[artist_stylized]:
+                if full:
+                    additional_songs += 1
+                else:
+                    line = f"**{artists[artist_stylized][song]}** plays - **{song}**\n"
+                    if len(content.description) + len(line) < 2000:
+                        content.description += line
+                    else:
+                        full = True
+            if full:
+                content.set_footer(text=f"+ {additional_songs} more songs")
+            await ctx.send(embed=content)
+        else:
+            await ctx.send("You haven't listened to this artist!")
 
 
 def api_request(data_dict):

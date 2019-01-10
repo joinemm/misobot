@@ -4,11 +4,11 @@ import re
 import tweepy
 from tweepy import OAuthHandler
 import json
+import os
 
-with open('dont commit/keys.txt', 'r') as filehandle:
-    keys = json.load(filehandle)
-    TWITTER_CKEY = keys['TWITTER_CKEY']
-    TWITTER_CSECRET = keys['TWITTER_CSECRET']
+keys = os.environ
+TWITTER_CKEY = keys['TWITTER_CKEY']
+TWITTER_CSECRET = keys['TWITTER_CSECRET']
 
 auth = OAuthHandler(TWITTER_CKEY, TWITTER_CSECRET)
 twt = tweepy.API(auth)
