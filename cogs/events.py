@@ -80,8 +80,8 @@ class Events:
         """The event triggered when an error is raised while invoking a command"""
 
         # This prevents any commands with local handlers being handled here in on_command_error.
-        if hasattr(ctx.command, 'on_error'):
-            return
+        #if hasattr(ctx.command, 'on_error'):
+        #    return
 
         # ignored = commands.CommandNotFound
 
@@ -128,7 +128,8 @@ class Events:
             return None
 
     @commands.command()
-    async def command(self, ctx, mode, name, *args):
+    async def command(self, ctx, mode, name=None, *args):
+        """Add custom commands"""
         commands_that_exist = []
         for command in self.client.commands:
             commands_that_exist.append(command.name)
@@ -138,28 +139,68 @@ class Events:
         except KeyError:
             pass
 
-        if mode == "add":
-            if name in commands_that_exist:
-                await ctx.send(f"Sorry, the command `>{name}` already exists!")
-                return
-            response = " ".join(args)
-
-            if not str(ctx.message.guild.id) in self.guilds_json['guilds']:
-                self.guilds_json['guilds'][str(ctx.message.guild.id)] = {'custom_commands': {name: response}}
-            else:
-                if not 'custom_commands' in self.guilds_json['guilds'][str(ctx.message.guild.id)]:
-                    self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'] = {}
-                self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name] = response
-
-            await ctx.send(f"Custom command `>{name}` succesfully added")
-            save_data(self.guilds_json)
-        elif mode == "remove":
+        if mode == "list":
+            found = []
             try:
-                del self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name]
-                await ctx.send(f"Custom command `>{name}` succesfully deleted")
-                save_data(self.guilds_json)
+                for x in self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands']:
+                    found.append(f">{x}")
             except KeyError:
-                await ctx.send(f"ERROR: Custom command `>{name}` doesn't exist!")
+                pass
+            content = discord.Embed(title=f"{ctx.guild.name} commands")
+            if found:
+                content.description = "\n".join(found)
+            else:
+                content.description = "No commands set on this server yet!"
+            await ctx.send(embed=content)
+
+        else:
+            if name is None:
+                await ctx.send(f"ERROR: Parameter `name` not found")
+                return
+            if mode == "add":
+                if name in commands_that_exist:
+                    await ctx.send(f"Sorry, the command `>{name}` already exists!")
+                    return
+                response = " ".join(args)
+                if len(response) < 1:
+                    await ctx.send("ERROR: Parameter `response` not found")
+                    return
+                if not str(ctx.message.guild.id) in self.guilds_json['guilds']:
+                    self.guilds_json['guilds'][str(ctx.message.guild.id)] = {'custom_commands': {name: response}}
+                else:
+                    if 'custom_commands' not in self.guilds_json['guilds'][str(ctx.message.guild.id)]:
+                        self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'] = {}
+                    self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name] = response
+
+                await ctx.send(f"Custom command `>{name}` succesfully added")
+                save_data(self.guilds_json)
+
+            elif mode == "remove":
+                try:
+                    del self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name]
+                    await ctx.send(f"Custom command `>{name}` succesfully deleted")
+                    save_data(self.guilds_json)
+                except KeyError:
+                    await ctx.send(f"ERROR: Custom command `>{name}` doesn't exist!")
+
+            elif mode == "search":
+                found = []
+                for a in commands_that_exist:
+                    if name in a:
+                        found.append(f">{a}")
+                content = discord.Embed(title="Search result")
+                if found:
+                    content.description = "\n".join(found)
+                else:
+                    content.description = "Found nothing!"
+                await ctx.send(embed=content)
+
+            else:
+                help_msg = "`>command add [name] [response]`\n" \
+                           "`>command remove [name]`\n" \
+                           "`>command search [name]`\n" \
+                           "`>command list`"
+                await ctx.send(help_msg)
 
 
 def setup(client):

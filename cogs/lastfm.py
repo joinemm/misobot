@@ -251,7 +251,7 @@ class LastFM:
             description = []
             for i in range(amount):
                 artist = escape(artists[i]['name'], 2)
-                plays = escape(artists[i]['playcount'], 2)
+                plays = artists[i]['playcount']
                 rank = artists[i]['@attr']['rank']
                 description.append(f"**{plays}** plays — **{artist}**")
             content.set_thumbnail(url=artists[0]['image'][3]['#text'])

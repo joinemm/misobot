@@ -52,7 +52,7 @@ class Commands:
         content.description = ""
         for user in patrons:
             content.description += f"{self.client.get_user(user).mention}"
-        await ctx.send()
+        await ctx.send(embed=content)
 
     @commands.command(name='info')
     async def info(self, ctx):

@@ -139,12 +139,17 @@ class Apis:
                                "use `>horoscope help` if you don't know which one you are.")
                 return
 
-        response = requests.get(f"http://horoscope-api.herokuapp.com/horoscope/today/{sign}")
+        url = f"http://theastrologer-api.herokuapp.com/api/horoscope/{sign}/today"
+        response = requests.get(url)
         response_data = json.loads(response.content.decode('utf-8'))
         content = discord.Embed()
-        content.title = f"{sign.capitalize()}"
+        content.title = response_data['sunsign']
         content.set_footer(text=response_data['date'])
-        content.description = response_data['horoscope']
+        content.add_field(name='Mood', value=response_data['meta']['mood'].capitalize(), inline=True)
+        content.add_field(name='Keywords', inline=True,
+                          value=", ".join([x.capitalize() for x in response_data['meta']['keywords'].split(", ")]))
+        content.add_field(name='Intensity', value=response_data['meta']['intensity'], inline=True)
+        content.add_field(name='Horoscope', value=response_data['horoscope'].split("(c)")[0])
         await ctx.send(embed=content)
 
     @commands.command()
