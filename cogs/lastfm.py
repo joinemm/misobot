@@ -4,6 +4,7 @@ import json
 import discord
 from datetime import datetime
 from utils import logger as misolog
+from utils import misc as misomisc
 import imgkit
 import time as t
 import os
@@ -181,21 +182,22 @@ class LastFM:
     def nowplaying(self, ctx, username):
         data = api_request({"user": username, "method": "user.getrecenttracks"})
         if data is not None and not "error" in data:
-            content = discord.Embed(colour=discord.Colour.magenta())
             user_attr = data['recenttracks']['@attr']
             tracks = data['recenttracks']['track']
             artist = escape(tracks[0]['artist']['#text'], 2)
             album = escape(tracks[0]['album']['#text'], 2)
             track = escape(tracks[0]['name'], 2)
+            image_url = tracks[0]['image'][3]['#text']
 
+            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
             content.description = f"**{album}**"
             content.title = f"**{artist}** — ***{track}***"
-            content.set_thumbnail(url=tracks[0]['image'][3]['#text'])
+            content.set_thumbnail(url=image_url)
 
             trackdata = api_request({"user": username, "method": "track.getInfo", "artist": artist, "track": track})
             if trackdata is not None:
-                trackdata = trackdata['track']
                 try:
+                    trackdata = trackdata['track']
                     playcount = trackdata['userplaycount']
                     content.description = f"**{album}**\n{playcount} total plays"
                 except KeyError:
