@@ -283,6 +283,8 @@ class Commands:
 
     @commands.command()
     async def melon(self, ctx, timeframe="", amount=10):
+        """Get realtime / daily / monthly chart from Melon"""
+        self.logger.info(misolog.format_log(ctx, f""))
         if timeframe not in ["day", "month", "rise", ""]:
             if timeframe == "realtime":
                 timeframe = ""
@@ -312,6 +314,7 @@ class Commands:
 
     @commands.command()
     async def ship(self, ctx, *args):
+        """Ship two people, separate names with 'and'"""
         names = " ".join(args).split("and")
         if not len(names) == 2:
             await ctx.send("Please give two names separated with `and`")
@@ -333,6 +336,7 @@ class Commands:
         content.description = text[2]
 
         await ctx.send(embed=content)
+        self.logger.info(misolog.format_log(ctx, f"{percentage}"))
 
 def scrape_kprofiles(url):
     """Scrape the given kprofiles url for artist names and return the results"""

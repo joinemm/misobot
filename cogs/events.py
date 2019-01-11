@@ -91,8 +91,14 @@ class Events:
 
         # Anything in ignored will return and prevent anything happening.
         if isinstance(error, commands.CommandNotFound):
-            self.logger.error(misolog.format_log(ctx, str(error)))
-            return
+            custom_command = ctx.message.content[1:]
+            response = self.custom_command_check(custom_command, ctx)
+            if response is not None:
+                self.logger.info(misolog.format_log(ctx, f"Custom command"))
+                return await ctx.send(response)
+            else:
+                self.logger.error(misolog.format_log(ctx, str(error)))
+                return
         elif isinstance(error, commands.DisabledCommand):
             self.logger.error(misolog.format_log(ctx, str(error)))
             await ctx.send(f'{ctx.command} has been disabled.')
@@ -112,6 +118,48 @@ class Events:
             self.logger.error(f'Ignoring exception in command {ctx.command}:')
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
             await ctx.send(f"```{error}```")
+
+    def custom_command_check(self, name, ctx):
+        try:
+            guild_id = str(ctx.message.guild.id)
+            response = self.guilds_json['guilds'][guild_id]['custom_commands'][name]
+            return response
+        except KeyError:
+            return None
+
+    @commands.command()
+    async def command(self, ctx, mode, name, *args):
+        commands_that_exist = []
+        for command in self.client.commands:
+            commands_that_exist.append(command.name)
+        try:
+            for command_name in self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands']:
+                commands_that_exist.append(command_name)
+        except KeyError:
+            pass
+
+        if mode == "add":
+            if name in commands_that_exist:
+                await ctx.send(f"Sorry, the command `>{name}` already exists!")
+                return
+            response = " ".join(args)
+
+            if not str(ctx.message.guild.id) in self.guilds_json['guilds']:
+                self.guilds_json['guilds'][str(ctx.message.guild.id)] = {'custom_commands': {name: response}}
+            else:
+                if not 'custom_commands' in self.guilds_json['guilds'][str(ctx.message.guild.id)]:
+                    self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'] = {}
+                self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name] = response
+
+            await ctx.send(f"Custom command `>{name}` succesfully added")
+            save_data(self.guilds_json)
+        elif mode == "remove":
+            try:
+                del self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name]
+                await ctx.send(f"Custom command `>{name}` succesfully deleted")
+                save_data(self.guilds_json)
+            except KeyError:
+                await ctx.send(f"ERROR: Custom command `>{name}` doesn't exist!")
 
 
 def setup(client):
