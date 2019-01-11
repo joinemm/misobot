@@ -56,6 +56,7 @@ class Notifications:
 
     @commands.command()
     async def notification(self, ctx, mode, *args):
+        """Add keywords to get notified when someone mentions them"""
         if mode == "help":
             content = "`>notification add [word]`\n" \
                       "`>notification remove [word]`\n" \

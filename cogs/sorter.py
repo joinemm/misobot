@@ -193,6 +193,7 @@ class Sorter:
 
     @commands.command()
     async def sorter(self, ctx, *args):
+        """Bias sorting tool"""
         if args[0] in ["preset", "presets"]:
             try:
                 # use a preset

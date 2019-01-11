@@ -95,6 +95,7 @@ class Apis:
 
     @commands.command(aliases=['hs'])
     async def horoscope(self, ctx, setting=None, *args):
+        """Get your daily horoscope"""
         self.logger.info(misolog.format_log(ctx, f""))
         hs = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn',
               'aquarius', 'pisces']

@@ -128,7 +128,7 @@ class Events:
             return None
 
     @commands.command()
-    async def command(self, ctx, mode, name=None, *args):
+    async def command(self, ctx, mode=None, name=None, *args):
         """Add custom commands"""
         commands_that_exist = []
         for command in self.client.commands:
@@ -152,6 +152,15 @@ class Events:
             else:
                 content.description = "No commands set on this server yet!"
             await ctx.send(embed=content)
+            return
+
+        elif mode in ["help", None]:
+            help_msg = "`>command add [name] [response]`\n" \
+                       "`>command remove [name]`\n" \
+                       "`>command search [name]`\n" \
+                       "`>command list`"
+            await ctx.send(help_msg)
+            return
 
         else:
             if name is None:
@@ -196,11 +205,7 @@ class Events:
                 await ctx.send(embed=content)
 
             else:
-                help_msg = "`>command add [name] [response]`\n" \
-                           "`>command remove [name]`\n" \
-                           "`>command search [name]`\n" \
-                           "`>command list`"
-                await ctx.send(help_msg)
+                await ctx.send(f"ERROR: Invalid command `{mode}`")
 
 
 def setup(client):
