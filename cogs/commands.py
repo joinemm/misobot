@@ -63,7 +63,7 @@ class Commands:
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 0.9.4')
+        info_embed.set_footer(text='version 1.0.0')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
