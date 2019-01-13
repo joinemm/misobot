@@ -94,12 +94,13 @@ class LastFM:
 
             period = get_period(timeframe)
             amount = 15
+            # noinspection PyBroadException
             try:
                 amount = int(args[-1])
-            except Exception:
+            except:
                 try:
                     amount = int(timeframe)
-                except Exception:
+                except (TypeError, ValueError):
                     pass
 
             current_page = 0
@@ -124,43 +125,47 @@ class LastFM:
                 return
 
             if len(pages) > 1:
-                content.set_footer(text=f"page {current_page + 1} of {len(pages)}")
+                content.set_footer(text=f"page 1 of {len(pages)}")
             my_msg = await ctx.send(embed=content)
 
             if len(pages) > 1:
+                await self.page_switcher(my_msg, content, pages)
 
-                def check(_reaction, _user):
-                    return _reaction.message.id == my_msg.id and _reaction.emoji in ["⬅", "➡"] and not _user == self.client.user
+    async def page_switcher(self, my_msg, content, pages):
+        current_page = 0
 
-                await my_msg.add_reaction("⬅")
-                await my_msg.add_reaction("➡")
+        def check(_reaction, _user):
+            return _reaction.message.id == my_msg.id and _reaction.emoji in ["⬅", "➡"] \
+                   and not _user == self.client.user
 
-                while True:
-                    try:
-                        reaction, user = await self.client.wait_for('reaction_add', timeout=300.0, check=check)
-                    except asyncio.TimeoutError:
-                        return
+        await my_msg.add_reaction("⬅")
+        await my_msg.add_reaction("➡")
+
+        while True:
+            try:
+                reaction, user = await self.client.wait_for('reaction_add', timeout=300.0, check=check)
+            except asyncio.TimeoutError:
+                return
+            else:
+                try:
+                    if reaction.emoji == "⬅" and current_page > 0:
+                        content.description = pages[current_page - 1]
+                        current_page -= 1
+                        await my_msg.remove_reaction("⬅", user)
+                    elif reaction.emoji == "➡":
+                        content.description = pages[current_page + 1]
+                        current_page += 1
+                        await my_msg.remove_reaction("➡", user)
                     else:
-                        try:
-                            if reaction.emoji == "⬅" and current_page > 0:
-                                content.description = pages[current_page - 1]
-                                current_page -= 1
-                                await my_msg.remove_reaction("⬅", user)
-                            elif reaction.emoji == "➡":
-                                content.description = pages[current_page + 1]
-                                current_page += 1
-                                await my_msg.remove_reaction("➡", user)
-                            else:
-                                continue
-                            content.set_footer(text=f"page {current_page+1} of {len(pages)}")
-                            await my_msg.edit(embed=content)
-                        except IndexError:
-                            continue
+                        continue
+                    content.set_footer(text=f"page {current_page+1} of {len(pages)}")
+                    await my_msg.edit(embed=content)
+                except IndexError:
+                    continue
 
     def userinfo(self, ctx, username):
         data = api_request({"user": username, "method": "user.getinfo"})
-        if data is not None and not "error" in data:
-            content = discord.Embed(colour=discord.Colour.magenta())
+        if data is not None and "error" not in data:
             username = data['user']['name']
             playcount = data['user']['playcount']
             profile_url = data['user']['url']
@@ -169,6 +174,7 @@ class LastFM:
             utc_time = datetime.utcfromtimestamp(timestamp)
             time = utc_time.strftime("%d/%m/%Y")
 
+            content = discord.Embed(colour=int(misomisc.get_color(profile_pic_url), 16))
             content.set_author(name=f"{username}",
                                icon_url=ctx.message.author.avatar_url)
             content.add_field(name="LastFM profile", value=f"[link]({profile_url})", inline=True)
@@ -181,7 +187,7 @@ class LastFM:
 
     def nowplaying(self, ctx, username):
         data = api_request({"user": username, "method": "user.getrecenttracks"})
-        if data is not None and not "error" in data:
+        if data is not None and "error" not in data:
             user_attr = data['recenttracks']['@attr']
             tracks = data['recenttracks']['track']
             artist = escape(tracks[0]['artist']['#text'], 2)
@@ -196,25 +202,25 @@ class LastFM:
 
             trackdata = api_request({"user": username, "method": "track.getInfo", "artist": artist, "track": track})
             if trackdata is not None:
+                tags = []
                 try:
                     trackdata = trackdata['track']
                     playcount = trackdata['userplaycount']
                     content.description = f"**{album}**\n{playcount} total plays"
+                    for tag in trackdata['toptags']['tag']:
+                        tags.append(tag['name'])
                 except KeyError:
                     pass
-                tags = []
-                for tag in trackdata['toptags']['tag']:
-                    tags.append(tag['name'])
 
                 if tags:
                     content.set_footer(text=", ".join(tags))
 
-            state = "Most recent track:"
+            state = "Most recent track"
             if '@attr' in tracks[0]:
                 if "nowplaying" in tracks[0]['@attr']:
                     state = "Now Playing"
 
-            content.set_author(name=f"{user_attr['user']} — {state}:",
+            content.set_author(name=f"{user_attr['user']} — {state}",
                                icon_url=ctx.message.author.avatar_url)
             return content
         else:
@@ -224,8 +230,7 @@ class LastFM:
         if amount > 200:
             amount = 200
         data = api_request({"user": username, "method": "user.getrecenttracks", "limit": amount})
-        if data is not None and not "error" in data:
-            content = discord.Embed(colour=discord.Colour.magenta())
+        if data is not None and "error" not in data:
             user_attr = data['recenttracks']['@attr']
             tracks = data['recenttracks']['track']
             description = []
@@ -233,7 +238,9 @@ class LastFM:
                 artist = escape(tracks[i]['artist']['#text'], 2)
                 name = escape(tracks[i]['name'], 3)
                 description.append(f"**{artist}** — ***{name}***")
-            content.set_thumbnail(url=tracks[0]['image'][3]['#text'])
+            image_url = tracks[0]['image'][3]['#text']
+            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
+            content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total plays: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Recent tracks",
                                icon_url=ctx.message.author.avatar_url)
@@ -246,17 +253,18 @@ class LastFM:
 
     def top_artists(self, ctx, username, period, amount):
         data = api_request({"user": username, "method": "user.gettopartists", "limit": amount, "period": period})
-        if data is not None and not "error" in data:
-            content = discord.Embed(colour=discord.Colour.magenta())
+        if data is not None and "error" not in data:
             user_attr = data['topartists']['@attr']
             artists = data['topartists']['artist']
             description = []
             for i in range(amount):
                 artist = escape(artists[i]['name'], 2)
                 plays = artists[i]['playcount']
-                rank = artists[i]['@attr']['rank']
+                # rank = artists[i]['@attr']['rank']
                 description.append(f"**{plays}** plays — **{artist}**")
-            content.set_thumbnail(url=artists[0]['image'][3]['#text'])
+            image_url = artists[0]['image'][3]['#text']
+            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
+            content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total unique artists: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Most played artists {period}",
                                icon_url=ctx.message.author.avatar_url)
@@ -268,8 +276,7 @@ class LastFM:
 
     def top_albums(self, ctx, username, period, amount):
         data = api_request({"user": username, "method": "user.gettopalbums", "limit": amount, "period": period})
-        if data is not None and not "error" in data:
-            content = discord.Embed(colour=discord.Colour.magenta())
+        if data is not None and "error" not in data:
             user_attr = data['topalbums']['@attr']
             albums = data['topalbums']['album']
             description = []
@@ -277,10 +284,12 @@ class LastFM:
                 album = escape(albums[i]['name'], 3)
                 artist = escape(albums[i]['artist']['name'], 2)
                 plays = albums[i]['playcount']
-                rank = albums[i]['@attr']['rank']
+                # rank = albums[i]['@attr']['rank']
                 description.append(f"**{plays}** plays - ***{album}*** — **{artist}**")
+            image_url = albums[0]['image'][3]['#text']
+            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
             content.description = description
-            content.set_thumbnail(url=albums[0]['image'][3]['#text'])
+            content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total unique albums: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Most played albums {period}",
                                icon_url=ctx.message.author.avatar_url)
@@ -292,8 +301,7 @@ class LastFM:
 
     def top_tracks(self, ctx, username, period, amount):
         data = api_request({"user": username, "method": "user.gettoptracks", "limit": amount, "period": period})
-        if data is not None and not "error" in data:
-            content = discord.Embed(colour=discord.Colour.magenta())
+        if data is not None and "error" not in data:
             user_attr = data['toptracks']['@attr']
             tracks = data['toptracks']['track']
             description = []
@@ -301,10 +309,12 @@ class LastFM:
                 artist = escape(tracks[i]['artist']['name'], 2)
                 name = escape(tracks[i]['name'], 3)
                 plays = tracks[i]['playcount']
-                rank = tracks[i]['@attr']['rank']
+                # rank = tracks[i]['@attr']['rank']
                 description.append(f"**{plays}** plays - **{artist}** — ***{name}***")
+            image_url = tracks[0]['image'][3]['#text']
+            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
             content.description = description
-            content.set_thumbnail(url=tracks[0]['image'][3]['#text'])
+            content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total unique tracks: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Most played tracks {period}",
                                icon_url=ctx.message.author.avatar_url)
@@ -315,7 +325,7 @@ class LastFM:
             return None
 
     @commands.command()
-    async def fmchart(self, ctx, method, timeframe="week", size="3x3", debug=False):
+    async def fmchart(self, ctx, method="topalbums", timeframe="week", size="3x3", debug="False"):
         timer_start = t.time()
         await  ctx.message.channel.trigger_typing()
         try:
@@ -343,7 +353,8 @@ class LastFM:
                     break
 
         elif method in ["topartists", "ta"]:
-            data = api_request({"user": username, "method": "user.gettopartists", "limit": (size * size)})
+            data = api_request({"user": username, "method": "user.gettopartists",
+                                "limit": (size * size), "period": period})
             chart_type = " Artist"
             artists = data['topartists']['artist']
             for i in range(len(chart)):
@@ -355,7 +366,8 @@ class LastFM:
                     break
 
         elif method in ["topalbums", "talb"]:
-            data = api_request({"user": username, "method": "user.gettopalbums", "limit": (size * size)})
+            data = api_request({"user": username, "method": "user.gettopalbums",
+                                "limit": (size * size), "period": period})
             chart_type = " Album"
             albums = data['topalbums']['album']
             for i in range(len(chart)):
@@ -382,7 +394,8 @@ class LastFM:
                            css='html/fm_chart_style.css')
         with open("downloads/fmchart.jpeg", "rb") as img:
             timer_upload = t.time()
-            await ctx.send(f"{ctx.message.author.mention} `{period} {size}x{size}{chart_type} chart`", file=discord.File(img))
+            await ctx.send(f"{ctx.message.author.mention} `{period} {size}x{size}{chart_type} chart`",
+                           file=discord.File(img))
         if debug == "debug":
             await ctx.send(f"\nChart gen = {timer_upload - timer_start:.4f}s"
                            f"\nChart upload = {t.time() - timer_upload:.4f}s"
@@ -398,51 +411,56 @@ class LastFM:
         users_json = load_data()
         try:
             user = users_json["users"][str(ctx.message.author.id)]['lastfm_username']
-        except Exception:
+        except KeyError:
             await ctx.send("No username found in database, please use >fm set {username}")
             return
-        track_limit = int(api_request({"method": "user.gettoptracks", "user": user})['toptracks']['@attr']['total'])
+        track_limit = int(api_request({"method": "user.gettoptracks", "user": user, "limit": 1})['toptracks']['@attr']['total'])
         tracks = []
         i = 1
         async with ctx.typing():
-            for x in range(track_limit // 5000):
-                tracks += api_request({"method": "user.gettoptracks", "user": user, "limit": track_limit, "page": i})['toptracks']['track']
-                track_limit -= 5000
+            for x in range(track_limit // 1000):
+                tracks += api_request({"method": "user.gettoptracks", "user": user, "limit": 1000,
+                                       "page": i})['toptracks']['track']
                 i += 1
-            tracks += api_request({"method": "user.gettoptracks", "user": user, "limit": track_limit, "page": i})['toptracks']['track']
+            tracks += api_request({"method": "user.gettoptracks", "user": user,
+                                   "limit": 1000, "page": i})['toptracks']['track']
             artists = {}
+            artist_stylized = artist
             for i in range(track_limit):
                 this_artist = tracks[i]['artist']['name']
-                if artist is not None:
-                    if not this_artist.casefold() == artist.casefold():
-                        continue
-                    elif not artists:
-                        artist_stylized = this_artist
+                if not this_artist.casefold() == artist.casefold():
+                    continue
+                elif not artists:
+                    artist_stylized = this_artist
                 this_song = tracks[i]['name']
                 this_playcount = tracks[i]['playcount']
                 if this_artist not in artists:
                     artists[this_artist] = {}
                 artists[this_artist][this_song] = this_playcount
 
-        # await ctx.send(f"```json\n{json.dumps(artists, indent=4)}```")
         if artists:
-            content = discord.Embed()
+            artist_data = api_request({"method": "artist.getinfo", "artist": artist_stylized})['artist']
+            image_url = artist_data['image'][3]['#text']
+            content = discord.Embed(color=int(misomisc.get_color(image_url), 16))
+            content.set_thumbnail(url=image_url)
             content.title = f"{user}'s top tracks for {artist_stylized}"
-            additional_songs = 0
-            content.description = ""
-            full = False
+            description = []
+            rank = 1
             for song in artists[artist_stylized]:
-                if full:
-                    additional_songs += 1
-                else:
-                    line = f"**{artists[artist_stylized][song]}** plays - **{song}**\n"
-                    if len(content.description) + len(line) < 2000:
-                        content.description += line
-                    else:
-                        full = True
-            if full:
-                content.set_footer(text=f"+ {additional_songs} more songs")
-            await ctx.send(embed=content)
+                line = f"{rank}. **{artists[artist_stylized][song]}** plays - **{song}**"
+                description.append(line)
+                rank += 1
+
+            pages = create_pages(description)
+            content.description = pages[0]
+
+            if len(pages) > 1:
+                content.set_footer(text=f"page 1 of {len(pages)}")
+            my_msg = await ctx.send(embed=content)
+
+            if len(pages) > 1:
+                await self.page_switcher(my_msg, content, pages)
+
         else:
             await ctx.send("You haven't listened to this artist!")
 
@@ -472,7 +490,7 @@ def create_pages(rows):
         else:
             thisrow = 0
             pages.append(f"{description}")
-            description = ""
+            description = f"\n{row}"
     if not description == "":
         pages.append(f"{description}")
     return pages
@@ -507,4 +525,3 @@ def escape(string, amount):
 
 def setup(client):
     client.add_cog(LastFM(client))
-
