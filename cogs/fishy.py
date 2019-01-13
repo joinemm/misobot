@@ -23,7 +23,7 @@ class Fishy:
         self.client = client
         self.logger = misolog.create_logger(__name__)
 
-    @commands.command(name="fishy", aliases=['fisy', 'fsihy', 'fihy', 'foshy', 'fihsy', 'fisyh', 'fsiyh'])
+    @commands.command(name="fishy", aliases=['fisy', 'fsihy', 'fihy', 'foshy', 'fihsy', 'fisyh', 'fsiyh', 'fhisy'])
     async def fishy(self, ctx):
         """Go fishing and receive random amount of fishies"""
         user_id_fisher = str(ctx.message.author.id)

@@ -21,38 +21,38 @@ class Notifications:
         self.notifications_json = load_data()
 
     async def on_message(self, message):
-        if not message.author == self.client.user:
-            # miso was pinged
-            if self.client.user in message.mentions:
-                await message.channel.send("<:misoping:532922215105036329>")
+        if message.author == self.client.user:
+            # ignore own messages
+            return
 
-            # notifications
-            if message.guild is not None:
-                if str(message.guild.id) in self.notifications_json:
-                    triggerwords = list(self.notifications_json[str(message.guild.id)].keys())
-                    matches = set()
-                    for word in triggerwords:
-                        pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
-                        if pattern.findall(message.content):
-                            matches.add(word)
-                    for word in matches:
-                        pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
-                        for user_id in self.notifications_json[str(message.guild.id)][word]:
-                            if not user_id == message.author.id:
-                                user = message.guild.get_member(user_id)
-                                if user is not None:
-                                    content = discord.Embed()
-                                    content.set_author(name=f'{message.author} mentioned "{word}" in {message.guild.name}',
-                                                       icon_url=message.author.avatar_url)
-                                    content.description = f">>> {re.sub(pattern, lambda x: f'**{x.group(0)}**', message.content)}\n\n" \
-                                                          f"[Go to message]({message.jump_url})"
-                                    content.set_thumbnail(url=message.guild.icon_url)
+        # miso was pinged
+        if self.client.user in message.mentions:
+            await message.channel.send("<:misoping:532922215105036329>")
 
-                                    await user.send(embed=content)
+        # notifications
+        if message.guild is not None:
+            if str(message.guild.id) in self.notifications_json:
+                triggerwords = list(self.notifications_json[str(message.guild.id)].keys())
+                matches = set()
+                for word in triggerwords:
+                    pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
+                    if pattern.findall(message.content):
+                        matches.add(word)
+                for word in matches:
+                    pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
+                    for user_id in self.notifications_json[str(message.guild.id)][word]:
+                        if not user_id == message.author.id:
+                            user = message.guild.get_member(user_id)
+                            if user is not None:
+                                content = discord.Embed()
+                                content.set_author(name=f'{message.author} mentioned "{word}" in {message.guild.name}',
+                                                   icon_url=message.author.avatar_url)
+                                highlighted_text = re.sub(pattern, lambda x: f'**{x.group(0)}**', message.content)
+                                content.description = f">>> {highlighted_text}\n\n" \
+                                                      f"[Go to message]({message.jump_url})"
+                                content.set_thumbnail(url=message.guild.icon_url)
 
-                                    #await user.send(f"**{message.author.name}** mentioned `{word}` in **{message.guild.name}**/{message.channel.mention}\n"
-                                    #                f">>> {message.content.replace(word, f'**{word}**')}\n"
-                                    #                f">>> http://discordapp.com/channels/{message.guild.id}/{message.channel.id}/{message.id}\n")
+                                await user.send(embed=content)
 
     @commands.command()
     async def notification(self, ctx, mode, *args):

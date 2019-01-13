@@ -49,9 +49,7 @@ class Commands:
         patrons = [381491116853166080, 121757433507872768]
         content = discord.Embed()
         content.title = "Current Patrons:"
-        content.description = ""
-        for user in patrons:
-            content.description += f"{self.client.get_user(user).mention}"
+        content.description = "\n".join([self.client.get_user(x).mention for x in patrons])
         await ctx.send(embed=content)
 
     @commands.command(name='info')

@@ -71,7 +71,7 @@ class SorterInstance:
         self.finishFlag = 0
 
     def sortList(self, flag):
-        if flag<0:
+        if flag < 0:
             self.rec[self.nrec] = self.lstMember[self.cmp1][self.head1]
             self.head1 += 1
             self.nrec += 1
@@ -83,7 +83,7 @@ class SorterInstance:
                 self.nrec += 1
                 self.finishSize += 1
 
-        elif flag>0:
+        elif flag > 0:
             self.rec[self.nrec] = self.lstMember[self.cmp2][self.head2]
             self.head2 += 1
             self.nrec += 1
@@ -174,7 +174,7 @@ class SorterInstance:
         return content
 
     def showImage(self):
-        text = "Battle #" + str(self.numQuestion) + " (" + str(math.floor(self.finishSize * 100 / self.totalSize)) + "% sorted)"
+        text = f"Battle #{self.numQuestion} ({math.floor(self.finishSize * 100 / self.totalSize)}% sorted"
         text2 = self.namMember[self.lstMember[self.cmp1][self.head1]]
         text3 = self.namMember[self.lstMember[self.cmp2][self.head2]]
         self.numQuestion += 1
@@ -197,6 +197,7 @@ class Sorter:
         if args[0] in ["preset", "presets"]:
             try:
                 # use a preset
+                # noinspection PyStatementEffect
                 args[1]
                 preset = " ".join(args[1:])
                 try:
@@ -253,8 +254,8 @@ class Sorter:
 
     async def run_picker(self, msg, _user):
         while self.instances[str(msg.id)].finishFlag == 0:
-            reaction, user = await self.client.wait_for("reaction_add", check=lambda reaction, user:
-                                                        reaction.emoji in ["⬅", "👔", "➡"])
+            reaction, user = await self.client.wait_for("reaction_add", check=lambda _reaction, _user:
+                                                        _reaction.emoji in ["⬅", "👔", "➡"])
             if user == _user and reaction.message.id == msg.id:
                 if reaction.emoji == "⬅":
                     self.instances[str(msg.id)].sortList(-1)

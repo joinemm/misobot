@@ -9,6 +9,7 @@ import spotipy
 import re
 from datetime import datetime
 from utils import logger as misolog
+from utils import misc as misomisc
 import random
 import tweepy
 from tweepy import OAuthHandler
@@ -33,7 +34,7 @@ TWITTER_CKEY = keys['TWITTER_CONSUMER_KEY']
 TWITTER_CSECRET = keys['TWITTER_CONSUMER_SECRET']
 
 auth = OAuthHandler(TWITTER_CKEY, TWITTER_CSECRET)
-#auth.set_access_token(access_token, access_secret)
+# auth.set_access_token(access_token, access_secret)
 twt = tweepy.API(auth)
 
 papago_pairs = ['ko/en', 'ko/ja', 'ko/zh-cn', 'ko/zh-tw', 'ko/vi', 'ko/id', 'ko/de', 'ko/ru', 'ko/es', 'ko/it',
@@ -72,6 +73,7 @@ class Apis:
             formatted_name = json_data['formatted_address']
             lat = json_data['geometry']['location']['lat']
             lon = json_data['geometry']['location']['lng']
+            country = "N/A"
             for comp in json_data['address_components']:
                 if 'country' in comp['types']:
                     country = comp['short_name'].lower()
@@ -110,20 +112,20 @@ class Apis:
                 await ctx.send(f"`{args[0]}` is not a valid sunsign! use `>horoscope help` for a list of sunsigns.")
                 return
             # set sign
-            if not user in data['users']:
+            if user not in data['users']:
                 data['users'][user] = {}
             data['users'][user]['sunsign'] = sign
             await ctx.send(f"Sunsign saved as `{sign}`")
             save_data(data)
             return
         elif setting == "help":
-            list = "Aries (Mar 21-Apr 19)\nTaurus (Apr 20-May 20)\nGemini (May 21-June 20)\nCancer (Jun 21-Jul 22)\n" \
-                   "Leo (Jul 23-Aug 22)\nVirgo (Aug 23-Sep 22)\nLibra (Sep 23-Oct 22)\nScorpio (Oct 23-Nov 21)\n" \
-                   "Sagittarius (Nov 22-Dec 21)\nCapricorn (Dec 22-Jan 19)\nAquarius (Jan 20-Feb 18)\n" \
-                   "Pisces (Feb 19-Mar 20)"
+            sign_list = "Aries (Mar 21-Apr 19)\nTaurus (Apr 20-May 20)\nGemini (May 21-June 20)\n" \
+                        "Cancer (Jun 21-Jul 22)\nLeo (Jul 23-Aug 22)\nVirgo (Aug 23-Sep 22)\nLibra (Sep 23-Oct 22)\n" \
+                        "Scorpio (Oct 23-Nov 21)\nSagittarius (Nov 22-Dec 21)\nCapricorn (Dec 22-Jan 19)\n" \
+                        "Aquarius (Jan 20-Feb 18)\nPisces (Feb 19-Mar 20)"
             content = discord.Embed()
             content.title = f"Sunsign list"
-            content.description = list
+            content.description = sign_list
             await ctx.send(embed=content)
             return
         elif setting is not None:
@@ -208,9 +210,9 @@ class Apis:
         self.logger.info(misolog.format_log(ctx, f""))
         search_string = " ".join(args)
         url = "https://mashape-community-urban-dictionary.p.mashape.com/define?term="
-        response = requests.get(url + search_string, headers={"X-Mashape-Key":
-                                                                  "w3TR0XTmB3mshcxWHQNKxiVWSuUtp1nqnlzjsnoZ6d0yZ1MJAT",
-                                                              "Accept": "text/plain"})
+        response = requests.get(url + search_string,
+                                headers={"X-Mashape-Key": "w3TR0XTmB3mshcxWHQNKxiVWSuUtp1nqnlzjsnoZ6d0yZ1MJAT",
+                                         "Accept": "text/plain"})
         if response.status_code == 200:
             message = discord.Embed(colour=discord.Colour.orange())
             message.set_author(name=search_string.capitalize(), icon_url="https://i.imgur.com/yMwpnBe.png")
@@ -285,6 +287,7 @@ class Apis:
     async def spotify(self, ctx, url=None, amount=10):
         """Analyze a spotify playlist from URI"""
         self.logger.info(misolog.format_log(ctx, f""))
+        # noinspection PyBroadException
         try:
             if url.startswith("https://open."):
                 # its playlist link
@@ -412,19 +415,32 @@ class Apis:
     @commands.command(name="color", aliases=["colour"])
     async def color(self, ctx, *args):
         """Get a hex color, the color of discord user, or a random color."""
+        if not args:
+            await ctx.send("Missing color source. Valid color sources are:\n"
+                           "`[@mention | @rolemention | hex | image_url | random]`\n"
+                           "These can be chained together to create patterns")
+            return
         if args[0] == "random":
-            colors = []
+            colors_input = []
             try:
                 amount = int(args[1])
             except IndexError:
                 amount = 1
             for i in range(amount):
-                colors += ["{:06x}".format(random.randint(0, 0xFFFFFF))]
+                colors_input += ["{:06x}".format(random.randint(0, 0xFFFFFF))]
         elif ctx.message.mentions:
-            colors = [str(x.color).replace("#", "") for x in ctx.message.mentions]
+            colors_input = [str(x.color).replace("#", "") for x in ctx.message.mentions]
         else:
-            colors = [x.replace("#", "") for x in args]
-        content = discord.Embed(colour=int(colors[0], 16))
+            colors_input = [x.replace("#", "") for x in args]
+        colors = []
+        for color in colors_input:
+            try:
+                content = discord.Embed(colour=int(color, 16))
+                this_color = color
+            except ValueError:
+                this_color = misomisc.get_color(color)
+                content = discord.Embed(colour=int(this_color, 16))
+            colors.append(this_color)
         if len(colors) == 1:
             color = colors[0]
             url = f"http://thecolorapi.com/id?hex={color}&format=json"
@@ -449,7 +465,7 @@ class Apis:
                 if response.status_code == 200:
                     data = json.loads(response.content.decode('utf-8'))
                     hexvalue = data['hex']['value']
-                    rgbvalue = data['rgb']['value']
+                    # rgbvalue = data['rgb']['value']
                     name = data['name']['value']
                     content.add_field(name=name, value=f"{hexvalue}")
                     palette += color + "/"
@@ -520,7 +536,7 @@ class Apis:
             await ctx.send(embed=content)
 
             if file[2] is not None:
-                #content.description = f"Contains video/gif [Click here to view]({file[2]})"
+                # contains a video/gif, send it separately
                 await ctx.send(file[2])
 
         if delete == "delete":
@@ -587,10 +603,11 @@ class Apis:
                 for i in range(recent_games_json['total_count']):
                     if i == 0:
                         recent_games_string = ""
-                    total_playtime_2weeks += recent_games_json['games'][i]['playtime_2weeks']
-                    recent_games_string += f"{recent_games_json['games'][i]['name']} - " \
-                                           f"**{recent_games_json['games'][i]['playtime_2weeks']/60:.1f}** Hours " \
-                                           f"(total **{recent_games_json['games'][i]['playtime_forever']/60:.1f}** hours)\n"
+                    this_game = recent_games_json['games'][i]
+                    total_playtime_2weeks += this_game['playtime_2weeks']
+                    recent_games_string += f"{this_game['name']} - " \
+                                           f"**{this_game['playtime_2weeks']/60:.1f}** Hours " \
+                                           f"(total **{this_game['playtime_forever']/60:.1f}** hours)\n"
 
                 message.add_field(name=f"Recently played - **{total_playtime_2weeks/60:.1f}** hours past two weeks",
                                   value=recent_games_string)
@@ -600,7 +617,7 @@ class Apis:
 
             try:
                 total_playtime = 0
-                games = []
+                # games = []
                 for i in range(owned_games_json['game_count']):
                     playtime = owned_games_json['games'][i]['playtime_forever']
                     total_playtime += playtime
