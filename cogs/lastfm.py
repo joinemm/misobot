@@ -103,8 +103,6 @@ class LastFM:
                 except (TypeError, ValueError):
                     pass
 
-            current_page = 0
-
             if method in ["recent", "recents", "re"]:
                 await  ctx.message.channel.trigger_typing()
                 content, pages = self.recent_tracks(ctx, username, amount)
@@ -158,7 +156,7 @@ class LastFM:
                         await my_msg.remove_reaction("➡", user)
                     else:
                         continue
-                    content.set_footer(text=f"page {current_page+1} of {len(pages)}")
+                    content.set_footer(text=f"page {current_page + 1} of {len(pages)}")
                     await my_msg.edit(embed=content)
                 except IndexError:
                     continue
@@ -174,7 +172,12 @@ class LastFM:
             utc_time = datetime.utcfromtimestamp(timestamp)
             time = utc_time.strftime("%d/%m/%Y")
 
-            content = discord.Embed(colour=int(misomisc.get_color(profile_pic_url), 16))
+            image_colour = misomisc.get_color(profile_pic_url)
+            content = discord.Embed()
+            if image_colour is not None:
+                content.colour = int(image_colour, 16)
+            else:
+                content.colour = discord.Color.magenta()
             content.set_author(name=f"{username}",
                                icon_url=ctx.message.author.avatar_url)
             content.add_field(name="LastFM profile", value=f"[link]({profile_url})", inline=True)
@@ -193,9 +196,13 @@ class LastFM:
             artist = escape(tracks[0]['artist']['#text'], 2)
             album = escape(tracks[0]['album']['#text'], 2)
             track = escape(tracks[0]['name'], 2)
-            image_url = tracks[0]['image'][3]['#text']
-
-            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
+            image_url = tracks[0]['image'][-1]['#text']
+            image_colour = misomisc.get_color(image_url)
+            content = discord.Embed()
+            if image_colour is not None:
+                content.colour = int(image_colour, 16)
+            else:
+                content.colour = discord.Color.magenta()
             content.description = f"**{album}**"
             content.title = f"**{artist}** — ***{track}***"
             content.set_thumbnail(url=image_url)
@@ -238,8 +245,13 @@ class LastFM:
                 artist = escape(tracks[i]['artist']['#text'], 2)
                 name = escape(tracks[i]['name'], 3)
                 description.append(f"**{artist}** — ***{name}***")
-            image_url = tracks[0]['image'][3]['#text']
-            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
+            image_url = tracks[0]['image'][-1]['#text']
+            image_colour = misomisc.get_color(image_url)
+            content = discord.Embed()
+            if image_colour is not None:
+                content.colour = int(image_colour, 16)
+            else:
+                content.colour = discord.Color.magenta()
             content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total plays: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Recent tracks",
@@ -262,8 +274,13 @@ class LastFM:
                 plays = artists[i]['playcount']
                 # rank = artists[i]['@attr']['rank']
                 description.append(f"**{plays}** plays — **{artist}**")
-            image_url = artists[0]['image'][3]['#text']
-            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
+            image_url = artists[0]['image'][-1]['#text']
+            image_colour = misomisc.get_color(image_url)
+            content = discord.Embed()
+            if image_colour is not None:
+                content.colour = int(image_colour, 16)
+            else:
+                content.colour = discord.Color.magenta()
             content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total unique artists: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Most played artists {period}",
@@ -286,8 +303,13 @@ class LastFM:
                 plays = albums[i]['playcount']
                 # rank = albums[i]['@attr']['rank']
                 description.append(f"**{plays}** plays - ***{album}*** — **{artist}**")
-            image_url = albums[0]['image'][3]['#text']
-            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
+            image_url = albums[0]['image'][-1]['#text']
+            image_colour = misomisc.get_color(image_url)
+            content = discord.Embed()
+            if image_colour is not None:
+                content.colour = int(image_colour, 16)
+            else:
+                content.colour = discord.Color.magenta()
             content.description = description
             content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total unique albums: {user_attr['total']}")
@@ -311,8 +333,13 @@ class LastFM:
                 plays = tracks[i]['playcount']
                 # rank = tracks[i]['@attr']['rank']
                 description.append(f"**{plays}** plays - **{artist}** — ***{name}***")
-            image_url = tracks[0]['image'][3]['#text']
-            content = discord.Embed(colour=int(misomisc.get_color(image_url), 16))
+            image_url = tracks[0]['image'][-1]['#text']
+            image_colour = misomisc.get_color(image_url)
+            content = discord.Embed()
+            if image_colour is not None:
+                content.colour = int(image_colour, 16)
+            else:
+                content.colour = discord.Color.magenta()
             content.description = description
             content.set_thumbnail(url=image_url)
             content.set_footer(text=f"Total unique tracks: {user_attr['total']}")
@@ -326,6 +353,8 @@ class LastFM:
 
     @commands.command()
     async def fmchart(self, ctx, method="topalbums", timeframe="week", size="3x3", debug="False"):
+        """Generate a chart from your lastfm stats"""
+        self.logger.info(misolog.format_log(ctx, f""))
         timer_start = t.time()
         await  ctx.message.channel.trigger_typing()
         try:
@@ -404,6 +433,7 @@ class LastFM:
     @commands.command()
     async def fmartist(self, ctx, *args):
         """Get your most listened tracks for an artist"""
+        self.logger.info(misolog.format_log(ctx, f""))
         if len(args) == 0:
             await ctx.send("ERROR: Parameter `artist` is missing")
             return
@@ -414,7 +444,8 @@ class LastFM:
         except KeyError:
             await ctx.send("No username found in database, please use >fm set {username}")
             return
-        track_limit = int(api_request({"method": "user.gettoptracks", "user": user, "limit": 1})['toptracks']['@attr']['total'])
+        track_limit = int(
+            api_request({"method": "user.gettoptracks", "user": user, "limit": 1})['toptracks']['@attr']['total'])
         tracks = []
         i = 1
         async with ctx.typing():

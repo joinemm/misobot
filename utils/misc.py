@@ -4,18 +4,22 @@ import math
 
 
 def get_color(url):
-    r = requests.get(url, stream=True)
-    if r.status_code == 200:
-        with open('album_art.png', 'wb') as f:
-            for chunk in r:
-                f.write(chunk)
-    else:
-        return "ffffff"
+    try:
+        r = requests.get(url, stream=True)
+        if r.status_code == 200:
+            with open('album_art.png', 'wb') as f:
+                for chunk in r:
+                    f.write(chunk)
+        else:
+            return "ffffff"
 
-    color_thief = ColorThief('album_art.png')
-    dominant_color = color_thief.get_color(quality=100)
+        color_thief = ColorThief('album_art.png')
+        dominant_color = color_thief.get_color(quality=100)
 
-    return to_hex(dominant_color)
+        return to_hex(dominant_color)
+    except Exception as e:
+        print(e)
+        return None
 
 
 def to_hex(rgb):
@@ -28,15 +32,15 @@ def to_hex(rgb):
 
 
 def get_xp(level):
-        a = 0
-        for x in range(1, level):
-            a += math.floor(x + 300 * math.pow(2, (x / 7)))
-        return math.floor(a / 4)
+    a = 0
+    for x in range(1, level):
+        a += math.floor(x + 300 * math.pow(2, (x / 7)))
+    return math.floor(a / 4)
 
 
 def get_level(xp):
     i = 1
-    while get_xp(i+1) < xp:
+    while get_xp(i + 1) < xp:
         i += 1
     return i
 
