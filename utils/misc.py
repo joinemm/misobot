@@ -2,6 +2,8 @@ import requests
 from colorthief import ColorThief
 import math
 
+blocks = [" ", ".", ":", "|"]
+
 
 def get_color(url):
     try:
@@ -52,3 +54,43 @@ def xp_to_next_level(level):
 def xp_from_message(message):
     xp = len(message.content.split(" ")) + 10 * len(message.attachments)
     return xp
+
+
+def cap(data, floor, height, steps):
+    highest = max(data)
+    if highest < floor:
+        highest = floor
+
+    piece = (highest / steps) / height
+
+    new_list = []
+    for i in range(len(data)):
+        new_item = round(data[i] / piece)
+        new_list.append(new_item)
+    return new_list
+
+
+def generate_graph(data, height, floor=100):
+    steps = len(blocks) - 1
+    data = cap(data, floor, height, steps)
+    nums = [str(i).zfill(2) for i in range(len(data))]
+    rows = []
+    for row in reversed(range(height)):
+        this_row = ""
+        for i in range(len(data)):
+            rem = data[i] - (row * steps)
+            if rem < 0:
+                rem = 0
+            elif rem > steps:
+                rem = steps
+            this_row += blocks[rem]
+        rows.append(this_row)
+
+    number_row = []
+    for z in range(2):
+        this_row = ""
+        for number in nums:
+            this_row += number[z]
+        number_row.append(this_row)
+
+    return rows, number_row
