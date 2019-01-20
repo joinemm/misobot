@@ -111,16 +111,17 @@ class Fishy:
                             await ctx.send(f"Caught **{amount}** fishies! :fishing_pole_and_fish: ")
                         else:
                             await ctx.send(f"Caught **{amount}** fishies for {receiver_name}! :fishing_pole_and_fish:")
-            try:
-                users_json['users'][user_id_receiver]['fishy'] += amount
-            except KeyError:
-                users_json['users'][user_id_receiver]['fishy'] = amount
 
-            if self_fishy is False:
                 try:
-                    users_json['users'][user_id_fisher]['fishy_gifted'] += amount
+                    users_json['users'][user_id_receiver]['fishy'] += amount
                 except KeyError:
-                    users_json['users'][user_id_fisher]['fishy_gifted'] = amount
+                    users_json['users'][user_id_receiver]['fishy'] = amount
+
+                if not self_fishy:
+                    try:
+                        users_json['users'][user_id_fisher]['fishy_gifted'] += amount
+                    except KeyError:
+                        users_json['users'][user_id_fisher]['fishy_gifted'] = amount
 
             users_json['users'][user_id_fisher]['fishy_timestamp'] = timestamp
             users_json['users'][user_id_fisher]['warning'] = 0

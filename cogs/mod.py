@@ -39,7 +39,6 @@ class Mod:
         except IndexError:
             await ctx.send(f"Give me someone to mute!")
 
-
     @commands.command()
     @commands.has_permissions(manage_roles=True)
     async def unmute(self, ctx):

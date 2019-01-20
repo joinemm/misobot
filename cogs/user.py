@@ -65,7 +65,7 @@ class User:
         if member.is_on_mobile():
             status += " :iphone:"
 
-        activity = str(member.activities[0])
+        activity = str(member.activities[0]) if member.activities else "None"
         message = discord.Embed(color=user.color)
         message.title = f"{user.name}#{user.discriminator} ({user.id})"
         message.add_field(name="Status", value=status)
@@ -169,7 +169,7 @@ class User:
         username = member.display_name
         discriminator = "#" + member.discriminator
 
-        #config = imgkit.config(wkhtmltoimage='C:/Program Files/wkhtmltopdf/bin/wkhtmltoimage.exe')
+        # config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltopdf')
         options = {
             'format': 'png',
             'crop-h': '350',

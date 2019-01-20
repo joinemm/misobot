@@ -336,6 +336,7 @@ class Commands:
         await ctx.send(embed=content)
         self.logger.info(misolog.format_log(ctx, f"{percentage}"))
 
+
 def scrape_kprofiles(url):
     """Scrape the given kprofiles url for artist names and return the results"""
     page = requests.get(url)
