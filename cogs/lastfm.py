@@ -97,7 +97,7 @@ class LastFM:
             # noinspection PyBroadException
             try:
                 amount = int(args[-1])
-            except:
+            except Exception:
                 try:
                     amount = int(timeframe)
                 except (TypeError, ValueError):
@@ -128,38 +128,6 @@ class LastFM:
 
             if len(pages) > 1:
                 await self.page_switcher(my_msg, content, pages)
-
-    async def page_switcher(self, my_msg, content, pages):
-        current_page = 0
-
-        def check(_reaction, _user):
-            return _reaction.message.id == my_msg.id and _reaction.emoji in ["⬅", "➡"] \
-                   and not _user == self.client.user
-
-        await my_msg.add_reaction("⬅")
-        await my_msg.add_reaction("➡")
-
-        while True:
-            try:
-                reaction, user = await self.client.wait_for('reaction_add', timeout=300.0, check=check)
-            except asyncio.TimeoutError:
-                return
-            else:
-                try:
-                    if reaction.emoji == "⬅" and current_page > 0:
-                        content.description = pages[current_page - 1]
-                        current_page -= 1
-                        await my_msg.remove_reaction("⬅", user)
-                    elif reaction.emoji == "➡":
-                        content.description = pages[current_page + 1]
-                        current_page += 1
-                        await my_msg.remove_reaction("➡", user)
-                    else:
-                        continue
-                    content.set_footer(text=f"page {current_page + 1} of {len(pages)}")
-                    await my_msg.edit(embed=content)
-                except IndexError:
-                    continue
 
     def userinfo(self, ctx, username):
         data = api_request({"user": username, "method": "user.getinfo"})
@@ -352,21 +320,50 @@ class LastFM:
             return None
 
     @commands.command()
-    async def fmchart(self, ctx, method="topalbums", timeframe="week", size="3x3", debug="False"):
+    async def fmchart(self, ctx, *args):
         """Generate a chart from your lastfm stats"""
         self.logger.info(misolog.format_log(ctx, f""))
         timer_start = t.time()
-        await  ctx.message.channel.trigger_typing()
+        await ctx.message.channel.trigger_typing()
         try:
             username = self.users_json['users'][str(ctx.message.author.id)]['lastfm_username']
         except KeyError:
             await ctx.send("No username found in database, please use >fm set [username]")
             return
+
+        method = "topalbums"
+        timeframe = "week"
+        size = "3x3"
+
+        args = list(args)
+        for argument in args:
+            if "x" in argument:
+                size = argument
+                args.remove(argument)
+                break
+
+        try:
+            if args[0] in ["recent", "recents", "re", "topartists", "ta", "artist", "artists",
+                           "topalbums", "talb", "albums", "album"]:
+                method = args[0]
+            else:
+                timeframe = args[0]
+            try:
+                timeframe = args[1]
+            except IndexError:
+                pass
+        except IndexError:
+            pass
+
         period = get_period(timeframe)
-        size = int(size.split("x")[0])
+        try:
+            size = int(size.split("x")[0])
+        except ValueError:
+            await ctx.send(f"Error: invalid size `{size}`")
         if size > 14:
-            await ctx.send("```Error: Maximum supported chart size is 14x14```")
+            await ctx.send("Error: Maximum supported chart size is `14x14`")
             return
+
         chart = [("N/A", "https://via.placeholder.com/300/?text=Miso+Bot")] * (size * size)
         if method in ["recent", "recents", "re"]:
             data = api_request({"user": username, "method": "user.getrecenttracks", "limit": (size * size)})
@@ -381,7 +378,7 @@ class LastFM:
                 except IndexError:
                     break
 
-        elif method in ["topartists", "ta"]:
+        elif method in ["topartists", "ta", "artist", "artists"]:
             data = api_request({"user": username, "method": "user.gettopartists",
                                 "limit": (size * size), "period": period})
             chart_type = " Artist"
@@ -394,7 +391,7 @@ class LastFM:
                 except IndexError:
                     break
 
-        elif method in ["topalbums", "talb"]:
+        elif method in ["topalbums", "talb", "albums", "album"]:
             data = api_request({"user": username, "method": "user.gettopalbums",
                                 "limit": (size * size), "period": period})
             chart_type = " Album"
@@ -425,17 +422,27 @@ class LastFM:
             timer_upload = t.time()
             await ctx.send(f"{ctx.message.author.mention} `{period} {size}x{size}{chart_type} chart`",
                            file=discord.File(img))
-        if debug == "debug":
+        if "debug" in args:
             await ctx.send(f"\nChart gen = {timer_upload - timer_start:.4f}s"
                            f"\nChart upload = {t.time() - timer_upload:.4f}s"
                            f"\nTotal = {t.time() - timer_start:.4f}s```")
 
     @commands.command()
-    async def fmartist(self, ctx, *args):
+    async def fmartist(self, ctx, mode, *args):
         """Get your most listened tracks for an artist"""
         self.logger.info(misolog.format_log(ctx, f""))
+        if mode in ["toptracks", "tt", "tracks", "track"]:
+            method = "user.gettoptracks"
+            json_attr = ["toptracks", "track"]
+        elif mode in ["topalbums", "talb", "albums", "album"]:
+            method = "user.gettopalbums"
+            json_attr = ["topalbums", "album"]
+        else:
+            await ctx.send(f"ERROR: Invalid mode `{mode}`\ntry `topalbums` or `toptracks`")
+            return
+
         if len(args) == 0:
-            await ctx.send("ERROR: Parameter `artist` is missing")
+            await ctx.send("ERROR: Parameter `artist` is missing\nusage: `>fmartist [tracks | albums] [artist name]`")
             return
         artist = " ".join(args)
         users_json = load_data()
@@ -444,44 +451,50 @@ class LastFM:
         except KeyError:
             await ctx.send("No username found in database, please use >fm set {username}")
             return
-        track_limit = int(
-            api_request({"method": "user.gettoptracks", "user": user, "limit": 1})['toptracks']['@attr']['total'])
-        tracks = []
-        i = 1
+
         async with ctx.typing():
-            for x in range(track_limit // 1000):
-                tracks += api_request({"method": "user.gettoptracks", "user": user, "limit": 1000,
-                                       "page": i})['toptracks']['track']
-                i += 1
-            tracks += api_request({"method": "user.gettoptracks", "user": user,
-                                   "limit": 1000, "page": i})['toptracks']['track']
-            artists = {}
-            artist_stylized = artist
-            for i in range(track_limit):
-                this_artist = tracks[i]['artist']['name']
-                if not this_artist.casefold() == artist.casefold():
-                    continue
-                elif not artists:
-                    artist_stylized = this_artist
-                this_song = tracks[i]['name']
-                this_playcount = tracks[i]['playcount']
-                if this_artist not in artists:
-                    artists[this_artist] = {}
-                artists[this_artist][this_song] = this_playcount
+            items = []
+            data = api_request({"method": method, "user": user, "limit": 1000})
+            total_pages = int(data[json_attr[0]]['@attr']['totalPages'])
+            items += data[json_attr[0]][json_attr[1]]
+            if total_pages > 1:
+                for i in range(2, total_pages + 1):
+                    data = api_request({"method": method, "user": user, "limit": 1000, "page": i})
+                    items += data[json_attr[0]][json_attr[1]]
 
-        if artists:
-            artist_data = api_request({"method": "artist.getinfo", "artist": artist_stylized})['artist']
-            image_url = artist_data['image'][3]['#text']
-            content = discord.Embed(color=int(misomisc.get_color(image_url), 16))
+            artist_data = {}
+            formatted_name = None
+        total_items = len(items)
+        for i in range(total_items):
+            this_artist = items[i]['artist']['name']
+            if not this_artist.casefold() == artist.casefold():
+                continue
+            if formatted_name is None:
+                formatted_name = this_artist
+            this_item = items[i]['name']
+            this_playcount = int(items[i]['playcount'])
+            artist_data[this_item] = this_playcount
+
+        if artist_data:
+            artist_info = api_request({"method": "artist.getinfo", "artist": formatted_name})['artist']
+            image_url = artist_info['image'][-1]['#text']
+
+            content = discord.Embed()
             content.set_thumbnail(url=image_url)
-            content.title = f"{user}'s top tracks for {artist_stylized}"
-            description = []
-            rank = 1
-            for song in artists[artist_stylized]:
-                line = f"{rank}. **{artists[artist_stylized][song]}** plays - **{song}**"
-                description.append(line)
-                rank += 1
 
+            image_colour = misomisc.get_color(image_url)
+            if image_colour is not None:
+                content.colour = int(image_colour, 16)
+
+            description = []
+            total_plays = 0
+            for i, item in enumerate(artist_data):
+                line = f"`{i + 1}`. **{artist_data[item]}** plays - **{item}**"
+                total_plays += artist_data[item]
+                description.append(line)
+
+            content.title = f"{user}'s top " + ("tracks" if method == "user.gettoptracks" else "albums") \
+                            + f" for {formatted_name} | Total {total_plays} plays"
             pages = create_pages(description)
             content.description = pages[0]
 
@@ -493,7 +506,40 @@ class LastFM:
                 await self.page_switcher(my_msg, content, pages)
 
         else:
-            await ctx.send("You haven't listened to this artist!")
+            await ctx.send("You haven't listened to this artist! "
+                           "Make sure the artist name is formatted exactly as it shows up in the last fm database.")
+
+    async def page_switcher(self, my_msg, content, pages):
+        current_page = 0
+
+        def check(_reaction, _user):
+            return _reaction.message.id == my_msg.id and _reaction.emoji in ["⬅", "➡"] \
+                   and not _user == self.client.user
+
+        await my_msg.add_reaction("⬅")
+        await my_msg.add_reaction("➡")
+
+        while True:
+            try:
+                reaction, user = await self.client.wait_for('reaction_add', timeout=3600.0, check=check)
+            except asyncio.TimeoutError:
+                return
+            else:
+                try:
+                    if reaction.emoji == "⬅" and current_page > 0:
+                        content.description = pages[current_page - 1]
+                        current_page -= 1
+                        await my_msg.remove_reaction("⬅", user)
+                    elif reaction.emoji == "➡":
+                        content.description = pages[current_page + 1]
+                        current_page += 1
+                        await my_msg.remove_reaction("➡", user)
+                    else:
+                        continue
+                    content.set_footer(text=f"page {current_page + 1} of {len(pages)}")
+                    await my_msg.edit(embed=content)
+                except IndexError:
+                    continue
 
 
 def api_request(data_dict):
