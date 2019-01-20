@@ -81,19 +81,27 @@ class Apis:
             # we have lat and lon now, plug them into dark sky
             response = requests.get(url=f"https://api.darksky.net/forecast/{DARKSKY_API_KEY}/{lat},{lon}?units=si")
             if response.status_code == 200:
-                json_data = json.loads(response.content.decode('utf-8'))['currently']
+                json_data = json.loads(response.content.decode('utf-8'))
+                # print(json.dumps(json_data, indent=4))
+                current = json_data['currently']
+                hourly = json_data['hourly']
+                daily = json_data['daily']
                 time = self.get_timezone({'lat': lat, 'lon': lon})
-                temperature = json_data['temperature']
-                temperature_f = (temperature * (9.0 / 5.0) + 32)
-                summary = json_data['summary']
-                windspeed = json_data['windSpeed']
 
                 message = discord.Embed(color=discord.Color.dark_purple())
-                message.description = f":flag_{country}: **{formatted_name}**\n" \
-                                      f"**{summary}**\n" \
-                                      f"Temperature: **{temperature} °C / {temperature_f:.2f} °F**\n" \
-                                      f"Wind speed: **{windspeed} m/s**\n" \
-                                      f"Local time: **{time}**\n"
+                message.set_thumbnail(url=f"http://flagpedia.net/data/flags/w580/{country}.png")
+                message.set_author(name=formatted_name, icon_url=ctx.author.avatar_url)
+                message.add_field(name=hourly['summary'],
+                                  value=f"**{current['temperature']} °C** "
+                                  f"({current['temperature'] * (9.0 / 5.0) + 32:.2f} °F) **|** Feels like "
+                                  f"**{current['apparentTemperature']} °C** "
+                                  f"({current['apparentTemperature'] * (9.0 / 5.0) + 32:.2f} °F)\n"
+                                  f"Wind speed: **{current['windSpeed']} m/s**")
+
+                message.add_field(name="Weekly forecast:",
+                                  value=" ".join(f"**{x}**" if "°C" in x else x for x in daily['summary'].split(" ")))
+
+                message.set_footer(text=f"Local time: {time}")
 
                 await ctx.send(embed=message)
 
@@ -161,48 +169,58 @@ class Apis:
     async def define(self, ctx, *args):
         """Search from oxford dictionary"""
         self.logger.info(misolog.format_log(ctx, f""))
-        search_string = ' '.join(args).lower()
+        search_string = ' '.join(args)
         api_url = 'https://od-api.oxforddictionaries.com:443/api/v1'
         query = f'''/search/en?q={search_string}&prefix=false'''
-        id_response = requests.get(api_url + query, headers={
+        response = requests.get(api_url + query, headers={
             'Accept': 'application/json',
             'app_id': OXFORD_APPID,
             'app_key': OXFORD_TOKEN,
         })
-        rescode = id_response.status_code
-        if rescode == 200:
-            json_data = json.loads(id_response.content.decode('utf-8'))
-            try:
-                word_id = json_data['results'][0]['id']
-                word_string = json_data['results'][0]['word']
-                print(('found ' + word_id) + ' as word_id')
-                response = requests.get((api_url + '/entries/en/') + word_id, headers={
+        if response.status_code == 200:
+            data = json.loads(response.content.decode('utf-8'))
+            # searched for word id, now use the word id to get definition
+            if data['results']:
+                word_id = data['results'][0]['id']
+                word_string = data['results'][0]['word']
+                response = requests.get(api_url + f"/entries/en/{word_id}", headers={
                     'Accept': 'application/json',
                     'app_id': OXFORD_APPID,
                     'app_key': OXFORD_TOKEN,
                 })
-                json_data = json.loads(response.content.decode('utf-8'))
+                data = json.loads(response.content.decode('utf-8'))
                 all_entries = []
-                for entry in json_data['results'][0]['lexicalEntries']:
-                    name = json_data['results'][0]['word']
-                    definition = entry['entries'][0]['senses'][0]['definitions'][0]
+                for entry in data['results'][0]['lexicalEntries']:
+                    definitions_value = ""
+                    name = data['results'][0]['word']
+
+                    for i in range(len(entry['entries'][0]['senses'])):
+                        for definition in entry['entries'][0]['senses'][i]['definitions']:
+                            definitions_value += f"\n**{i + 1}.** {definition}"
+                        try:
+                            for y in range(len(entry['entries'][0]['senses'][i]['subsenses'])):
+                                for definition in entry['entries'][0]['senses'][i]['subsenses'][y]['definitions']:
+                                    definitions_value += f"\n**└{i + 1}.{y + 1}.** {definition}"
+                            definitions_value += "\n"
+                        except KeyError:
+                            pass
+
                     word_type = entry['lexicalCategory']
-                    this_entry = {"id": name, "definition": definition, "type": word_type}
+                    this_entry = {"id": name, "definitions": definitions_value, "type": word_type}
                     all_entries.append(this_entry)
 
                 definitions_embed = discord.Embed(colour=discord.Colour.blue())
                 definitions_embed.set_author(name=word_string.capitalize(), icon_url="https://i.imgur.com/vDvSmF3.png")
 
                 for entry in all_entries:
-                    definitions_embed.add_field(name=entry["type"], value=entry["definition"].capitalize(),
-                                                inline=False)
+                    definitions_embed.add_field(name=entry["type"], inline=False,
+                                                value=entry["definitions"])
 
                 await ctx.send(embed=definitions_embed)
-            except Exception as e:
-                print(e)
-                await ctx.send('Error: no definition found for ' + search_string)
+            else:
+                await ctx.send(f"ERROR: no definition found for `{search_string}`")
         else:
-            await ctx.send('Error: status code' + str(id_response.status_code))
+            await ctx.send(f"ERROR: status code `{response.status_code}`")
 
     @commands.command()
     async def urban(self, ctx, *args):
