@@ -141,6 +141,8 @@ class Levels:
         await ctx.send(f"`Hourly xp gain chart for {ctx.author.name}`\n```{message}```")
 
     async def on_message(self, message):
+        if message.guild is None:
+            return
         if str(message.guild.id) not in self.level_index:
             self.level_index[str(message.guild.id)] = {}
 
