@@ -39,7 +39,7 @@ class LastFM:
     async def fm(self, ctx, method=None, timeframe=None, *args):
         """Get user and song data from LastFM"""
         self.logger.info(misolog.format_log(ctx, f""))
-
+        self.users_json = load_data()
         if method == "set":
             if timeframe is None:
                 await ctx.send("Please give a username!")
@@ -50,10 +50,11 @@ class LastFM:
                 await ctx.send(f"ERROR: Invalid username `{timeframe}`")
                 return
 
+            if str(ctx.message.author.id) not in self.users_json['users']:
+                self.users_json['users'][str(ctx.message.author.id)] = {}
             self.users_json['users'][str(ctx.message.author.id)]['lastfm_username'] = timeframe
             save_data(self.users_json)
             await ctx.send(f"{ctx.message.author.mention} Username saved as {timeframe}", embed=content)
-            self.users_json = load_data()
             return
         else:
             try:
@@ -210,9 +211,12 @@ class LastFM:
             tracks = data['recenttracks']['track']
             description = []
             for i in range(amount):
-                artist = escape(tracks[i]['artist']['#text'], 2)
-                name = escape(tracks[i]['name'], 3)
-                description.append(f"**{artist}** — ***{name}***")
+                try:
+                    artist = escape(tracks[i]['artist']['#text'], 2)
+                    name = escape(tracks[i]['name'], 3)
+                    description.append(f"**{artist}** — ***{name}***")
+                except IndexError:
+                    break
             image_url = tracks[0]['image'][-1]['#text']
             image_colour = misomisc.get_color(image_url)
             content = discord.Embed()
@@ -238,10 +242,12 @@ class LastFM:
             artists = data['topartists']['artist']
             description = []
             for i in range(amount):
-                artist = escape(artists[i]['name'], 2)
-                plays = artists[i]['playcount']
-                # rank = artists[i]['@attr']['rank']
-                description.append(f"**{plays}** plays — **{artist}**")
+                try:
+                    artist = escape(artists[i]['name'], 2)
+                    plays = artists[i]['playcount']
+                    description.append(f"**{plays}** plays — **{artist}**")
+                except IndexError:
+                    break
             image_url = artists[0]['image'][-1]['#text']
             image_colour = misomisc.get_color(image_url)
             content = discord.Embed()
@@ -266,11 +272,13 @@ class LastFM:
             albums = data['topalbums']['album']
             description = []
             for i in range(amount):
-                album = escape(albums[i]['name'], 3)
-                artist = escape(albums[i]['artist']['name'], 2)
-                plays = albums[i]['playcount']
-                # rank = albums[i]['@attr']['rank']
-                description.append(f"**{plays}** plays - ***{album}*** — **{artist}**")
+                try:
+                    album = escape(albums[i]['name'], 3)
+                    artist = escape(albums[i]['artist']['name'], 2)
+                    plays = albums[i]['playcount']
+                    description.append(f"**{plays}** plays - ***{album}*** — **{artist}**")
+                except IndexError:
+                    break
             image_url = albums[0]['image'][-1]['#text']
             image_colour = misomisc.get_color(image_url)
             content = discord.Embed()
@@ -296,11 +304,13 @@ class LastFM:
             tracks = data['toptracks']['track']
             description = []
             for i in range(amount):
-                artist = escape(tracks[i]['artist']['name'], 2)
-                name = escape(tracks[i]['name'], 3)
-                plays = tracks[i]['playcount']
-                # rank = tracks[i]['@attr']['rank']
-                description.append(f"**{plays}** plays - **{artist}** — ***{name}***")
+                try:
+                    artist = escape(tracks[i]['artist']['name'], 2)
+                    name = escape(tracks[i]['name'], 3)
+                    plays = tracks[i]['playcount']
+                    description.append(f"**{plays}** plays - **{artist}** — ***{name}***")
+                except IndexError:
+                    break
             image_url = tracks[0]['image'][-1]['#text']
             image_colour = misomisc.get_color(image_url)
             content = discord.Embed()
@@ -429,7 +439,7 @@ class LastFM:
 
     @commands.command()
     async def fmartist(self, ctx, mode, *args):
-        """Get your most listened tracks for an artist"""
+        """Get your most listened tracks or albums for an artist"""
         self.logger.info(misolog.format_log(ctx, f""))
         if mode in ["toptracks", "tt", "tracks", "track"]:
             method = "user.gettoptracks"

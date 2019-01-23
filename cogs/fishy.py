@@ -22,10 +22,12 @@ class Fishy:
     def __init__(self, client):
         self.client = client
         self.logger = misolog.create_logger(__name__)
+        self.userdata = load_data()
 
     @commands.command(name="fishy", aliases=['fisy', 'fsihy', 'fihy', 'foshy', 'fihsy', 'fisyh', 'fsiyh', 'fhisy'])
     async def fishy(self, ctx):
         """Go fishing and receive random amount of fishies"""
+        self.userdata = load_data()
         user_id_fisher = str(ctx.message.author.id)
         if ctx.message.mentions:
             self_fishy = False
@@ -36,13 +38,12 @@ class Fishy:
         receiver_name = ctx.message.guild.get_member(int(user_id_receiver)).name
         timestamp = ctx.message.created_at.timestamp()
         cooldown = 3600
-        users_json = load_data()
-        if user_id_fisher not in users_json['users']:
-            users_json['users'][user_id_fisher] = {}
-        if user_id_receiver not in users_json['users']:
-            users_json['users'][user_id_receiver] = {}
+        if user_id_fisher not in self.userdata['users']:
+            self.userdata['users'][user_id_fisher] = {}
+        if user_id_receiver not in self.userdata['users']:
+            self.userdata['users'][user_id_receiver] = {}
         try:
-            time_since_fishy = timestamp - users_json['users'][user_id_fisher]['fishy_timestamp']
+            time_since_fishy = timestamp - self.userdata['users'][user_id_fisher]['fishy_timestamp']
         except KeyError:
             time_since_fishy = cooldown+1
 
@@ -113,33 +114,33 @@ class Fishy:
                             await ctx.send(f"Caught **{amount}** fishies for {receiver_name}! :fishing_pole_and_fish:")
 
                 try:
-                    users_json['users'][user_id_receiver]['fishy'] += amount
+                    self.userdata['users'][user_id_receiver]['fishy'] += amount
                 except KeyError:
-                    users_json['users'][user_id_receiver]['fishy'] = amount
+                    self.userdata['users'][user_id_receiver]['fishy'] = amount
 
                 if not self_fishy:
                     try:
-                        users_json['users'][user_id_fisher]['fishy_gifted'] += amount
+                        self.userdata['users'][user_id_fisher]['fishy_gifted'] += amount
                     except KeyError:
-                        users_json['users'][user_id_fisher]['fishy_gifted'] = amount
+                        self.userdata['users'][user_id_fisher]['fishy_gifted'] = amount
 
-            users_json['users'][user_id_fisher]['fishy_timestamp'] = timestamp
-            users_json['users'][user_id_fisher]['warning'] = 0
+            self.userdata['users'][user_id_fisher]['fishy_timestamp'] = timestamp
+            self.userdata['users'][user_id_fisher]['warning'] = 0
 
             try:
-                users_json['users'][user_id_receiver][f"fish_{rarity}"] += 1
+                self.userdata['users'][user_id_receiver][f"fish_{rarity}"] += 1
             except KeyError:
-                users_json['users'][user_id_receiver][f"fish_{rarity}"] = 1
+                self.userdata['users'][user_id_receiver][f"fish_{rarity}"] = 1
 
-            save_data(users_json)
+            save_data(self.userdata)
 
             if self_fishy:
                 self.logger.info(misolog.format_log(ctx, f"success [{amount}] ({rarity})"))
-                if users_json['users'][user_id_fisher]['fishy'] > 9999:
+                if self.userdata['users'][user_id_fisher]['fishy'] > 9999:
                     await usercog.add_badge(ctx, ctx.message.author, "master_fisher")
             else:
                 self.logger.info(misolog.format_log(ctx, f"success [gift for {receiver_name}] [{amount}] ({rarity})"))
-                if users_json['users'][user_id_fisher]['fishy_gifted'] > 999:
+                if self.userdata['users'][user_id_fisher]['fishy_gifted'] > 999:
                     await usercog.add_badge(ctx, ctx.message.author, "generous_fisher")
             if rarity == "legendary":
                 await usercog.add_badge(ctx, ctx.message.author, "lucky_fisher")
@@ -147,7 +148,7 @@ class Fishy:
         else:
             wait_time = cooldown - time_since_fishy
             try:
-                warning = users_json['users'][user_id_fisher]['warning']
+                warning = self.userdata['users'][user_id_fisher]['warning']
             except KeyError:
                 warning = 0
 
@@ -168,10 +169,10 @@ class Fishy:
                 await ctx.send(f"{time}")
 
             try:
-                users_json['users'][user_id_fisher]['warning'] += 1
+                self.userdata['users'][user_id_fisher]['warning'] += 1
             except KeyError:
-                users_json['users'][user_id_fisher]['warning'] = 1
-            save_data(users_json)
+                self.userdata['users'][user_id_fisher]['warning'] = 1
+            save_data(self.userdata)
 
             self.logger.info(misolog.format_log(ctx, f"fail (wait_time={wait_time:.3f}s)"))
 
@@ -196,7 +197,6 @@ class Fishy:
         users_json = load_data()
         users_json['users'][user_id]['fishy'] -= int(amount)
         save_data(users_json)
-
 
     @commands.command()
     async def leaderboard(self, ctx, mode=None):

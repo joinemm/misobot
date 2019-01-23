@@ -103,6 +103,9 @@ class Commands:
     @commands.command(name='youtube', aliases=["yt"])
     async def youtube(self, ctx, *args):
         """Search youtube for the given search query and return first result"""
+        if not args:
+            await ctx.send("usage: `>youtube [search string]`")
+            return
         search_string = " ".join(args)
         search_string = urllib.parse.urlencode({'search_query': search_string})
         response = requests.get('http://www.youtube.com/results?search_query=' + search_string)

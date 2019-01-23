@@ -302,7 +302,7 @@ class Apis:
         await ctx.send(f"`{source}->{target}` " + translation)
 
     @commands.command()
-    async def spotify(self, ctx, url=None, amount=10):
+    async def spotify(self, ctx, url=None, amount=15):
         """Analyze a spotify playlist from URI"""
         self.logger.info(misolog.format_log(ctx, f""))
         # noinspection PyBroadException
@@ -321,11 +321,8 @@ class Apis:
                            "How to get Spotify URI?: Right click playlist -> Share -> Copy Spotify URI")
             return
 
-        try:
-            if amount > 50:
-                amount = 50
-        except IndexError:
-            amount = 10
+        if amount > 50:
+            amount = 50
 
         token = util.oauth2.SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET)
         cache_token = token.get_access_token()
@@ -363,7 +360,7 @@ class Apis:
         for item in sorted(artists_dict.items(), key=lambda v: v[1], reverse=True):
             if count < amount:
                 percentage = (item[1] / total) * 100
-                description += f"{item[1]} tracks — {percentage:.2f}% — {item[0]}\n"
+                description += f"**{item[1]}** tracks ({percentage:.2f}%) — **{item[0]}**\n"
                 count += 1
             else:
                 break
@@ -373,7 +370,7 @@ class Apis:
                            icon_url="https://i.imgur.com/tN20ywg.png")
         message.set_thumbnail(url=playlist_image)
         message.title = "Artist distribution:"
-        message.set_footer(text=f"Total tracks in this playlist: {total}")
+        message.set_footer(text=f"Total: {total} tracks from {len(artists_dict)} different artists")
         message.description = description
 
         await ctx.send(embed=message)
