@@ -174,21 +174,19 @@ class User:
         leveldata = leveldata[str(ctx.guild.id)][str(ctx.author.id)]
         level = misomisc.get_level(leveldata['xp'])
         formatted_html = self.profile_html.format(
-            usercolor=usercolor,
-            avatar_url=avatar_url,
-            username=username,
-            discriminator=discriminator,
-            badge_icons=badge_html,
-            fishy_amount=fishy,
-            level_num=level,
-            xp=f"{leveldata['xp'] - misomisc.get_xp(level)}/{misomisc.xp_to_next_level(level)} XP | {leveldata[
-                'xp']} XP",
-            messages_amount=leveldata['messages'],
-            level_num_g=global_level,
-            xp_g=f"{global_xp - misomisc.get_xp(global_level)}/{misomisc.xp_to_next_level(
-                global_level)} XP | {global_xp} XP",
-            messages_amount_g=global_msg
-        )
+              usercolor=usercolor,
+              avatar_url=avatar_url,
+              username=username,
+              discriminator=discriminator,
+              badge_icons=badge_html,
+              fishy_amount=fishy,
+              level_num=level,
+              xp=f"{leveldata['xp']-misomisc.get_xp(level)}/{misomisc.xp_to_next_level(level)} XP | {leveldata['xp']} XP",
+              messages_amount=leveldata['messages'],
+              level_num_g=global_level,
+              xp_g=f"{global_xp-misomisc.get_xp(global_level)}/{misomisc.xp_to_next_level(global_level)} XP | {global_xp} XP",
+              messages_amount_g=global_msg
+              )
 
         # 3. generate and send
         imgkit.from_string(formatted_html, "downloads/profile.png", options=options, css='html/profile_main.css')
