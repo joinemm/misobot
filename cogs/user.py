@@ -173,6 +173,8 @@ class User:
         global_level = misomisc.get_level(global_xp)
         leveldata = leveldata[str(ctx.guild.id)][str(ctx.author.id)]
         level = misomisc.get_level(leveldata['xp'])
+        xps = f"{leveldata['xp']-misomisc.get_xp(level)}/{misomisc.xp_to_next_level(level)} XP | {leveldata['xp']} XP"
+        xpsg = f"{global_xp-misomisc.get_xp(global_level)}/{misomisc.xp_to_next_level(global_level)} XP | {global_xp} XP"
         formatted_html = self.profile_html.format(
               usercolor=usercolor,
               avatar_url=avatar_url,
@@ -181,10 +183,10 @@ class User:
               badge_icons=badge_html,
               fishy_amount=fishy,
               level_num=level,
-              xp=f"{leveldata['xp']-misomisc.get_xp(level)}/{misomisc.xp_to_next_level(level)} XP | {leveldata['xp']} XP",
+              xp=xps,
               messages_amount=leveldata['messages'],
               level_num_g=global_level,
-              xp_g=f"{global_xp-misomisc.get_xp(global_level)}/{misomisc.xp_to_next_level(global_level)} XP | {global_xp} XP",
+              xp_g=xpsg,
               messages_amount_g=global_msg
               )
 
