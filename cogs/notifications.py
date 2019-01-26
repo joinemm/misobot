@@ -1,24 +1,16 @@
 import discord
 from discord.ext import commands
-import json
 import re
+import main
+from utils import misc
 
-
-def load_data():
-    with open('data/notifications.json', 'r') as filehandle:
-        return json.load(filehandle)
-
-
-def save_data(data):
-    with open('data/notifications.json', 'w') as filehandle:
-        json.dump(data, filehandle, indent=4)
+database = main.database
 
 
 class Notifications:
 
     def __init__(self, client):
         self.client = client
-        self.notifications_json = load_data()
 
     async def on_message(self, message):
         if message.author == self.client.user:
@@ -31,8 +23,9 @@ class Notifications:
 
         # notifications
         if message.guild is not None:
-            if str(message.guild.id) in self.notifications_json:
-                triggerwords = list(self.notifications_json[str(message.guild.id)].keys())
+            triggerwords = database.get_attr("notifications", f"{message.guild.id}")
+            if triggerwords is not None:
+                triggerwords = list(triggerwords.keys())
                 matches = set()
                 for word in triggerwords:
                     pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
@@ -40,7 +33,9 @@ class Notifications:
                         matches.add(word)
                 for word in matches:
                     pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
-                    for user_id in self.notifications_json[str(message.guild.id)][word]:
+                    for user_id in database.get_attr("notifications", f"{message.guild.id}.{word}"):
+                        if user_id in database.get_attr("users", f"{user_id}.blacklist", []):
+                            return
                         if not user_id == message.author.id:
                             user = message.guild.get_member(user_id)
                             if user is not None:
@@ -51,6 +46,8 @@ class Notifications:
                                 content.description = f">>> {highlighted_text}\n\n" \
                                                       f"[Go to message]({message.jump_url})"
                                 content.set_thumbnail(url=message.guild.icon_url)
+                                content.set_footer(text=f"#{message.channel.name}")
+                                content.timestamp = message.created_at
 
                                 await user.send(embed=content)
 
@@ -60,6 +57,8 @@ class Notifications:
         if mode == "help":
             content = "`>notification add [word]`\n" \
                       "`>notification remove [word]`\n" \
+                      "`>notification block [user]`\n" \
+                      "`>notification unblock [user]`\n" \
                       "`>notification list`"
             await ctx.send(content)
             return
@@ -67,57 +66,60 @@ class Notifications:
         elif mode == "add":
             await ctx.message.delete()
             word = " ".join(args)
-            guild = str(ctx.guild.id)
-            user = ctx.author.id
-            if guild not in self.notifications_json:
-                self.notifications_json[guild] = {}
-            if word not in self.notifications_json[guild]:
-                self.notifications_json[guild][word] = [user]
+            if ctx.author.id not in database.get_attr("notifications", f"{ctx.guild.id}.{word}", []):
+                database.append_attr("notifications", f"{ctx.guild.id}.{word}", ctx.author.id)
+                await ctx.author.send(f"New notification for keyword `{word}` set in `{ctx.guild.name}` ")
+                await ctx.send("Set a notification! Check your DMs <:vivismirk:532923084026544128>")
             else:
-                if user in self.notifications_json[guild][word]:
-                    await ctx.send("You already have this notification <:hyunjinwtf:532922316212928532>")
-                    return
-                self.notifications_json[guild][word].append(user)
-            save_data(self.notifications_json)
-            await ctx.author.send(f"New notification for keyword `{word}` set for `{ctx.guild.name}` ")
-            await ctx.send("Set a notification! Check your DMs <:vivismirk:532923084026544128>")
-            self.notifications_json = load_data()
+                await ctx.send("You already have this notification <:hyunjinwtf:532922316212928532>")
+                return
 
         elif mode == "remove":
             await ctx.message.delete()
             word = " ".join(args)
-            guild = str(ctx.guild.id)
-            user = ctx.author.id
-            try:
-                self.notifications_json[guild][word].remove(user)
-                if len(self.notifications_json[guild][word]) == 0:
-                    del self.notifications_json[guild][word]
-                save_data(self.notifications_json)
-                await ctx.author.send(f"Notification for keyword `{word}` removed for `{ctx.guild.name}` ")
-                await ctx.send("removed a notification! Check your DMs <:vivismirk:532923084026544128>")
-                self.notifications_json = load_data()
-            except KeyError:
-                await ctx.send("You don't even have this notification <:hyunjinwtf:532922316212928532>")
+            if ctx.author.id in database.get_attr("notifications", f"{ctx.guild.id}.{word}", []):
+                response = database.delete_attr("notifications", f"{ctx.guild.id}.{word}", ctx.author.id)
+                if response is True:
+                    await ctx.author.send(f"Notification for keyword `{word}` removed for `{ctx.guild.name}` ")
+                    await ctx.send("removed a notification! Check your DMs <:vivismirk:532923084026544128>")
+                else:
+                    await ctx.send("You don't even have this notification <:hyunjinwtf:532922316212928532>")
 
         elif mode == "list":
-            user = ctx.author.id
             text = ""
             words = {}
-            for guild in self.notifications_json:
-                for word in self.notifications_json[guild]:
-                    if user in self.notifications_json[guild][word]:
-                        if guild in words:
-                            words[guild].append(word)
+            for guild_id in database.get_attr("notifications", ".", []):
+                for word in database.get_attr("notifications", f"{guild_id}", []):
+                    if ctx.author.id in database.get_attr("notifications", f"{guild_id}.{word}", []):
+                        if guild_id in words:
+                            words[guild_id].append(word)
                         else:
-                            words[guild] = [word]
+                            words[guild_id] = [word]
 
             for guild in words:
-                text += f"{self.client.get_guild(int(guild)).name}:"
-                for word in words[guild]:
-                    text += f"\n- {word}"
-                text += "\n"
-            await ctx.author.send(f"```{text}```")
-            await ctx.send("List sent to your DMs <:vivismirk:474641574803013638>")
+                server = self.client.get_guild(int(guild))
+                if server is not None:
+                    text += f"**{server.name}:**"
+                    for word in words[guild]:
+                        text += f"\n└`{word}`"
+                    text += "\n"
+            await ctx.author.send(text)
+            await ctx.send("List sent to your DMs <:vivismirk:532923084026544128>")
+
+        elif mode == "block":
+            user = misc.user_from_mention(self.client, args[0])
+            if user is not None:
+                database.append_attr("users", f"{ctx.author.id}.blacklist", user.id)
+                await ctx.send(f"User `@{user.name}` is now blocked from notifying you")
+            else:
+                await ctx.send("ERROR: Invalid user")
+        elif mode == "unblock":
+            user = misc.user_from_mention(self.client, args[0])
+            if user is not None:
+                database.delete_attr("users", f"{ctx.author.id}.blacklist", user.id)
+                await ctx.send(f"User `@{user.name}` removed from notification blacklist")
+            else:
+                await ctx.send("ERROR: Invalid user")
 
         else:
             await ctx.send(f"Unknown argument `{mode}`")

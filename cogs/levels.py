@@ -1,29 +1,18 @@
 import discord
 from discord.ext import commands
-import json
 from utils import misc as misomisc
 from utils import logger as misolog
 import time as t
 from operator import itemgetter
+import main
 
-
-def load_data():
-    with open('data/index.json', 'r') as filehandle:
-        data = json.load(filehandle)
-        return data
-
-
-def save_data(data):
-    with open('data/index.json', 'w') as filehandle:
-        json.dump(data, filehandle, indent=4)
-        filehandle.close()
+database = main.database
 
 
 class Levels:
 
     def __init__(self, client):
         self.client = client
-        self.level_index = load_data()
         self.logger = misolog.create_logger(__name__)
 
     @commands.is_owner()
@@ -41,7 +30,7 @@ class Levels:
             channels = [ctx.channel]
         msg = await ctx.send(f"indexing... (0/{len(channels)})")
         num = 0
-        self.level_index[str(ctx.guild.id)] = {}
+        guild_index = {}
         total_messages = 0
         for channel in channels:
             num += 1
@@ -51,37 +40,40 @@ class Levels:
                     user = message.author
                     xp = misomisc.xp_from_message(message)
                     currenthour = message.created_at.hour
-                    if str(user.id) not in self.level_index[str(ctx.guild.id)]:
-                        self.level_index[str(ctx.guild.id)][str(user.id)] = {
+                    if str(user.id) not in guild_index:
+                        guild_index[str(user.id)] = {
                             "name": f"{user.name}#{user.discriminator}",
                             "bot": user.bot,
                             "xp": xp,
                             "messages": 1,
                             "activity": [0] * 24}
                     else:
-                        self.level_index[str(ctx.guild.id)][str(user.id)]['xp'] += xp
-                        self.level_index[str(ctx.guild.id)][str(user.id)]['messages'] += 1
-                        self.level_index[str(message.guild.id)][str(message.author.id)]['activity'][currenthour] += xp
+                        guild_index[str(user.id)]['xp'] += xp
+                        guild_index[str(user.id)]['messages'] += 1
+                        guild_index[str(user.id)]['activity'][currenthour] += xp
                         total_messages += 1
 
                 await msg.edit(content=f"indexing... ({num}/{len(channels)}) :: total {total_messages} messages from "
-                f"{len(self.level_index[str(ctx.guild.id)])} users")
+                f"{len(guild_index)} users")
             except Exception:
                 await ctx.send(f"Unexpected error indexing channel <#{channel.id}>")
-        save_data(self.level_index)
         time_taken = t.time() - timer
+        database.set_attr("index", f"{ctx.guild.id}", guild_index)
         await msg.edit(content=f"indexing... ({num}/{len(channels)}) DONE ({time_taken:.1f}s) :: "
-                               f"total {total_messages} messages from {len(self.level_index[str(ctx.guild.id)])} users")
+        f"total {total_messages} messages from {len(guild_index)} users")
 
     @commands.command()
     async def level(self, ctx, userid=None):
         """Get your level, or level of userid"""
         self.logger.info(misolog.format_log(ctx, f""))
-        exp = load_data()
         if userid is None:
-            user = exp[str(ctx.guild.id)][str(ctx.message.author.id)]
+            user = database.get_attr("index", f"{ctx.guild.id}.{ctx.author.id}")
         else:
-            user = exp[str(ctx.guild.id)][userid]
+            user = database.get_attr("index", f"{ctx.guild.id}.{userid}")
+        if user is None:
+            await ctx.send("User not found")
+            return
+
         level = misomisc.get_level(user['xp'])
         await ctx.send(f"{user['name']} - level {level} | {user['xp']-misomisc.get_xp(level)}"
                        f"/{misomisc.xp_to_next_level(level)} xp to next level (total xp: {user['xp']})")
@@ -91,11 +83,11 @@ class Levels:
         """Get top levels for this server or globally"""
         self.logger.info(misolog.format_log(ctx, f""))
         tops = {}
-        for guild in self.level_index:
+        for guild in database.get_attr("index", "."):
             if not scope == "global":
                 guild = str(ctx.guild.id)
-            for userid in self.level_index[guild]:
-                userdata = self.level_index[guild][userid]
+            for userid in database.get_attr("index", f"{guild}"):
+                userdata = database.get_attr("index", f"{guild}.{userid}")
                 if userid not in tops:
                     tops[userid] = {'xp': userdata['xp'], 'messages': userdata['messages']}
                 else:
@@ -114,7 +106,7 @@ class Levels:
 
         for userid, value in sorted(tops.items(), key=lambda x: itemgetter('xp')(x[1]), reverse=True):
             user = self.client.get_user(int(userid))
-            if user is None:
+            if user is None or user.bot:
                 continue
             i += 1
             row = f"\n{i}. Level **{misomisc.get_level(tops[userid]['xp'])}** - {user.mention} " \
@@ -127,9 +119,9 @@ class Levels:
 
     @commands.command()
     async def activity(self, ctx):
-        try:
-            post_data = self.level_index[str(ctx.guild.id)][str(ctx.author.id)]['activity']
-        except KeyError:
+        self.logger.info(misolog.format_log(ctx, f""))
+        post_data = database.get_attr("index", f"{ctx.guild.id}.{ctx.author.id}.activity")
+        if post_data is None:
             await ctx.send("You have no activity data yet!")
             return
 
@@ -143,26 +135,28 @@ class Levels:
     async def on_message(self, message):
         if message.guild is None:
             return
-        if str(message.guild.id) not in self.level_index:
-            self.level_index[str(message.guild.id)] = {}
 
         xp = misomisc.xp_from_message(message)
         currenthour = message.created_at.hour
-        try:
-            user = self.level_index[str(message.guild.id)][str(message.author.id)]
-        except KeyError:
-            new_user = {"name": f"{message.author.name}#{message.author.discriminator}",
-                        "bot": message.author.bot,
-                        "xp": 0,
-                        "messages": 0,
-                        "activity": [0] * 24}
-            self.level_index[str(message.guild.id)][str(message.author.id)] = new_user
-            user = self.level_index[str(message.guild.id)][str(message.author.id)]
+        user = database.get_attr("index", f"{message.guild.id}.{message.author.id}")
+        if user is None:
+            user = {"name": f"{message.author.name}#{message.author.discriminator}",
+                    "bot": message.author.bot,
+                    "xp": 0,
+                    "messages": 0,
+                    "activity": [0] * 24}
 
+        level_before = misomisc.get_level(user['xp'])
         user['messages'] += 1
         user['xp'] += xp
         user['activity'][currenthour] += xp
-        save_data(self.level_index)
+        database.set_attr("index", f"{message.guild.id}.{message.author.id}", user)
+        level_now = misomisc.get_level(user['xp'])
+
+        if level_now > level_before:
+            if not message.author.bot:
+                if database.get_attr("guilds", f"{message.guild.id}.levelup_messages", True):
+                    await message.channel.send(f"{message.author.mention} just leveled up! (level **{level_now}**)")
 
 
 def setup(client):

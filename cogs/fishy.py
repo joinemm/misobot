@@ -1,20 +1,12 @@
 import discord
 from discord.ext import commands
 import random
-import json
 from utils import logger as misolog
+from utils import misc as misomisc
 import cogs.user as usercog
+import main
 
-
-def load_data():
-    with open('data/users.json', 'r') as filehandle:
-        data = json.load(filehandle)
-        return data
-
-
-def save_data(users_json):
-    with open('data/users.json', 'w') as filehandle:
-        json.dump(users_json, filehandle, indent=4)
+database = main.database
 
 
 class Fishy:
@@ -22,32 +14,28 @@ class Fishy:
     def __init__(self, client):
         self.client = client
         self.logger = misolog.create_logger(__name__)
-        self.userdata = load_data()
 
     @commands.command(name="fishy", aliases=['fisy', 'fsihy', 'fihy', 'foshy', 'fihsy', 'fisyh', 'fsiyh', 'fhisy'])
-    async def fishy(self, ctx):
+    async def fishy(self, ctx, *args):
         """Go fishing and receive random amount of fishies"""
-        self.userdata = load_data()
-        user_id_fisher = str(ctx.message.author.id)
-        if ctx.message.mentions:
-            self_fishy = False
-            user_id_receiver = str(ctx.message.mentions[0].id)
-        else:
+        user_id_fisher = ctx.message.author.id
+        user_id_receiver = user_id_fisher
+        for arg in args:
+            user = misomisc.user_from_mention(self.client, arg)
+            if user is not None:
+                user_id_receiver = user.id
+                break
+        if user_id_fisher == user_id_receiver:
             self_fishy = True
-            user_id_receiver = user_id_fisher
-        receiver_name = ctx.message.guild.get_member(int(user_id_receiver)).name
+        else:
+            self_fishy = False
+        receiver_name = ctx.message.guild.get_member(user_id_receiver).name
         timestamp = ctx.message.created_at.timestamp()
         cooldown = 3600
-        if user_id_fisher not in self.userdata['users']:
-            self.userdata['users'][user_id_fisher] = {}
-        if user_id_receiver not in self.userdata['users']:
-            self.userdata['users'][user_id_receiver] = {}
-        try:
-            time_since_fishy = timestamp - self.userdata['users'][user_id_fisher]['fishy_timestamp']
-        except KeyError:
-            time_since_fishy = cooldown+1
 
-        if time_since_fishy > cooldown:
+        time_since_fishy = timestamp - database.get_attr("users", f"{user_id_fisher}.fishy_timestamp")
+
+        if time_since_fishy > cooldown or time_since_fishy is None:
             trash = random.randint(1, 10) == 1
             if trash:
                 christmas = False
@@ -113,42 +101,33 @@ class Fishy:
                         else:
                             await ctx.send(f"Caught **{amount}** fishies for {receiver_name}! :fishing_pole_and_fish:")
 
-                try:
-                    self.userdata['users'][user_id_receiver]['fishy'] += amount
-                except KeyError:
-                    self.userdata['users'][user_id_receiver]['fishy'] = amount
+                database.set_attr("users", f"{user_id_receiver}.fishy", amount, increment=True)
 
                 if not self_fishy:
-                    try:
-                        self.userdata['users'][user_id_fisher]['fishy_gifted'] += amount
-                    except KeyError:
-                        self.userdata['users'][user_id_fisher]['fishy_gifted'] = amount
+                    database.set_attr("users", f"{user_id_fisher}.fishy", amount, increment=True)
 
-            self.userdata['users'][user_id_fisher]['fishy_timestamp'] = timestamp
-            self.userdata['users'][user_id_fisher]['warning'] = 0
+            database.set_attr("users", f"{user_id_fisher}.fishy_timestamp", timestamp)
+            database.set_attr("users", f"{user_id_fisher}.warning", 0)
+            database.set_attr("users", f"{user_id_receiver}.fish_{rarity}", 1, increment=True)
 
-            try:
-                self.userdata['users'][user_id_receiver][f"fish_{rarity}"] += 1
-            except KeyError:
-                self.userdata['users'][user_id_receiver][f"fish_{rarity}"] = 1
-
-            save_data(self.userdata)
-
+            userbadges = database.get_attr("users", f"{user_id_fisher}.badges", default={})
             if self_fishy:
                 self.logger.info(misolog.format_log(ctx, f"success [{amount}] ({rarity})"))
-                if self.userdata['users'][user_id_fisher]['fishy'] > 9999:
-                    await usercog.add_badge(ctx, ctx.message.author, "master_fisher")
+                if "master_fisher" not in userbadges:
+                    if database.get_attr("users", f"{user_id_fisher}.fishy", default=0) > 9999:
+                        await usercog.add_badge(ctx, ctx.message.author, "master_fisher")
             else:
                 self.logger.info(misolog.format_log(ctx, f"success [gift for {receiver_name}] [{amount}] ({rarity})"))
-                if self.userdata['users'][user_id_fisher]['fishy_gifted'] > 999:
-                    await usercog.add_badge(ctx, ctx.message.author, "generous_fisher")
-            if rarity == "legendary":
+                if "generous_fisher" not in userbadges:
+                    if database.get_attr("users", f"{user_id_fisher}.fishy_gifted", default=0) > 999:
+                        await usercog.add_badge(ctx, ctx.message.author, "generous_fisher")
+            if rarity == "legendary" and "lucky_fisher" not in userbadges:
                 await usercog.add_badge(ctx, ctx.message.author, "lucky_fisher")
 
         else:
             wait_time = cooldown - time_since_fishy
             try:
-                warning = self.userdata['users'][user_id_fisher]['warning']
+                warning = database.get_attr("users", f"{user_id_fisher}.warning")
             except KeyError:
                 warning = 0
 
@@ -168,59 +147,42 @@ class Fishy:
             else:
                 await ctx.send(f"{time}")
 
-            try:
-                self.userdata['users'][user_id_fisher]['warning'] += 1
-            except KeyError:
-                self.userdata['users'][user_id_fisher]['warning'] = 1
-            save_data(self.userdata)
+            database.set_attr("users", f"{user_id_fisher}.warning", 1, increment=True)
 
             self.logger.info(misolog.format_log(ctx, f"fail (wait_time={wait_time:.3f}s)"))
 
     @commands.command()
-    @commands.is_owner()
-    async def fishyreset(self, ctx, user_id=None):
-        """Reset the fishy cooldown for given user"""
-        self.logger.info(misolog.format_log(ctx, f""))
-        if user_id is None:
-            user_id = str(ctx.message.author.id)
-
-        users_json = load_data()
-        users_json['users'][user_id]['fishy_timestamp'] = 0
-        save_data(users_json)
-
-    @commands.command(hidden=True)
-    @commands.is_owner()
-    async def fishyremove(self, ctx, amount):
-        """Remove {amount} fishy (for debug use only)"""
-        self.logger.info(misolog.format_log(ctx, f""))
-        user_id = str(ctx.message.author.id)
-        users_json = load_data()
-        users_json['users'][user_id]['fishy'] -= int(amount)
-        save_data(users_json)
-
-    @commands.command()
-    async def leaderboard(self, ctx, mode=None):
+    async def leaderboard(self, ctx, mode=None, page=None):
         """The fishy leaderboard"""
         self.logger.info(misolog.format_log(ctx, f""))
-        leaderboard = {}
-        users_json = load_data()
-        for user in users_json['users']:
-            if not mode == "global":
-                if ctx.message.guild.get_member(int(user)) is None:
-                    continue
+        if mode is not None and page is None:
             try:
-                userdata = users_json['users'][user]
-                if self.client.get_user(int(user)) is None:
+                page = int(mode)
+            except ValueError:
+                page = 1
+        if page is None:
+            page = 1
+        leaderboard = {}
+        for userid in database.get_attr("users", ".", {}):
+            if not mode == "global":
+                if ctx.message.guild.get_member(int(userid)) is None:
                     continue
-                leaderboard[self.client.get_user(int(user)).name] = userdata['fishy']
-            except KeyError:
+            userdata = database.get_attr("users", f"{userid}")
+            if userdata is not None:
+                this_user = self.client.get_user(int(userid))
+                if this_user is None:
+                    continue
+                amount = database.get_attr("users", f"{userid}.fishy")
+                if amount is not None:
+                    leaderboard[this_user.name] = amount
+            else:
                 continue
         leaderboard = sorted(leaderboard.items(), reverse=True, key=lambda x: x[1])
         message = discord.Embed()
-        message.title = f"Fishy leaderboard:"
+        message.title = f"Fishy leaderboard{'' if page is 1 else f' | page {page}'}:"
         message.description = ""
-        ranking = 1
-        for elem in leaderboard[:9]:
+        ranking = 1 + (int(page) - 1) * 9
+        for elem in leaderboard[((int(page) - 1) * 9):9]:
             if ranking < 4:
                 rank_icon = [':first_place:', ':second_place:', ':third_place:'][ranking-1]
                 message.description += f"\n{rank_icon} {elem[0]} - **{elem[1]}** fishy"
@@ -240,11 +202,9 @@ class Fishy:
         uncommon = 0
         rare = 0
         legendary = 0
-        presents = 0
-        users_json = load_data()
         message = discord.Embed()
         if arg == "global":
-            users_to_parse = users_json['users']
+            users_to_parse = database.get_attr("users", ".")
             message.title = "Global fishy stats"
         else:
             if ctx.message.mentions:
@@ -261,44 +221,19 @@ class Fishy:
                 username = userid
             message.title = f"{username} fishy stats"
         for user in users_to_parse:
-            try:
-                userdata = users_json['users'][user]
-            except KeyError:
+            userdata = database.get_attr("users", f"{user}")
+            if userdata is None:
                 await ctx.send("User not found in database")
                 self.logger.warning(misolog.format_log(ctx, f"UserError"))
                 return
-            try:
-                fishy_total += userdata['fishy']
-            except KeyError:
-                pass
-            try:
-                fishy_gifted_total += userdata['fishy_gifted']
-            except KeyError:
-                pass
-            try:
-                trash += userdata['fish_trash']
-            except KeyError:
-                pass
-            try:
-                common += userdata['fish_common']
-            except KeyError:
-                pass
-            try:
-                uncommon += userdata['fish_uncommon']
-            except KeyError:
-                pass
-            try:
-                rare += userdata['fish_rare']
-            except KeyError:
-                pass
-            try:
-                legendary += userdata['fish_legendary']
-            except KeyError:
-                pass
-            try:
-                presents += userdata['fish_gift']
-            except KeyError:
-                pass
+            fishy_total += userdata.get("fishy", 0)
+            fishy_gifted_total += userdata.get("fishy_gifted", 0)
+            trash += userdata.get("fish_trash", 0)
+            common += userdata.get("fish_common", 0)
+            uncommon += userdata.get("fish_uncommon", 0)
+            rare += userdata.get("fish_rare", 0)
+            legendary += userdata.get("fish_legendary", 0)
+
         total = trash+common+uncommon+rare+legendary
         message.description = f"Total fishies fished: **{fishy_total}**\n" \
                               f"Total fishies gifted: **{fishy_gifted_total}**\n\n" \
@@ -308,16 +243,14 @@ class Fishy:
                               f"Rare: **{rare}** - {(rare/total)*100:.1f}%\n" \
                               f"Legendary: **{legendary}** - {(legendary/total)*100:.1f}%\n\n" \
                               f"Total fish count: **{total}**\n" \
-                              f"Average fishy: **{fishy_total/total:.2f}**" \
-                              f"\n\nChristmas presents: {presents}"
+            f"Average fishy: **{fishy_total / total:.2f}**"
         await ctx.send(embed=message)
         self.logger.info(misolog.format_log(ctx, f""))
 
-    @commands.command()
+    @commands.command(disabled=True)
     async def presents(self, ctx, option):
-        data = load_data()
-        userid = str(ctx.message.author.id)
-        if 'fish_gift' not in data['users'][userid]:
+        amount = database.get_attr("users", f"{ctx.author.id}.fish_gift", 0)
+        if amount == 0:
             await ctx.send("You don't have any presents!")
             return
         if option == "open":
@@ -328,14 +261,11 @@ class Fishy:
             except Exception:
                 await ctx.send("Please mention someone to gift to")
                 return
-            data['users'][userid]['fish_gift'] -= 1
-            if 'fish_gift' in data['users'][str(recipent.id)]:
-                data['users'][str(recipent.id)]['fish_gift'] += 1
-            else:
-                data['users'][str(recipent.id)]['fish_gift'] = 1
+            database.set_attr("users", f"{ctx.author.id}.fish_gift", -1, increment=True)
+            database.set_attr("users", f"{recipent.id}.fish_gift", 1, increment=True)
 
         else:
-            await ctx.send(f"You have {data['users'][userid]['fish_gift']} unopened presents. "
+            await ctx.send(f"You have {amount} unopened presents. "
                            f"use `>presents open` to open one or `>presents gift` to give one to someone else")
 
 

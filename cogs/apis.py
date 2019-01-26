@@ -15,6 +15,7 @@ import tweepy
 from tweepy import OAuthHandler
 import os
 import html
+import main
 
 keys = os.environ
 OXFORD_APPID = keys['OXFORD_APPID']
@@ -42,16 +43,7 @@ papago_pairs = ['ko/en', 'ko/ja', 'ko/zh-cn', 'ko/zh-tw', 'ko/vi', 'ko/id', 'ko/
                 'vi/ko', 'id/ko', 'th/ko', 'de/ko', 'ru/ko', 'es/ko', 'it/ko', 'fr/ko', 'ja/en', 'zh-cn/ja',
                 'zh-tw/ja', 'zh-tw/zh-tw']
 
-
-def load_data():
-    with open('data/users.json', 'r') as filehandle:
-        data = json.load(filehandle)
-        return data
-
-
-def save_data(users_json):
-    with open('data/users.json', 'w') as filehandle:
-        json.dump(users_json, filehandle, indent=4)
+database = main.database
 
 
 class Apis:
@@ -63,6 +55,7 @@ class Apis:
     @commands.command()
     async def weather(self, ctx, *args):
         """Get weather of a location"""
+        await ctx.message.channel.trigger_typing()
         self.logger.info(misolog.format_log(ctx, f""))
         address = "+".join(args)
         url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={GOOGLE_API_KEY}"
@@ -108,11 +101,10 @@ class Apis:
     @commands.command(aliases=['hs'])
     async def horoscope(self, ctx, setting=None, *args):
         """Get your daily horoscope"""
+        await ctx.message.channel.trigger_typing()
         self.logger.info(misolog.format_log(ctx, f""))
         hs = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn',
               'aquarius', 'pisces']
-        user = str(ctx.message.author.id)
-        data = load_data()
         if setting == "set":
             if args[0].lower() in hs:
                 sign = args[0].lower()
@@ -120,11 +112,8 @@ class Apis:
                 await ctx.send(f"`{args[0]}` is not a valid sunsign! use `>horoscope help` for a list of sunsigns.")
                 return
             # set sign
-            if user not in data['users']:
-                data['users'][user] = {}
-            data['users'][user]['sunsign'] = sign
+            database.set_attr("users", f"{ctx.author.id}.sunsign", sign)
             await ctx.send(f"Sunsign saved as `{sign}`")
-            save_data(data)
             return
         elif setting == "help":
             sign_list = "Aries (Mar 21-Apr 19)\nTaurus (Apr 20-May 20)\nGemini (May 21-June 20)\n" \
@@ -145,9 +134,8 @@ class Apis:
                 return
         else:
             # get user's sign
-            try:
-                sign = data['users'][user]['sunsign']
-            except KeyError:
+            sign = database.get_attr("users", f"{ctx.author.id}.sunsign")
+            if sign is None:
                 await ctx.send("Please save your sunsign using `>horoscope set`\n"
                                "use `>horoscope help` if you don't know which one you are.")
                 return
@@ -168,6 +156,7 @@ class Apis:
     @commands.command()
     async def define(self, ctx, *args):
         """Search from oxford dictionary"""
+        await ctx.message.channel.trigger_typing()
         self.logger.info(misolog.format_log(ctx, f""))
         search_string = ' '.join(args)
         api_url = 'https://od-api.oxforddictionaries.com:443/api/v1'
@@ -225,6 +214,7 @@ class Apis:
     @commands.command()
     async def urban(self, ctx, *args):
         """Search from urban dictionary"""
+        await ctx.message.channel.trigger_typing()
         self.logger.info(misolog.format_log(ctx, f""))
         search_string = " ".join(args)
         url = "https://mashape-community-urban-dictionary.p.mashape.com/define?term="
@@ -255,6 +245,7 @@ class Apis:
     @commands.command(aliases=['tr', 'trans'])
     async def translate(self, ctx, *text):
         """Translator that uses naver papago when possible, using google translator otherwise"""
+        await ctx.message.channel.trigger_typing()
         if text[0] == "help":
             self.logger.info(misolog.format_log(ctx, f"help"))
             await ctx.send('Format: `>translate source/target "text"`\n'
@@ -304,6 +295,7 @@ class Apis:
     @commands.command()
     async def spotify(self, ctx, url=None, amount=15):
         """Analyze a spotify playlist from URI"""
+        await ctx.message.channel.trigger_typing()
         self.logger.info(misolog.format_log(ctx, f""))
         # noinspection PyBroadException
         try:
@@ -378,6 +370,7 @@ class Apis:
     @commands.command(name="convert")
     async def convert(self, ctx, *args):
         """Converts various units"""
+        await ctx.message.channel.trigger_typing()
         source_quantity = args[0]
         source_unit, source_name = self.get_ucum_code(args[1])
         target_unit, target_name = self.get_ucum_code(args[len(args)-1])
@@ -404,6 +397,7 @@ class Apis:
     @commands.command(name="currency")
     async def currency(self, ctx, *args):
         """Perform currency conversion"""
+        await ctx.message.channel.trigger_typing()
         try:
             source_q = float(args[0])
             source_curr = args[1]
@@ -430,6 +424,7 @@ class Apis:
     @commands.command(name="color", aliases=["colour"])
     async def color(self, ctx, *args):
         """Get a hex color, the color of discord user, or a random color."""
+        await ctx.message.channel.trigger_typing()
         if not args:
             await ctx.send("Missing color source. Valid color sources are:\n"
                            "`[@mention | @rolemention | hex | image_url | random]`\n"

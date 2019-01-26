@@ -32,4 +32,4 @@ def format_log(ctx, rest):
         end = ""
     else:
         end = f":: {rest}"
-    return f'{ctx.message.guild.name} | {ctx.message.author}: "{ctx.message.content}" {end}'
+    return f'{ctx.message.guild} | {ctx.message.author}: "{ctx.message.content}" {end}'

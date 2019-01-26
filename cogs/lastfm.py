@@ -9,21 +9,13 @@ import imgkit
 import time as t
 import os
 import asyncio
+import main
 
 keys = os.environ
 LASTFM_APPID = keys['LASTFM_APIKEY']
 LASTFM_TOKEN = keys['LASTFM_SECRET']
 
-
-def load_data():
-    with open('data/users.json', 'r') as filehandle:
-        data = json.load(filehandle)
-        return data
-
-
-def save_data(users_json):
-    with open('data/users.json', 'w') as filehandle:
-        json.dump(users_json, filehandle, indent=4)
+database = main.database
 
 
 class LastFM:
@@ -31,7 +23,6 @@ class LastFM:
     def __init__(self, client):
         self.client = client
         self.logger = misolog.create_logger(__name__)
-        self.users_json = load_data()
         with open("html/fm_chart_flex.html", "r", encoding="utf-8") as file:
             self.chart_html_flex = file.read().replace('\n', '')
 
@@ -39,7 +30,6 @@ class LastFM:
     async def fm(self, ctx, method=None, timeframe=None, *args):
         """Get user and song data from LastFM"""
         self.logger.info(misolog.format_log(ctx, f""))
-        self.users_json = load_data()
         if method == "set":
             if timeframe is None:
                 await ctx.send("Please give a username!")
@@ -50,16 +40,12 @@ class LastFM:
                 await ctx.send(f"ERROR: Invalid username `{timeframe}`")
                 return
 
-            if str(ctx.message.author.id) not in self.users_json['users']:
-                self.users_json['users'][str(ctx.message.author.id)] = {}
-            self.users_json['users'][str(ctx.message.author.id)]['lastfm_username'] = timeframe
-            save_data(self.users_json)
+            database.set_attr("users", f"{ctx.author.id}.lastfm_username", timeframe)
             await ctx.send(f"{ctx.message.author.mention} Username saved as {timeframe}", embed=content)
             return
         else:
-            try:
-                username = self.users_json['users'][str(ctx.message.author.id)]['lastfm_username']
-            except KeyError:
+            username = database.get_attr("users", f"{ctx.author.id}.lastfm_username")
+            if username is None:
                 await ctx.send("No username found in database, please use >fm set [username]")
                 return
 
@@ -335,9 +321,9 @@ class LastFM:
         self.logger.info(misolog.format_log(ctx, f""))
         timer_start = t.time()
         await ctx.message.channel.trigger_typing()
-        try:
-            username = self.users_json['users'][str(ctx.message.author.id)]['lastfm_username']
-        except KeyError:
+
+        username = database.get_attr("users", f"{ctx.author.id}.lastfm_username")
+        if username is None:
             await ctx.send("No username found in database, please use >fm set [username]")
             return
 
@@ -455,11 +441,9 @@ class LastFM:
             await ctx.send("ERROR: Parameter `artist` is missing\nusage: `>fmartist [tracks | albums] [artist name]`")
             return
         artist = " ".join(args)
-        users_json = load_data()
-        try:
-            user = users_json["users"][str(ctx.message.author.id)]['lastfm_username']
-        except KeyError:
-            await ctx.send("No username found in database, please use >fm set {username}")
+        user = database.get_attr("users", f"{ctx.author.id}.lastfm_username")
+        if user is None:
+            await ctx.send("No username found in database, please use >fm set [username]")
             return
 
         async with ctx.typing():

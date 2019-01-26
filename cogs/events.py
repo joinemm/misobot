@@ -1,30 +1,17 @@
 import discord
 from discord.ext import commands
-import json
 import traceback
 import sys
 from utils import logger as misolog
-import main as main
+import main
 
-
-def load_data():
-    with open('data/guilds.json', 'r') as filehandle:
-        data = json.load(filehandle)
-        # print('guilds.json loaded')
-        return data
-
-
-def save_data(guilds_json):
-    with open('data/guilds.json', 'w') as filehandle:
-        json.dump(guilds_json, filehandle, indent=4)
-        # print('guilds.json saved')
+database = main.database
 
 
 class Events:
 
     def __init__(self, client):
         self.client = client
-        self.guilds_json = load_data()
         self.delete_log_channel_id = 508668369269162005
         self.log_channel_id = 508668551658471424
         self.logger = misolog.create_logger(__name__)
@@ -36,39 +23,33 @@ class Events:
 
     async def on_member_join(self, member):
         """The event triggered when user joins a guild"""
-        self.guilds_json = load_data()
-        guild = member.guild
-        try:
-            channel_id = self.guilds_json['guilds'][str(guild.id)]['welcome_channel']
+        channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
+        if channel_id is not None:
             await self.client.get_channel(channel_id).send(f'Welcome {member.mention}')
-            self.logger.info(f"Welcomed {member} to {guild.name}")
-        except KeyError:
-            self.logger.warning(f"no welcome channel set for {guild.name}")
+            self.logger.info(f"Welcomed {member} to {member.guild.name}")
+        else:
+            self.logger.warning(f"no welcome channel set for {member.guild.name}")
 
-        try:
-            autorole = guild.get_role(self.guilds_json['guilds'][str(guild.id)]['autorole'])
+        autorole = database.get_attr("guilds", f"{member.guild.id}.autorole")
+        if autorole is not None:
             await member.add_roles(autorole)
-        except KeyError:
-            self.logger.warning(f"no autorole set for {guild.name}")
+        else:
+            self.logger.warning(f"no autorole set for {member.guild.name}")
 
     async def on_member_remove(self, member):
         """The event triggered when user leaves a guild"""
-        self.guilds_json = load_data()
-        guild = str(member.guild.id)
-        try:
-            channel_id = self.guilds_json['guilds'][guild]['welcome_channel']
+        channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
+        if channel_id is not None:
             await self.client.get_channel(channel_id).send(f'Goodbye {member.mention}...')
-            self.logger.info(f"Said goodbye to {member} from {guild}")
-        except KeyError:
-            self.logger.warning(f"no welcome channel set for {guild}")
+            self.logger.info(f"Said goodbye to {member} from {member.guild.name}")
+        else:
+            self.logger.warning(f"no goodbye channel set for {member.guild.name}")
 
     async def on_message_delete(self, message):
         """The event triggered when a cached message is deleted"""
-        ignored_users = [self.client.user.id]
-        if message.guild.id in [451832633538772992]:
-            if not int(
-                    message.author.id) in ignored_users and not message.author.bot and not message.content.startswith(
-                    ">"):
+        channel_id = database.get_attr("guilds", f"{message.guild.id}.log_channel")
+        if channel_id is not None:
+            if not message.author.bot and not message.content.startswith(">"):
                 self.logger.info(f'{message.author} Deleted message: "{message.content}"')
                 embed = discord.Embed(color=discord.Color.red())
                 embed.set_author(name=f"{message.author} in {message.channel.guild.name}",
@@ -94,7 +75,7 @@ class Events:
 
         # Anything in ignored will return and prevent anything happening.
         if isinstance(error, commands.CommandNotFound):
-            custom_command = ctx.message.content[1:]
+            custom_command = ctx.message.content.strip(">").split(" ")[0]
             response = self.custom_command_check(custom_command, ctx)
             if response is not None:
                 self.logger.info(misolog.format_log(ctx, f"Custom command"))
@@ -110,7 +91,7 @@ class Events:
             self.logger.error(misolog.format_log(ctx, str(error)))
             try:
                 return await ctx.author.send(f'{ctx.command} can not be used in Private Messages.')
-            except:
+            except Exception:
                 pass
             return
         elif isinstance(error, commands.NotOwner):
@@ -123,12 +104,8 @@ class Events:
             await ctx.send(f"```{error}```")
 
     def custom_command_check(self, name, ctx):
-        try:
-            guild_id = str(ctx.message.guild.id)
-            response = self.guilds_json['guilds'][guild_id]['custom_commands'][name]
-            return response
-        except KeyError:
-            return None
+        response = database.get_attr("guilds", f"{ctx.message.guild.id}.custom_commands.{name}")
+        return response
 
     @commands.command()
     async def command(self, ctx, mode=None, name=None, *args):
@@ -136,19 +113,16 @@ class Events:
         commands_that_exist = []
         for command in self.client.commands:
             commands_that_exist.append(command.name)
-        try:
-            for command_name in self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands']:
-                commands_that_exist.append(command_name)
-        except KeyError:
-            pass
+            commands_that_exist += command.aliases
+
+        for command_name in database.get_attr("guilds", f"{ctx.message.guild.id}.custom_commands", []):
+            commands_that_exist.append(command_name)
 
         if mode == "list":
             found = []
-            try:
-                for x in self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands']:
-                    found.append(f">{x}")
-            except KeyError:
-                pass
+            for x in database.get_attr("guilds", f"{ctx.message.guild.id}.custom_commands", []):
+                found.append(f">{x}")
+
             content = discord.Embed(title=f"{ctx.guild.name} commands")
             if found:
                 content.description = "\n".join(found)
@@ -177,22 +151,15 @@ class Events:
                 if len(response) < 1:
                     await ctx.send("ERROR: Parameter `response` not found")
                     return
-                if not str(ctx.message.guild.id) in self.guilds_json['guilds']:
-                    self.guilds_json['guilds'][str(ctx.message.guild.id)] = {'custom_commands': {name: response}}
-                else:
-                    if 'custom_commands' not in self.guilds_json['guilds'][str(ctx.message.guild.id)]:
-                        self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'] = {}
-                    self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name] = response
 
+                database.set_attr("guilds", f"{ctx.message.guild.id}.custom_commands.{name}", response)
                 await ctx.send(f"Custom command `>{name}` succesfully added")
-                save_data(self.guilds_json)
 
             elif mode == "remove":
-                try:
-                    del self.guilds_json['guilds'][str(ctx.message.guild.id)]['custom_commands'][name]
+                result = database.del_attr("guilds", f"{ctx.message.guild.id}.custom_commands.{name}")
+                if result is True:
                     await ctx.send(f"Custom command `>{name}` succesfully deleted")
-                    save_data(self.guilds_json)
-                except KeyError:
+                else:
                     await ctx.send(f"ERROR: Custom command `>{name}` doesn't exist!")
 
             elif mode == "search":

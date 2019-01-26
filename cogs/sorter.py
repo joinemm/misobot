@@ -1,21 +1,10 @@
 import discord
 from discord.ext import commands
 import math
-import json
+import main
+import asyncio
 
-
-def load_data():
-    with open('data/data.json', 'r') as filehandle:
-        data = json.load(filehandle)
-        return data
-
-
-def save_data():
-    with open('data/data.json', 'w') as filehandle:
-        json.dump(data_json, filehandle, indent=4)
-
-
-data_json = load_data()
+database = main.database
 
 
 class SorterInstance:
@@ -194,15 +183,22 @@ class Sorter:
     @commands.command()
     async def sorter(self, ctx, *args):
         """Bias sorting tool"""
+        if not args:
+            helpmsg = "Usage:\n" \
+                      "`>sorter [name, name, etc..]`\n" \
+                      "`>sorter preset [saved preset]`\n" \
+                      "`>sorter save [name, name, etc..] > [name to save as]`\n" \
+                      "`>sorter remove [preset name]`"
+            await ctx.send(helpmsg)
+            return
         if args[0] in ["preset", "presets"]:
             try:
                 # use a preset
                 # noinspection PyStatementEffect
                 args[1]
                 preset = " ".join(args[1:])
-                try:
-                    sort_list = data_json['sorter_presets'][preset]
-                except KeyError:
+                sort_list = database.get_attr("data", f"sorter_presets.{preset}")
+                if sort_list is None:
                     await ctx.send(f"ERROR: No preset named `{preset}` found")
                     return
 
@@ -210,7 +206,7 @@ class Sorter:
                 # list presets
                 content = discord.Embed(title="Sorter Presets:")
                 content.description = ""
-                for x in data_json['sorter_presets']:
+                for x in database.get_attr("data", "sorter_presets"):
                     content.description += f"\n{x}"
                 if content.description == "":
                     content.description = "No presets saved!"
@@ -219,22 +215,20 @@ class Sorter:
 
         elif args[0] == "save":
             # save preset
-            text, preset = " ".join(args[1:]).split(" as ")
+            text, preset = " ".join(args[1:]).split(">")
             sort_list = [x.strip() for x in text.split(",")]
-            data_json['sorter_presets'][preset.strip()] = sort_list
+            database.set_attr("data", f"sorter_presets.{preset.strip()}", sort_list)
             await ctx.send(f"Preset saved as `{preset}`")
-            save_data()
             return
 
         elif args[0] == "remove":
             # remove preset
             preset = " ".join(args[1:])
-            try:
-                del data_json['sorter_presets'][preset]
+            response = database.del_attr("data", f"sorter_presets", preset)
+            if response is True:
                 await ctx.send(f"deleted preset `{preset}`")
-            except KeyError:
+            else:
                 await ctx.send(f'ERROR: No preset named "{preset}" found')
-            save_data()
             return
 
         else:
@@ -254,31 +248,36 @@ class Sorter:
 
     async def run_picker(self, msg, _user):
         while self.instances[str(msg.id)].finishFlag == 0:
-            reaction, user = await self.client.wait_for("reaction_add", check=lambda _reaction, _user:
-                                                        _reaction.emoji in ["⬅", "👔", "➡"])
-            if user == _user and reaction.message.id == msg.id:
-                if reaction.emoji == "⬅":
-                    self.instances[str(msg.id)].sortList(-1)
-                    await msg.remove_reaction("⬅", user)
+            try:
+                reaction, user = await self.client.wait_for("reaction_add", check=lambda _reaction, _user:
+                _reaction.emoji in ["⬅", "👔", "➡"], timeout=3600.0)
+            except asyncio.TimeoutError:
+                del self.instances[str(msg.id)]
+                return
+            else:
+                if user == _user and reaction.message.id == msg.id:
+                    if reaction.emoji == "⬅":
+                        self.instances[str(msg.id)].sortList(-1)
+                        await msg.remove_reaction("⬅", user)
 
-                elif reaction.emoji == "➡":
-                    self.instances[str(msg.id)].sortList(1)
-                    await msg.remove_reaction("➡", user)
+                    elif reaction.emoji == "➡":
+                        self.instances[str(msg.id)].sortList(1)
+                        await msg.remove_reaction("➡", user)
 
-                elif reaction.emoji == "👔":
-                    self.instances[str(msg.id)].sortList(0)
-                    await msg.remove_reaction("👔", user)
+                    elif reaction.emoji == "👔":
+                        self.instances[str(msg.id)].sortList(0)
+                        await msg.remove_reaction("👔", user)
 
-                else:
-                    await msg.edit(content="this is bug idk hwat goin on")
+                    else:
+                        await msg.edit(content="this is bug idk hwat goin on")
 
-                if self.instances[str(msg.id)].finishFlag == 1:
-                    content = self.instances[str(msg.id)].showResult()
-                    await msg.clear_reactions()
-                else:
-                    content = self.instances[str(msg.id)].showImage()
+                    if self.instances[str(msg.id)].finishFlag == 1:
+                        content = self.instances[str(msg.id)].showResult()
+                        await msg.clear_reactions()
+                    else:
+                        content = self.instances[str(msg.id)].showImage()
 
-                await msg.edit(embed=content)
+                    await msg.edit(embed=content)
 
         del self.instances[str(msg.id)]
 

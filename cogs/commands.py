@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import json
 import random as rd
 import re
 import discord
@@ -13,21 +12,9 @@ from utils import logger as misolog
 from bs4 import BeautifulSoup
 import youtube_dl
 import os
-import datetime
+import main
 
-
-def load_data():
-    with open('data/data.json', 'r') as filehandle:
-        data = json.load(filehandle)
-        return data
-
-
-def save_data():
-    with open('data/data.json', 'w') as filehandle:
-        json.dump(data_json, filehandle, indent=4)
-
-
-data_json = load_data()
+database = main.database
 
 
 class Commands:
@@ -35,7 +22,7 @@ class Commands:
     def __init__(self, client):
         self.client = client
         self.start_time = time.time()
-        self.artists = data_json['artists']
+        self.artists = database.get_attr("data", "artists")
         self.logger = misolog.create_logger(__name__)
 
     @commands.command()
@@ -59,11 +46,12 @@ class Commands:
         appinfo = await self.client.application_info()
         info_embed = discord.Embed(title='Hello',
                                    description=f'I am Miso Bot, created by {appinfo.owner.mention}.\n'
-                                               'See the documentation website for a list of commands.'
+                                   'See the documentation website for a list of commands, '
+                                   'or use the `>help` command.'
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 1.0.0')
+        info_embed.set_footer(text='version 1.2.0')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
@@ -74,12 +62,8 @@ class Commands:
     @commands.command(name='ping')
     async def ping(self, ctx):
         """Get the bot's ping"""
-        #time_beg = datetime.datetime.utcnow()
         pong_msg = await ctx.send(":ping_pong:")
-        #time_sent = datetime.datetime.utcnow()
         sr_lat = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
-        #re_lat = (time_beg-ctx.message.created_at).total_seconds() * 1000
-        #se_lat = (time_sent-time_beg).total_seconds() * 1000
         await pong_msg.edit(content=f"```latency = {sr_lat}ms\n"
                                     f"heartbeat = {self.client.latency*1000:.1f}ms```")
         self.logger.info(misolog.format_log(ctx, f""))
@@ -137,7 +121,7 @@ class Commands:
     async def navyseal(self, ctx):
         """Navy seal copypasta"""
         self.logger.info(misolog.format_log(ctx, f""))
-        copypasta = data_json['strings']['navyseal_copypasta']
+        copypasta = database.get_attr("data", "strings.navyseal_copypasta")
         await ctx.send(copypasta)
 
     @commands.command(name='stan', aliases=['Stan'])
@@ -155,8 +139,7 @@ class Commands:
                 for url in urls_to_scrape:
                     self.artists += scrape_kprofiles(url)
 
-                data_json['artists'] = self.artists
-                save_data()
+                database.set_attr("data", "artists", self.artists)
 
                 await ctx.send(f"Artist list succesfully updated, {len(self.artists) - amount} new entries, "
                                f"{len(self.artists)} total entries")
@@ -166,16 +149,16 @@ class Commands:
 
             elif args[0] == 'clear':
                 self.artists = []
-                data_json['artists'] = self.artists
-                save_data()
+                database.set_attr("data", "artists", self.artists)
+                await ctx.send("Artist list cleared")
                 self.logger.info(misolog.format_log(ctx, f"artist list cleared"))
                 return
-        try:
+
+        if self.artists:
             artist = str(rd.choice(self.artists))
             await ctx.send('stan ' + artist)
             self.logger.info(misolog.format_log(ctx, f"artist={artist}"))
-        except IndexError as e:
-            print(f"{ctx.message.author} >stan: " + str(e))
+        else:
             await ctx.send("Error: artist list is empty, please use >stan update")
             self.logger.warning(misolog.format_log(ctx, f"artist list empty"))
 
@@ -261,7 +244,10 @@ class Commands:
     async def eightball(self, ctx, *args):
         """Ask a yes/no question"""
         if args:
-            choices = ["Yes, definitely.", "Yes.", "I think so, yes.", "Maybe.", "No.", "Most likely not.", "Definitely not."]
+            choices = ["Yes, definitely.", "Yes.", "Most likely yes.", "I think so, yes.",
+                       "Absolutely, no question about it", "Maybe.", "Perhaps.", "It's possible, but not likely."
+                                                                                 "I don't think so.", "No.",
+                       "Most likely not.", "Definitely not.", "No way."]
             answer = rd.choice(choices)
             await ctx.send(f"**{answer}**")
             self.logger.info(misolog.format_log(ctx, f"{answer}"))
@@ -355,7 +341,6 @@ def scrape_kprofiles(url):
             if "Profile" in item:
                 item = item.replace("Profile", "")
             filtered_results.append(item.strip())
-    print(f"discarded {discarded_results} results in {url}")
     return filtered_results
 
 

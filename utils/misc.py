@@ -1,3 +1,4 @@
+import discord
 import requests
 from colorthief import ColorThief
 import math
@@ -5,18 +6,50 @@ import math
 blocks = [" ", ".", ":", "|"]
 
 
+def role_from_mention(guild, text, default=None):
+    text = text.strip("<>@&")
+    try:
+        role = guild.get_role(int(text))
+        return role
+    except ValueError:
+        return default
+
+
+def user_from_mention(getfrom, text, default=None):
+    text = text.strip("<>@")
+    try:
+        if isinstance(getfrom, discord.Client):
+            user = getfrom.get_user(int(text))
+        elif isinstance(getfrom, discord.Guild):
+            user = getfrom.get_member(int(text))
+        else:
+            return default
+        return user
+    except ValueError:
+        return default
+
+
+def channel_from_mention(guild, text, default=None):
+    text = text.strip("<>#")
+    try:
+        channel = guild.get_channel(int(text))
+        return channel
+    except ValueError:
+        return default
+
+
 def get_color(url):
     try:
-        r = requests.get(url, stream=True)
+        r = requests.get(url)
         if r.status_code == 200:
-            with open('album_art.png', 'wb') as f:
+            with open('downloads/album_art.png', 'wb') as f:
                 for chunk in r:
                     f.write(chunk)
         else:
             return "ffffff"
 
-        color_thief = ColorThief('album_art.png')
-        dominant_color = color_thief.get_color(quality=100)
+        color_thief = ColorThief('downloads/album_art.png')
+        dominant_color = color_thief.get_color(quality=1)
 
         return to_hex(dominant_color)
     except Exception as e:
