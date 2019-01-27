@@ -33,7 +33,7 @@ class Fishy:
         timestamp = ctx.message.created_at.timestamp()
         cooldown = 3600
 
-        time_since_fishy = timestamp - database.get_attr("users", f"{user_id_fisher}.fishy_timestamp")
+        time_since_fishy = timestamp - database.get_attr("users", f"{user_id_fisher}.fishy_timestamp", 0)
 
         if time_since_fishy > cooldown or time_since_fishy is None:
             trash = random.randint(1, 10) == 1
@@ -48,9 +48,10 @@ class Fishy:
                         await ctx.send(f"Caught a **christmas present** :gift: for {receiver_name}!")
                 else:
 
-                    trash_icons = [':moyai:', ':stopwatch:', ':wrench:', ':hammer:', ':pick:', ':nut_and_bolt:', ':gear:',
-                                   ':toilet:', ':alembic:', ':bathtub:', ':paperclip:', ':scissors:', ':boot:',
-                                   ':high_heel:', ':spoon:', ':saxophone:', ':trumpet:', ':scooter:', ':anchor:'
+                    trash_icons = [':moyai:', ':stopwatch:', ':wrench:', ':hammer:', ':pick:', ':nut_and_bolt:',
+                                   ':gear:', ':toilet:', ':alembic:', ':bathtub:', ':paperclip:', ':scissors:',
+                                   ':boot:', ':high_heel:', ':spoon:', ':saxophone:', ':trumpet:', ':scooter:',
+                                   ':anchor:'
                                    ]
                     rarity = "trash"
                     amount = 0
@@ -66,17 +67,21 @@ class Fishy:
                     rarity = "legendary"
                     amount = random.randint(400, 750)
                     if self_fishy:
-                        await ctx.send(f":star2: **Caught a *legendary* fish! Congratulations!! :star2: ({amount} fishies)** :dolphin:")
+                        await ctx.send(f":star2: **Caught a *legendary* fish! Congratulations!! :star2: ({amount}"
+                                       f" fishies)** :dolphin:")
                     else:
-                        await ctx.send(f":star2: **Caught a *legendary* fish for {receiver_name}!! :star2: ({amount} fishies)** :dolphin:")
+                        await ctx.send(f":star2: **Caught a *legendary* fish for {receiver_name}!! :star2: ({amount} "
+                                       f"fishies)** :dolphin:")
 
                 elif rand < 5:
                     rarity = "rare"
                     amount = random.randint(100, 399)
                     if self_fishy:
-                        await ctx.send(f":star: **Caught a super rare fish! :star: ({amount} fishies)** :tropical_fish:")
+                        await ctx.send(f":star: **Caught a super rare fish! :star: ({amount} "
+                                       f"fishies)** :tropical_fish:")
                     else:
-                        await ctx.send(f":star: **Caught a super rare fish for {receiver_name}! :star: ({amount} fishies)** :tropical_fish:")
+                        await ctx.send(f":star: **Caught a super rare fish for {receiver_name}! :star: ({amount} "
+                                       f"fishies)** :tropical_fish:")
 
                 elif rand < 20:
                     rarity = "uncommon"
@@ -84,7 +89,8 @@ class Fishy:
                     if self_fishy:
                         await ctx.send(f"**Caught an uncommon fish!** (**{amount}** fishies) :blowfish:")
                     else:
-                        await ctx.send(f"**Caught an uncommon fish for {receiver_name}!** (**{amount}** fishies) :blowfish:")
+                        await ctx.send(f"**Caught an uncommon fish for {receiver_name}!** (**{amount}** "
+                                       f"fishies) :blowfish:")
 
                 else:
                     rarity = "common"
@@ -93,7 +99,8 @@ class Fishy:
                         if self_fishy:
                             await ctx.send(f"Caught only **{amount}** fishy! :fishing_pole_and_fish:")
                         else:
-                            await ctx.send(f"Caught only **{amount}** fishy for {receiver_name}! :fishing_pole_and_fish:")
+                            await ctx.send(f"Caught only **{amount}** fishy for {receiver_name}! "
+                                           f":fishing_pole_and_fish:")
 
                     else:
                         if self_fishy:
@@ -163,6 +170,7 @@ class Fishy:
         if page is None:
             page = 1
         leaderboard = {}
+        perpage = 15
         for userid in database.get_attr("users", ".", {}):
             if not mode == "global":
                 if ctx.message.guild.get_member(int(userid)) is None:
@@ -181,19 +189,20 @@ class Fishy:
         message = discord.Embed()
         message.title = f"Fishy leaderboard{'' if page is 1 else f' | page {page}'}:"
         message.description = ""
-        ranking = 1 + (int(page) - 1) * 9
-        for elem in leaderboard[((int(page) - 1) * 9):9]:
+        toskip = (int(page) - 1) * perpage
+        ranking = 1 + toskip
+        for elem in leaderboard[toskip:toskip+perpage]:
             if ranking < 4:
                 rank_icon = [':first_place:', ':second_place:', ':third_place:'][ranking-1]
                 message.description += f"\n{rank_icon} {elem[0]} - **{elem[1]}** fishy"
             else:
                 message.description += f"\n**{ranking}.** {elem[0]} - **{elem[1]}** fishy"
             ranking += 1
-        message.set_footer(text=f"\n+ {len(leaderboard[9:])} more users")
+        message.set_footer(text=f"\n+ {len(leaderboard[toskip+perpage:])} more users")
         await ctx.send(embed=message)
 
     @commands.command()
-    async def fishystats(self, ctx, arg=None):
+    async def fishystats(self, ctx, mention=None):
         """Get total fishing stats"""
         fishy_total = 0
         fishy_gifted_total = 0
@@ -203,23 +212,16 @@ class Fishy:
         rare = 0
         legendary = 0
         message = discord.Embed()
-        if arg == "global":
+        if mention == "global":
             users_to_parse = database.get_attr("users", ".")
             message.title = "Global fishy stats"
         else:
-            if ctx.message.mentions:
-                userid = str(ctx.message.mentions[0].id)
-            elif arg is not None:
-                userid = arg
+            if mention is not None:
+                member = misomisc.user_from_mention(self.client, mention, ctx.author)
             else:
-                userid = str(ctx.message.author.id)
-            users_to_parse = [userid]
-            member = ctx.message.guild.get_member(int(userid))
-            if member is not None:
-                username = member.name
-            else:
-                username = userid
-            message.title = f"{username} fishy stats"
+                member = ctx.author
+            users_to_parse = [member.id]
+            message.title = f"{member.name} fishy stats"
         for user in users_to_parse:
             userdata = database.get_attr("users", f"{user}")
             if userdata is None:
@@ -247,7 +249,7 @@ class Fishy:
         await ctx.send(embed=message)
         self.logger.info(misolog.format_log(ctx, f""))
 
-    @commands.command(disabled=True)
+    @commands.command(disabled=True, hidden=True)
     async def presents(self, ctx, option):
         amount = database.get_attr("users", f"{ctx.author.id}.fish_gift", 0)
         if amount == 0:
@@ -258,7 +260,7 @@ class Fishy:
         elif option == "gift":
             try:
                 recipent = ctx.message.mentions[0]
-            except Exception:
+            except IndexError:
                 await ctx.send("Please mention someone to gift to")
                 return
             database.set_attr("users", f"{ctx.author.id}.fish_gift", -1, increment=True)

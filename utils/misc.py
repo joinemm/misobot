@@ -7,7 +7,7 @@ blocks = [" ", ".", ":", "|"]
 
 
 def role_from_mention(guild, text, default=None):
-    text = text.strip("<>@&")
+    text = text.strip("<>@&#!")
     try:
         role = guild.get_role(int(text))
         return role
@@ -16,7 +16,7 @@ def role_from_mention(guild, text, default=None):
 
 
 def user_from_mention(getfrom, text, default=None):
-    text = text.strip("<>@")
+    text = text.strip("<>@!#")
     try:
         if isinstance(getfrom, discord.Client):
             user = getfrom.get_user(int(text))
@@ -24,15 +24,19 @@ def user_from_mention(getfrom, text, default=None):
             user = getfrom.get_member(int(text))
         else:
             return default
+        if user is None:
+            return default
         return user
     except ValueError:
         return default
 
 
 def channel_from_mention(guild, text, default=None):
-    text = text.strip("<>#")
+    text = text.strip("<>#!@")
     try:
         channel = guild.get_channel(int(text))
+        if channel is None:
+            return default
         return channel
     except ValueError:
         return default

@@ -54,31 +54,16 @@ class Levels:
                         total_messages += 1
 
                 await msg.edit(content=f"indexing... ({num}/{len(channels)}) :: total {total_messages} messages from "
-                f"{len(guild_index)} users")
-            except Exception:
+                                       f"{len(guild_index)} users")
+            except Exception as e:
+                self.logger.error(misolog.format_log(ctx, e))
                 await ctx.send(f"Unexpected error indexing channel <#{channel.id}>")
         time_taken = t.time() - timer
         database.set_attr("index", f"{ctx.guild.id}", guild_index)
         await msg.edit(content=f"indexing... ({num}/{len(channels)}) DONE ({time_taken:.1f}s) :: "
-        f"total {total_messages} messages from {len(guild_index)} users")
+                               f"total {total_messages} messages from {len(guild_index)} users")
 
-    @commands.command()
-    async def level(self, ctx, userid=None):
-        """Get your level, or level of userid"""
-        self.logger.info(misolog.format_log(ctx, f""))
-        if userid is None:
-            user = database.get_attr("index", f"{ctx.guild.id}.{ctx.author.id}")
-        else:
-            user = database.get_attr("index", f"{ctx.guild.id}.{userid}")
-        if user is None:
-            await ctx.send("User not found")
-            return
-
-        level = misomisc.get_level(user['xp'])
-        await ctx.send(f"{user['name']} - level {level} | {user['xp']-misomisc.get_xp(level)}"
-                       f"/{misomisc.xp_to_next_level(level)} xp to next level (total xp: {user['xp']})")
-
-    @commands.command()
+    @commands.command(alias=["ranks", "levels"])
     async def toplevels(self, ctx, scope=None):
         """Get top levels for this server or globally"""
         self.logger.info(misolog.format_log(ctx, f""))
@@ -117,20 +102,36 @@ class Levels:
                 break
         await ctx.send(embed=content)
 
-    @commands.command()
-    async def activity(self, ctx):
+    @commands.command(aliases=["level", "rank"])
+    async def activity(self, ctx, mention=None):
         self.logger.info(misolog.format_log(ctx, f""))
-        post_data = database.get_attr("index", f"{ctx.guild.id}.{ctx.author.id}.activity")
+        if mention is not None:
+            user = misomisc.user_from_mention(ctx.guild, mention, ctx.author)
+            if user is None:
+                user = ctx.author
+        else:
+            user = ctx.author
+
+        post_data = database.get_attr("index", f"{ctx.guild.id}.{user.id}.activity")
         if post_data is None:
             await ctx.send("You have no activity data yet!")
             return
 
         chart_rows, num_rows = misomisc.generate_graph(post_data, 5, 15)
-        chart_rows[0] = chart_rows[0] + (f" {max(post_data)} xp" if max(post_data) > 15 else f" 15 xp")
-        chart_rows[-1] = chart_rows[-1] + " 0 xp"
-        chart = "\n".join(chart_rows) + "\n" + "\n".join(num_rows)
-        message = f"{chart}"
-        await ctx.send(f"`Hourly xp gain chart for {ctx.author.name}`\n```{message}```")
+        # chart_rows[0] = chart_rows[0] + (f" {max(post_data)} xp" if max(post_data) > 15 else f" 15 xp")
+        # chart_rows[-1] = chart_rows[-1] + " 0 xp"
+        chart = " \n".join(chart_rows) + "\n" + "\n".join(num_rows)
+        graph = f"{chart}"
+        content = discord.Embed()
+        content.set_author(name=f"{user.name}'s hourly xp gain graph",
+                           icon_url=user.avatar_url)
+
+        userdata = database.get_attr("index", f"{ctx.guild.id}.{user.id}")
+        level = misomisc.get_level(userdata['xp'])
+
+        content.description = f"level **{level}** | **{userdata['xp'] - misomisc.get_xp(level)}**/**" \
+            f"{misomisc.xp_to_next_level(level)}** xp to next level (total xp: **{userdata['xp']}**)```{graph}```"
+        await ctx.send(embed=content)
 
     async def on_message(self, message):
         if message.guild is None:
