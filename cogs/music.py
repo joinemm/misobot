@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-
+from utils import logger as misolog
 import asyncio
 import itertools
 import sys
@@ -8,6 +8,7 @@ import traceback
 from async_timeout import timeout
 from functools import partial
 from youtube_dl import YoutubeDL
+import os
 
 ytdlopts = {
     'format': 'bestaudio/best',
@@ -47,6 +48,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         self.title = data.get('title')
         self.web_url = data.get('webpage_url')
+        self.filename = ytdl.prepare_filename(data)
 
         # YTDL info dicts (data) have other useful information you might want
         # https://github.com/rg3/youtube-dl/blob/master/README.md
@@ -68,7 +70,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
             # take first item from a playlist
             data = data['entries'][0]
 
-        await ctx.send(f'```ini\n[Added {data["title"]} to the Queue.]\n```')
+        title = data["title"]
+        duration = data["duration"]
+        m, s = divmod(duration, 60)
+        await ctx.send(f'Added `{title}`(**{m}:{s}**) to the Queue')
 
         if download:
             source = ytdl.prepare_filename(data)
@@ -142,19 +147,21 @@ class MusicPlayer:
             self.current = source
 
             self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
-            self.np = await self._channel.send(f'**Now Playing:** `{source.title}` requested by '
-                                               f'`{source.requester}`')
+            # self.np = await self._channel.send(f'**Now Playing:** `{source.title}` requested by `{source.requester}`')
             await self.next.wait()
 
             # Make sure the FFmpeg process is cleaned up.
             source.cleanup()
+            # remove file, but check that it's nothing important
+            if source.filename.startswith("downloads"):
+                os.remove(source.filename)
             self.current = None
 
-            try:
-                # We are no longer playing this song...
-                await self.np.delete()
-            except discord.HTTPException:
-                pass
+            #try:
+            #    # We are no longer playing this song...
+            #    await self.np.delete()
+            #except discord.HTTPException:
+            #    pass
 
     def destroy(self, guild):
         """Disconnect and cleanup the player."""
@@ -164,11 +171,12 @@ class MusicPlayer:
 class Music:
     """Music related commands."""
 
-    __slots__ = ('bot', 'players')
+    __slots__ = ('client', 'players', 'logger')
 
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, client):
+        self.client = client
         self.players = {}
+        self.logger = misolog.create_logger(__name__)
 
     async def cleanup(self, guild):
         try:
@@ -213,19 +221,15 @@ class Music:
 
     @commands.command(name='connect', aliases=['join'])
     async def connect_(self, ctx, *, channel: discord.VoiceChannel=None):
-        """Connect to voice.
-        Parameters
-        ------------
-        channel: discord.VoiceChannel [Optional]
-            The channel to connect to. If a channel is not specified, an attempt to join the voice channel you are in
-            will be made.
-        This command also handles moving the bot to different channels.
-        """
+        """Connect to a voice channel."""
+        self.logger.info(misolog.format_log(ctx, f""))
+
         if not channel:
             try:
                 channel = ctx.author.voice.channel
             except AttributeError:
-                raise InvalidVoiceChannel('No channel to join. Please either specify a valid channel or join one.')
+                await ctx.send('No channel to join. Please either specify a valid channel or join one.')
+                return None
 
         vc = ctx.voice_client
 
@@ -245,33 +249,50 @@ class Music:
         await ctx.send(f'Connected to: **{channel}**')
 
     @commands.command(name='play')
-    async def play_(self, ctx, *, search: str):
-        """Request a song and add it to the queue.
-        This command attempts to join a valid voice channel if the bot is not already in one.
-        Uses YTDL to automatically search and retrieve a song.
-        Parameters
-        ------------
-        search: str [Required]
-            The song to search and retrieve using YTDL. This could be a simple search, an ID or URL.
-        """
+    async def play_(self, ctx, *, song_name: str):
+        """Request a song and add it to the queue."""
+        self.logger.info(misolog.format_log(ctx, f""))
+
         await ctx.trigger_typing()
 
         vc = ctx.voice_client
 
         if not vc:
-            await ctx.invoke(self.connect_)
+            try:
+                channel = ctx.author.voice.channel
+            except AttributeError:
+                await ctx.send('No channel to join. Please either specify a valid channel or join one.')
+                return
+
+            vc = ctx.voice_client
+
+            if vc:
+                if vc.channel.id == channel.id:
+                    return
+                try:
+                    await vc.move_to(channel)
+                except asyncio.TimeoutError:
+                    raise VoiceConnectionError(f'Moving to channel: <{channel}> timed out.')
+            else:
+                try:
+                    await channel.connect()
+                except asyncio.TimeoutError:
+                    raise VoiceConnectionError(f'Connecting to channel: <{channel}> timed out.')
+
+            await ctx.send(f'Connected to: **{channel}**')
 
         player = self.get_player(ctx)
 
         # If download is False, source will be a dict which will be used later to regather the stream.
         # If download is True, source will be a discord.FFmpegPCMAudio with a VolumeTransformer.
-        source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop, download=True)
+        source = await YTDLSource.create_source(ctx, song_name, loop=self.client.loop, download=True)
 
         await player.queue.put(source)
 
     @commands.command(name='pause')
     async def pause_(self, ctx):
         """Pause the currently playing song."""
+        self.logger.info(misolog.format_log(ctx, f""))
         vc = ctx.voice_client
 
         if not vc or not vc.is_playing():
@@ -285,6 +306,7 @@ class Music:
     @commands.command(name='resume')
     async def resume_(self, ctx):
         """Resume the currently paused song."""
+        self.logger.info(misolog.format_log(ctx, f""))
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -298,6 +320,7 @@ class Music:
     @commands.command(name='skip')
     async def skip_(self, ctx):
         """Skip the song."""
+        self.logger.info(misolog.format_log(ctx, f""))
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -311,9 +334,10 @@ class Music:
         vc.stop()
         await ctx.send(f'**`{ctx.author}`**: Skipped the song!')
 
-    @commands.command(name='queue', aliases=['q', 'playlist'])
+    @commands.command(name='queue')
     async def queue_info(self, ctx):
         """Retrieve a basic queue of upcoming songs."""
+        self.logger.info(misolog.format_log(ctx, f""))
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -331,9 +355,10 @@ class Music:
 
         await ctx.send(embed=embed)
 
-    @commands.command(name='now_playing', aliases=['np', 'current', 'currentsong', 'playing'])
+    @commands.command(name='nowplaying', aliases=['np'])
     async def now_playing_(self, ctx):
-        """Display information about the currently playing song."""
+        """Display the currently playing song."""
+        self.logger.info(misolog.format_log(ctx, f""))
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -354,14 +379,12 @@ class Music:
 
     @commands.command(name='volume', aliases=['vol'])
     async def change_volume(self, ctx, *, vol=None):
-        """Change the player volume.
-        Parameters
-        ------------
-        volume: float or int [Required]
-            The volume to set the player to in percentage. This must be between 1 and 100.
-        """
+        """Change the player volume"""
+        self.logger.info(misolog.format_log(ctx, f""))
         if vol is None:
             return await ctx.send('Please enter a value between 1 and 100.')
+        else:
+            vol = float(vol)
 
         vc = ctx.voice_client
 
@@ -379,12 +402,11 @@ class Music:
         player.volume = vol / 100
         await ctx.send(f'**`{ctx.author}`**: Set the volume to **{vol}%**')
 
+    @commands.has_permissions(administrator=True)
     @commands.command(name='stop')
     async def stop_(self, ctx):
-        """Stop the currently playing song and destroy the player.
-        !Warning!
-            This will destroy the player assigned to your guild, also deleting any queued songs and settings.
-        """
+        """Stop the currently playing song and destroy the player."""
+        self.logger.info(misolog.format_log(ctx, f""))
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():

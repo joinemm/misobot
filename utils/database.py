@@ -121,7 +121,10 @@ def deep_get(dictionary, keys, default=None):
         if isinstance(d, dict):
             return d.get(key, default)
         elif isinstance(d, list):
-            return d[int(key)]
+            try:
+                return d[int(key)]
+            except ValueError:
+                return d[key]
         else:
             return default
 
