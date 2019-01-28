@@ -5,6 +5,7 @@ import os
 
 logger = misolog.create_logger(__name__)
 database = db.Database()
+version = "1.2.5"
 
 TOKEN = os.environ.get('MISO_BOT_TOKEN')
 
