@@ -15,7 +15,7 @@ class Fishy:
         self.client = client
         self.logger = misolog.create_logger(__name__)
 
-    @commands.command(name="fishy", aliases=['fisy', 'fsihy', 'fihy', 'foshy', 'fihsy', 'fisyh', 'fsiyh', 'fhisy'])
+    @commands.command(name="fishy", aliases=['fisy', 'fsihy', 'fish', 'foshy', 'fihsy', 'fisyh', 'fhisy', '물고기', '랴노ㅛ'])
     async def fishy(self, ctx, *args):
         """Go fishing and receive random amount of fishies"""
         user_id_fisher = ctx.message.author.id
@@ -99,14 +99,21 @@ class Fishy:
                         if self_fishy:
                             await ctx.send(f"Caught only **{amount}** fishy! :fishing_pole_and_fish:")
                         else:
-                            await ctx.send(f"Caught only **{amount}** fishy for {receiver_name}! "
+                            await ctx.send(f"Caught only **{amount}** fishy for **{receiver_name}**! "
                                            f":fishing_pole_and_fish:")
 
                     else:
-                        if self_fishy:
-                            await ctx.send(f"Caught **{amount}** fishies! :fishing_pole_and_fish: ")
+                        if ctx.message.content.startswith(">물고기") or ctx.message.content.startswith(">랴노ㅛ"):
+                            if self_fishy:
+                                await ctx.send(f"너는 **{amount}** 마리의 물고기를 잡았다! :fishing_pole_and_fish: ")
+                            else:
+                                await ctx.send(f"너는 **{receiver_name}** 를 위해 **{amount}** 마리의 물고기를 잡았다! "
+                                               f":fishing_pole_and_fish:")
                         else:
-                            await ctx.send(f"Caught **{amount}** fishies for {receiver_name}! :fishing_pole_and_fish:")
+                            if self_fishy:
+                                await ctx.send(f"Caught **{amount}** fishies! :fishing_pole_and_fish: ")
+                            else:
+                                await ctx.send(f"Caught **{amount}** fishies for **{receiver_name}**! :fishing_pole_and_fish:")
 
                 database.set_attr("users", f"{user_id_receiver}.fishy", amount, increment=True)
 
