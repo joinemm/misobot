@@ -13,6 +13,8 @@ from bs4 import BeautifulSoup
 import youtube_dl
 import os
 import main
+import psutil
+import math
 
 database = main.database
 
@@ -51,7 +53,7 @@ class Commands:
                                                f'\n\nCurrently active in {len(self.client.guilds)} servers.',
                                    colour=discord.Colour.magenta())
 
-        info_embed.set_footer(text='version 1.2.0')
+        info_embed.set_footer(text=f'version {main.version}')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
@@ -68,14 +70,37 @@ class Commands:
                                     f"heartbeat = {self.client.latency*1000:.1f}ms```")
         self.logger.info(misolog.format_log(ctx, f""))
 
-    @commands.command(name="uptime")
-    async def uptime(self, ctx):
-        """Get the bot's uptime"""
+    @commands.command(name="status", aliases=["uptime"])
+    async def status(self, ctx):
+        """Get the bot's status"""
+        self.logger.info(misolog.format_log(ctx, f""))
         up_time = time.time() - self.start_time
         m, s = divmod(up_time, 60)
         h, m = divmod(m, 60)
-        await ctx.send("Current process uptime: %d hours %d minutes %d seconds" % (h, m, s))
-        self.logger.info(misolog.format_log(ctx, f"uptime={up_time}"))
+        uptime_string = "%d hours %d minutes %d seconds" % (h, m, s)
+
+        stime = time.time() - psutil.boot_time()
+        m, s = divmod(stime, 60)
+        h, m = divmod(m, 60)
+        system_uptime_string = "%d hours %d minutes %d seconds" % (h, m, s)
+
+        mem = psutil.virtual_memory()
+
+        pid = os.getpid()
+        memory_use = psutil.Process(pid).memory_info()[0]
+
+        content = discord.Embed(title=f"Miso Bot | version {main.version}")
+        content.set_thumbnail(url=self.client.user.avatar_url)
+
+        content.add_field(name="Bot process uptime", value=uptime_string)
+        content.add_field(name="System CPU Usage", value=f"{psutil.cpu_percent()}%")
+        content.add_field(name="System uptime", value=system_uptime_string)
+
+        content.add_field(name="System RAM Usage", value=f"{mem.percent}% ({mem.used/math.pow(1024, 3):.2f}GB/"
+                                                         f"{mem.total/math.pow(1024, 3):.2f}GB)")
+        content.add_field(name="Bot memory usage", value=f"{memory_use/math.pow(1024, 2):.2f}MB")
+
+        await ctx.send(embed=content)
 
     @commands.command(name='random')
     async def rng(self, ctx, _range=1):
