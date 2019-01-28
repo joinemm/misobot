@@ -49,6 +49,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.title = data.get('title')
         self.web_url = data.get('webpage_url')
         self.filename = ytdl.prepare_filename(data)
+        self.duration = divmod(data.get('duration'), 60)
 
         # YTDL info dicts (data) have other useful information you might want
         # https://github.com/rg3/youtube-dl/blob/master/README.md
@@ -71,9 +72,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
 
         title = data["title"]
-        duration = data["duration"]
-        m, s = divmod(duration, 60)
-        await ctx.send(f'Added `{title}`(**{m}:{s}**) to the Queue')
+        d = divmod(data.get('duration'), 60)
+        await ctx.send(f'Added `{title}`(**{d[0]}:{d[1]}**) to the Queue')
 
         if download:
             source = ytdl.prepare_filename(data)
@@ -332,7 +332,7 @@ class Music:
             return
 
         vc.stop()
-        await ctx.send(f'**`{ctx.author}`**: Skipped the song!')
+        await ctx.send(f'**`{ctx.author}`**: Skipped `{vc.source.title}`')
 
     @commands.command(name='queue')
     async def queue_info(self, ctx):
@@ -345,13 +345,13 @@ class Music:
 
         player = self.get_player(ctx)
         if player.queue.empty():
-            return await ctx.send('There are currently no more queued songs.')
+            return await ctx.send('The queue is empty!')
 
         # Grab up to 10 entries from the queue...
         upcoming = list(itertools.islice(player.queue._queue, 0, 10))
 
-        fmt = '\n'.join(f'**`{_["title"]}`**' for _ in upcoming)
-        embed = discord.Embed(title=f'Upcoming - Next {len(upcoming)}', description=fmt)
+        fmt = '\n'.join(f'**`{x["title"]}`**' for x in upcoming)
+        embed = discord.Embed(title=f'Queue | next {len(upcoming)} songs', description=fmt, color=discord.Color.magenta())
 
         await ctx.send(embed=embed)
 
@@ -374,8 +374,11 @@ class Music:
         #except discord.HTTPException:
         #    pass
 
-        player.np = await ctx.send(f'**Now Playing:** `{vc.source.title}` '
-                                   f'requested by `{vc.source.requester}`')
+        content = discord.Embed(title=f"Now Playing: ({vc.source.duration[0]}:{vc.source.duration[1]})",
+                                color=discord.Color.magenta())
+        content.description = f"```css\n{vc.source.title}```"
+        content.set_footer(text=f"requested by {vc.source.requester}")
+        player.np = await ctx.send(embed=content)
 
     @commands.command(name='volume', aliases=['vol'])
     async def change_volume(self, ctx, *, vol=None):
