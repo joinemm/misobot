@@ -15,7 +15,7 @@ class Mod:
 
     @commands.command()
     @commands.has_permissions(manage_roles=True)
-    async def mute(self, ctx, user=None, time=None):
+    async def mute(self, ctx, mention=None, time=None):
         """Mute the given user"""
         self.logger.info(misolog.format_log(ctx, f""))
         role_id = database.get_attr("guilds", f"{ctx.guild.id}.muterole", 0)
@@ -23,7 +23,7 @@ class Mod:
         if muterole is None:
             await ctx.send(f"Muterole for this server is invalid or not set, please use >config muterole")
             return
-        if user is None:
+        if mention is None:
             await ctx.send(f"Give me someone to mute!")
             return
         if time is not None:
@@ -32,7 +32,7 @@ class Mod:
             except ValueError:
                 await ctx.send(f"Invalid timeframe `{time}`. Please give time in minutes")
                 return
-        member = misomisc.user_from_mention(ctx.guild, user)
+        member = misomisc.user_from_mention(ctx.guild, mention)
         if member is None:
             await ctx.send("ERROR: Invalid user")
             return
@@ -51,7 +51,7 @@ class Mod:
 
     @commands.command()
     @commands.has_permissions(manage_roles=True)
-    async def unmute(self, ctx):
+    async def unmute(self, ctx, mention=None):
         """Unmute the given user"""
         self.logger.info(misolog.format_log(ctx, f""))
         role_id = database.get_attr("guilds", f"{ctx.guild.id}.muterole", 0)
@@ -59,13 +59,16 @@ class Mod:
         if muterole is None:
             await ctx.send(f"Muterole for this server is invalid or not set, please use >config muterole")
             return
-        if not ctx.message.mentions:
+        if mention is None:
             await ctx.send(f"Give me someone to unmute!")
             return
 
-        member = ctx.message.mentions[0]
+        member = misomisc.user_from_mention(ctx.guild, mention)
+        if member is None:
+            await ctx.send("ERROR: Invalid user")
+            return
 
-        await member.add_roles(muterole)
+        await member.remove_roles(muterole)
         await ctx.send(f"Unmuted {member.mention}")
 
     @commands.command()
