@@ -29,7 +29,7 @@ class Owner:
         self.logger.info(misolog.format_log(ctx, f""))
         content = "**Connected guilds:**\n"
         for guild in self.client.guilds:
-            content += f"{guild.name} - {guild.member_count} users\n"
+            content += f"**{guild.name}** - {guild.member_count} users\n"
         await ctx.send(content)
 
     @commands.command(hidden=True)

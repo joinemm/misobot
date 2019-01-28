@@ -30,8 +30,9 @@ class Events:
         else:
             self.logger.warning(f"no welcome channel set for {member.guild.name}")
 
-        autorole = database.get_attr("guilds", f"{member.guild.id}.autorole")
-        if autorole is not None:
+        role_id = database.get_attr("guilds", f"{member.guild.id}.autorole")
+        if role_id is not None:
+            autorole = member.guild.get_role(role_id)
             await member.add_roles(autorole)
         else:
             self.logger.warning(f"no autorole set for {member.guild.name}")

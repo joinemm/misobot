@@ -98,7 +98,8 @@ class User:
         self.logger.info(misolog.format_log(ctx, f"user={user.name}"))
 
         content = discord.Embed(color=discord.Color.light_grey())
-        url = user.avatar_url_as(static_format="png")
+        content.set_author(name=f"{user.name}", url=user.avatar_url_as(static_format="png"))
+        url = user.avatar_url
         content.set_image(url=url)
 
         await ctx.send(embed=content)
