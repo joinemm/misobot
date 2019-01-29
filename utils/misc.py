@@ -89,7 +89,12 @@ def xp_to_next_level(level):
 
 
 def xp_from_message(message):
-    xp = len(message.content.split(" ")) + 10 * len(message.attachments)
+    words = message.content.split(" ")
+    eligible_words = 0
+    for x in words:
+        if len(x) > 1:
+            eligible_words += 1
+    xp = eligible_words + 10 * len(message.attachments)
     return xp
 
 
