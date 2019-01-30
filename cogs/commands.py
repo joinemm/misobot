@@ -15,6 +15,7 @@ import os
 import main
 import psutil
 import math
+import json
 
 database = main.database
 
@@ -238,6 +239,30 @@ class Commands:
         else:
             await ctx.send("Found nothing, sorry!")
             self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
+
+    @commands.command(aliases=["gif", "gfy"])
+    async def gfycat(self, ctx, *args):
+        """Search for a random gif"""
+        self.logger.info(misolog.format_log(ctx, f""))
+        query = "+".join(args)
+        url = f"https://gfycat.com/gifs/search/{query}"
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        scripts = soup.find_all('script')
+        data = None
+        for i in range(len(scripts)):
+            try:
+                data = json.loads(scripts[i].text, encoding='utf-8')
+            except json.JSONDecodeError:
+                pass
+        if data is None:
+            await ctx.send("found nothing")
+            return
+        urls = []
+        for x in data["itemListElement"]:
+            urls.append(x['url'])
+
+        await ctx.send(rd.choice(urls))
 
     @commands.command(name="ytmp3")
     async def ytmp3(self, ctx, url):

@@ -108,6 +108,7 @@ class Mod:
                     return
 
                 database.set_attr("guilds", f"{ctx.guild.id}.starboard_amount", amount)
+                await ctx.send(f"Starboard emoji requirement set to `{amount}`")
 
             elif arg == "enable":
                 database.set_attr("guilds", f"{ctx.guild.id}.starboard", True)
