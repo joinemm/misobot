@@ -16,6 +16,7 @@ import main
 import psutil
 import math
 import json
+import asyncio
 
 database = main.database
 
@@ -241,11 +242,17 @@ class Commands:
             self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
 
     @commands.command(aliases=["gif", "gfy"])
-    async def gfycat(self, ctx, tag):
+    async def gfycat(self, ctx, *args):
         """Search for a random gif"""
         self.logger.info(misolog.format_log(ctx, f""))
-        #query = "+".join(args)
-        url = f"https://gfycat.com/gifs/tag/{tag}"
+        if not args:
+            await ctx.send("Give me somethingto search!")
+            return
+        query = ' '.join(args)
+        if len(args) == 1:
+            url = f"https://gfycat.com/gifs/tag/{query}"
+        else:
+            url = f"https://gfycat.com/gifs/search/{query}"
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         scripts = soup.find_all('script')
@@ -255,14 +262,28 @@ class Commands:
                 data = json.loads(scripts[i].text, encoding='utf-8')
             except json.JSONDecodeError:
                 pass
-        if data is None:
-            await ctx.send("found nothing")
-            return
+
         urls = []
         for x in data["itemListElement"]:
-            urls.append(x['url'])
+            if "url" in x:
+                urls.append(x['url'])
 
-        await ctx.send(f"**{tag}**: {rd.choice(urls)}")
+        if not urls:
+            await ctx.send("found nothing")
+            return
+
+        msg = await ctx.send(f"**{query}**: {rd.choice(urls)}")
+        await msg.add_reaction("❌")
+
+        def check(_reaction, _user):
+            return _reaction.message.id == msg.id and _reaction.emoji == "❌" and _user == ctx.author
+
+        try:
+            await self.client.wait_for('reaction_add', timeout=300.0, check=check)
+        except asyncio.TimeoutError:
+            return
+        else:
+            await msg.delete()
 
     @commands.command(name="ytmp3")
     async def ytmp3(self, ctx, url):
