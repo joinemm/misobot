@@ -73,7 +73,7 @@ class Mod:
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def config(self, ctx, mode=None, arg=None):
+    async def config(self, ctx, mode=None, arg=None, arg2=None):
         """Set bot parameters like welcome channel and mute role"""
         self.logger.info(misolog.format_log(ctx, f""))
 
@@ -87,6 +87,27 @@ class Mod:
                     await ctx.send("ERROR: Invalid channel")
             else:
                 await ctx.send(f"ERROR: Please give a channel to set the as the welcome channel")
+
+        elif mode in ["votechannel", "votingchannel"]:
+            if arg in ["add", "remove"]:
+                if arg2 is not None:
+                    channel = misomisc.channel_from_mention(ctx.guild, arg2)
+                    if channel is not None:
+                        if arg == "add":
+                            database.append_attr("guilds", f"{ctx.guild.id}.vote_channels", channel.id)
+                            await ctx.send(f"{channel.mention} is now a voting channel")
+                        elif arg == "remove":
+                            response = database.delete_attr("guilds", f"{ctx.guild.id}.vote_channels", channel.id)
+                            if response is True:
+                                await ctx.send(f"{channel.mention} is no longer a voting channel")
+                            else:
+                                await ctx.send(f"{channel.mention} not found in votechannels of this server")
+                    else:
+                        await ctx.send("ERROR: Invalid channel")
+                else:
+                    await ctx.send(f"ERROR: Please give a channel")
+            else:
+                await ctx.send("ERROR: Invalid argument. use `add` or `remove`")
 
         elif mode in ["mute", "muterole"]:
             role = misomisc.role_from_mention(ctx.guild, arg)
@@ -119,7 +140,7 @@ class Mod:
                 await ctx.send(f"ERROR: Please give `true` or `false` to set this setting to")
         else:
             await ctx.send("Error: Please give a parameter to configure.\n"
-                           "`[welcome | muterole | autorole | levelup]`")
+                           "`[welcome | muterole | autorole | levelup | votechannel]`")
 
 
 def setup(client):

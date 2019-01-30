@@ -133,32 +133,6 @@ class Levels:
             f"{misomisc.xp_to_next_level(level)}** xp to next level (total xp: **{userdata['xp']}**)```{graph}```"
         await ctx.send(embed=content)
 
-    async def on_message(self, message):
-        if message.guild is None:
-            return
-
-        xp = misomisc.xp_from_message(message)
-        currenthour = message.created_at.hour
-        user = database.get_attr("index", f"{message.guild.id}.{message.author.id}")
-        if user is None:
-            user = {"name": f"{message.author.name}#{message.author.discriminator}",
-                    "bot": message.author.bot,
-                    "xp": 0,
-                    "messages": 0,
-                    "activity": [0] * 24}
-
-        level_before = misomisc.get_level(user['xp'])
-        user['messages'] += 1
-        user['xp'] += xp
-        user['activity'][currenthour] += xp
-        database.set_attr("index", f"{message.guild.id}.{message.author.id}", user)
-        level_now = misomisc.get_level(user['xp'])
-
-        if level_now > level_before:
-            if not message.author.bot:
-                if database.get_attr("guilds", f"{message.guild.id}.levelup_messages", True):
-                    await message.channel.send(f"{message.author.mention} just leveled up! (level **{level_now}**)")
-
 
 def setup(client):
     client.add_cog(Levels(client))

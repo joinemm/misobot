@@ -104,7 +104,7 @@ class Database:
         keys = attr.split(".")
         return datafile.delete_data(keys, value)
 
-    def del_attr(self, database, attr):
+    def delete_key(self, database, attr):
         datafile = self.datafiles[database]
         keys = attr.split(".")
         return datafile.del_data(keys)

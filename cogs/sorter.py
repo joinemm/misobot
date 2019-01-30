@@ -224,7 +224,7 @@ class Sorter:
         elif args[0] == "remove":
             # remove preset
             preset = " ".join(args[1:])
-            response = database.del_attr("data", f"sorter_presets", preset)
+            response = database.delete_attr("data", f"sorter_presets", preset)
             if response is True:
                 await ctx.send(f"deleted preset `{preset}`")
             else:
@@ -250,7 +250,7 @@ class Sorter:
         while self.instances[str(msg.id)].finishFlag == 0:
             try:
                 reaction, user = await self.client.wait_for("reaction_add", check=lambda _reaction, _user:
-                _reaction.emoji in ["⬅", "👔", "➡"], timeout=3600.0)
+                                                            reaction.emoji in ["⬅", "👔", "➡"], timeout=3600.0)
             except asyncio.TimeoutError:
                 del self.instances[str(msg.id)]
                 return

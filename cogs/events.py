@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
+from discord.utils import get
 import traceback
 import sys
 from utils import logger as misolog
+from utils import misc as misomisc
 import main
 
 database = main.database
@@ -46,6 +48,38 @@ class Events:
         else:
             self.logger.warning(f"no goodbye channel set for {member.guild.name}")
 
+    async def on_message(self, message):
+        # ignore DMs
+        if message.guild is None:
+            return
+
+        if message.channel.id in database.get_attr("guilds", f"{message.guild.id}.vote_channels", []):
+            await message.add_reaction(self.client.get_emoji(540246030491451392))
+            await message.add_reaction(self.client.get_emoji(540246041962872852))
+
+        # xp gain
+        xp = misomisc.xp_from_message(message)
+        currenthour = message.created_at.hour
+        user = database.get_attr("index", f"{message.guild.id}.{message.author.id}")
+        if user is None:
+            user = {"name": f"{message.author.name}#{message.author.discriminator}",
+                    "bot": message.author.bot,
+                    "xp": 0,
+                    "messages": 0,
+                    "activity": [0] * 24}
+
+        level_before = misomisc.get_level(user['xp'])
+        user['messages'] += 1
+        user['xp'] += xp
+        user['activity'][currenthour] += xp
+        database.set_attr("index", f"{message.guild.id}.{message.author.id}", user)
+        level_now = misomisc.get_level(user['xp'])
+
+        if level_now > level_before:
+            if not message.author.bot:
+                if database.get_attr("guilds", f"{message.guild.id}.levelup_messages", True):
+                    await message.channel.send(f"{message.author.mention} just leveled up! (level **{level_now}**)")
+
     async def on_message_delete(self, message):
         """The event triggered when a cached message is deleted"""
         channel_id = database.get_attr("guilds", f"{message.guild.id}.log_channel")
@@ -65,7 +99,7 @@ class Events:
         """The event triggered when an error is raised while invoking a command"""
 
         # This prevents any commands with local handlers being handled here in on_command_error.
-        #if hasattr(ctx.command, 'on_error'):
+        # if hasattr(ctx.command, 'on_error'):
         #    return
 
         # ignored = commands.CommandNotFound
@@ -157,7 +191,7 @@ class Events:
                 await ctx.send(f"Custom command `>{name}` succesfully added")
 
             elif mode == "remove":
-                result = database.del_attr("guilds", f"{ctx.message.guild.id}.custom_commands.{name}")
+                result = database.delete_key("guilds", f"{ctx.message.guild.id}.custom_commands.{name}")
                 if result is True:
                     await ctx.send(f"Custom command `>{name}` succesfully deleted")
                 else:
