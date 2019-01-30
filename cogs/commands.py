@@ -241,11 +241,11 @@ class Commands:
             self.logger.warning(misolog.format_log(ctx, f"Found nothing"))
 
     @commands.command(aliases=["gif", "gfy"])
-    async def gfycat(self, ctx, *args):
+    async def gfycat(self, ctx, tag):
         """Search for a random gif"""
         self.logger.info(misolog.format_log(ctx, f""))
-        query = "+".join(args)
-        url = f"https://gfycat.com/gifs/search/{query}"
+        #query = "+".join(args)
+        url = f"https://gfycat.com/gifs/tag/{tag}"
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         scripts = soup.find_all('script')
@@ -262,7 +262,7 @@ class Commands:
         for x in data["itemListElement"]:
             urls.append(x['url'])
 
-        await ctx.send(rd.choice(urls))
+        await ctx.send(f"**{tag}**: {rd.choice(urls)}")
 
     @commands.command(name="ytmp3")
     async def ytmp3(self, ctx, url):
