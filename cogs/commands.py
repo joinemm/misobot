@@ -246,8 +246,9 @@ class Commands:
         """Search for a random gif"""
         self.logger.info(misolog.format_log(ctx, f""))
         if not args:
-            await ctx.send("Give me somethingto search!")
+            await ctx.send("Give me something to search!")
             return
+
         query = ' '.join(args)
         if len(args) == 1:
             url = f"https://gfycat.com/gifs/tag/{query}"
@@ -269,7 +270,7 @@ class Commands:
                 urls.append(x['url'])
 
         if not urls:
-            await ctx.send("found nothing")
+            await ctx.send("Found nothing!")
             return
 
         msg = await ctx.send(f"**{query}**: {rd.choice(urls)}")
