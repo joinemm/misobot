@@ -66,6 +66,9 @@ class Notifications:
         elif mode == "add":
             await ctx.message.delete()
             word = " ".join(args)
+            if word.replace(" ", "") == "":
+                await ctx.send("Give me a word to add!")
+                return
             if ctx.author.id not in database.get_attr("notifications", f"{ctx.guild.id}.{word}", []):
                 database.append_attr("notifications", f"{ctx.guild.id}.{word}", ctx.author.id)
                 await ctx.author.send(f"New notification for keyword `{word}` set in `{ctx.guild.name}` ")
@@ -77,6 +80,9 @@ class Notifications:
         elif mode == "remove":
             await ctx.message.delete()
             word = " ".join(args)
+            if word.replace(" ", "") == "":
+                await ctx.send("Give me a word to add!")
+                return
             if ctx.author.id in database.get_attr("notifications", f"{ctx.guild.id}.{word}", []):
                 response = database.delete_attr("notifications", f"{ctx.guild.id}.{word}", ctx.author.id)
                 if response is True:

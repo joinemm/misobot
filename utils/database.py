@@ -118,15 +118,13 @@ def create_key(d, key):
 
 def deep_get(dictionary, keys, default=None):
     def getter(d, key):
-        if isinstance(d, dict):
+        try:
             return d.get(key, default)
-        elif isinstance(d, list):
+        except AttributeError:
             try:
-                return d[int(key)]
-            except ValueError:
                 return d[key]
-        else:
-            return default
+            except TypeError:
+                return d[int(key)]
 
     return reduce(getter, keys.split("."), dictionary)
 
