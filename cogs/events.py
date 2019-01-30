@@ -17,6 +17,7 @@ class Events:
         self.delete_log_channel_id = 508668369269162005
         self.log_channel_id = 508668551658471424
         self.logger = misolog.create_logger(__name__)
+        self.starred_already = {}
 
     async def on_ready(self):
         """The event triggered when bot is done loading extensions and is ready to use"""
@@ -95,6 +96,40 @@ class Events:
                 channel = self.client.get_channel(self.delete_log_channel_id)
                 await channel.send(embed=embed)
 
+    async def on_reaction_add(self, reaction, user):
+        if reaction.emoji == "⭐":
+            if database.get_attr("guilds", f"{reaction.message.guild.id}.starboard", False):
+                if str(reaction.message.id) not in self.starred_already:
+                    if reaction.count == database.get_attr("guilds", f"{reaction.message.guild.id}.starboard_amount", 3):
+
+                        channel_id = database.get_attr("guilds", f"{reaction.message.guild.id}.starboard_channel")
+                        channel = reaction.message.guild.get_channel(channel_id)
+                        if channel is None:
+                            return
+
+                        content = discord.Embed(color=discord.Color.gold())
+                        content.set_author(name=f"{reaction.message.author}",
+                                           icon_url=reaction.message.author.avatar_url)
+                        content.description = "<:blank:540269692535963669> " + reaction.message.content + \
+                                              f"\n\n[context]({reaction.message.jump_url})"
+                        content.timestamp = reaction.message.created_at
+                        content.set_footer(text=f"{reaction.count} ⭐ #{reaction.message.channel.name}")
+                        if len(reaction.message.attachments) > 0:
+                            content.set_image(url=reaction.message.attachments[0].url)
+
+                        mymsg = await channel.send(embed=content)
+                        self.starred_already[str(reaction.message.id)] = mymsg.id
+                else:
+                    channel_id = database.get_attr("guilds", f"{reaction.message.guild.id}.starboard_channel")
+                    channel = reaction.message.guild.get_channel(channel_id)
+                    if channel is None:
+                        return
+
+                    mymsg = await channel.get_message(self.starred_already[str(reaction.message.id)])
+                    content = mymsg.embeds[0]
+                    content.set_footer(text=f"{reaction.count} ⭐ #{reaction.message.channel.name}")
+                    await mymsg.edit(embed=content)
+
     async def on_command_error(self, ctx, error):
         """The event triggered when an error is raised while invoking a command"""
 
@@ -136,7 +171,7 @@ class Events:
         else:
             self.logger.error(f'Ignoring exception in command {ctx.command}:')
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-            await ctx.send(f"```{error}```")
+            await ctx.send(f"```{type(error)} : {error}```")
 
     def custom_command_check(self, name, ctx):
         response = database.get_attr("guilds", f"{ctx.message.guild.id}.custom_commands.{name}")

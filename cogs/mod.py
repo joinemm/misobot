@@ -88,6 +88,38 @@ class Mod:
             else:
                 await ctx.send(f"ERROR: Please give a channel to set the as the welcome channel")
 
+        elif mode == "starboard":
+            if arg == "channel":
+                if arg2 is not None:
+                    channel = misomisc.channel_from_mention(ctx.guild, arg2)
+                    if channel is not None:
+                        database.set_attr("guilds", f"{ctx.guild.id}.starboard_channel", channel.id)
+                        await ctx.send(f"{channel.mention} is now the starboard channel")
+                    else:
+                        await ctx.send("ERROR: Invalid channel")
+                else:
+                    await ctx.send(f"ERROR: Please give a channel")
+
+            elif arg == "amount":
+                try:
+                    amount = int(arg2)
+                except ValueError:
+                    await ctx.send("ERROR: Pleave give a number")
+                    return
+
+                database.set_attr("guilds", f"{ctx.guild.id}.starboard_amount", amount)
+
+            elif arg == "enable":
+                database.set_attr("guilds", f"{ctx.guild.id}.starboard", True)
+                await ctx.send("Starboard **enabled**")
+
+            elif arg == "disable":
+                database.set_attr("guilds", f"{ctx.guild.id}.starboard", False)
+                await ctx.send("Starboard **disabled**")
+
+            else:
+                await ctx.send("ERROR: Invalid argument. use `channel`, `amount`, `disable` or `enable`")
+
         elif mode in ["votechannel", "votingchannel"]:
             if arg in ["add", "remove"]:
                 if arg2 is not None:
