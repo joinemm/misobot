@@ -186,6 +186,7 @@ class LastFM:
                                icon_url=ctx.message.author.avatar_url)
             return content
         else:
+            print(data)
             return None
 
     def recent_tracks(self, ctx, username, amount):
@@ -219,6 +220,7 @@ class LastFM:
             content.description = pages[0]
             return content, pages
         else:
+            print(data)
             return None
 
     def top_artists(self, ctx, username, period, amount):
@@ -249,6 +251,7 @@ class LastFM:
             content.description = pages[0]
             return content, pages
         else:
+            print(data)
             return None
 
     def top_albums(self, ctx, username, period, amount):
@@ -281,6 +284,7 @@ class LastFM:
             content.description = pages[0]
             return content, pages
         else:
+            print(data)
             return None
 
     def top_tracks(self, ctx, username, period, amount):
@@ -313,6 +317,7 @@ class LastFM:
             content.description = pages[0]
             return content, pages
         else:
+            print(data)
             return None
 
     @commands.command()

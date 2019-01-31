@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from utils import logger as misolog
 from utils import misc as misomisc
+from utils import plotter
 import imgkit
 import main
 import random
@@ -139,7 +140,7 @@ class User:
         await ctx.send(embed=message)
 
     @commands.command(name="avatar")
-    async def avatar(self, ctx, mention=None):
+    async def avatar(self, ctx, mention=None, extra=None):
         """Get a user's profile get"""
         self.logger.info(misolog.format_log(ctx, f""))
         if mention is not None:
@@ -151,10 +152,14 @@ class User:
 
         self.logger.info(misolog.format_log(ctx, f"user={user.name}"))
 
+        if extra == "png" or mention == "png":
+            avatar_url = user.avatar_url_as(static_format="png", format="png")
+        else:
+            avatar_url = user.avatar_url_as(static_format="png")
+
         content = discord.Embed(color=discord.Color.light_grey())
-        content.set_author(name=f"{user.name}", url=user.avatar_url_as(static_format="png"))
-        url = user.avatar_url
-        content.set_image(url=url)
+        content.set_author(name=f"{user.name}", url=avatar_url)
+        content.set_image(url=avatar_url)
 
         await ctx.send(embed=content)
 
@@ -216,6 +221,8 @@ class User:
             icon = badges[badge]['icon']
             badge_html += f'<i class="badge {icon} fa-2x"></i>'
         fishy = database.get_attr("users", f"{member.id}.fishy", 0)
+
+        # plotter.create_graph(leveldata[str(ctx.guild.id)][str(ctx.author.id)]['activity'])
 
         global_xp = 0
         global_msg = 0

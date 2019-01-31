@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from utils import misc as misomisc
 from utils import logger as misolog
+from utils import plotter
 import time as t
 from operator import itemgetter
 import main
@@ -117,21 +118,29 @@ class Levels:
             await ctx.send("You have no activity data yet!")
             return
 
-        chart_rows, num_rows = misomisc.generate_graph(post_data, 5, 15)
-        # chart_rows[0] = chart_rows[0] + (f" {max(post_data)} xp" if max(post_data) > 15 else f" 15 xp")
-        # chart_rows[-1] = chart_rows[-1] + " 0 xp"
-        chart = " \n".join(chart_rows) + "\n" + "\n".join(num_rows)
-        graph = f"{chart}"
-        content = discord.Embed()
-        content.set_author(name=f"{user.name}'s hourly xp gain graph",
-                           icon_url=user.avatar_url)
-
         userdata = database.get_attr("index", f"{ctx.guild.id}.{user.id}")
         level = misomisc.get_level(userdata['xp'])
 
-        content.description = f"level **{level}** | **{userdata['xp'] - misomisc.get_xp(level)}**/**" \
-            f"{misomisc.xp_to_next_level(level)}** xp to next level (total xp: **{userdata['xp']}**)```{graph}```"
-        await ctx.send(embed=content)
+        title = f"Level {level} | {userdata['xp'] - misomisc.get_xp(level)} / " \
+                f"{misomisc.xp_to_next_level(level)} XP to next level\nTotal xp: {userdata['xp']}"
+
+        plotter.create_graph(post_data, str(user.color), title=title)
+
+        try:
+            with open("downloads/graph.png", "rb") as img:
+                await ctx.send(file=discord.File(img))
+        except Exception:
+            chart_rows, num_rows = misomisc.generate_graph(post_data, 5, 15)
+            # chart_rows[0] = chart_rows[0] + (f" {max(post_data)} xp" if max(post_data) > 15 else f" 15 xp")
+            # chart_rows[-1] = chart_rows[-1] + " 0 xp"
+            chart = " \n".join(chart_rows) + "\n" + "\n".join(num_rows)
+            graph = f"{chart}"
+            content = discord.Embed()
+            content.set_author(name=f"{user.name}'s hourly xp gain graph",
+                               icon_url=user.avatar_url)
+
+            content.description = f"{title}\n```{graph}```"
+            await ctx.send(embed=content)
 
 
 def setup(client):
