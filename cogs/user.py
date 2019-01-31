@@ -101,12 +101,14 @@ class User:
         content = discord.Embed(title=f"First members of {ctx.guild.name}")
         description = ""
         pages = []
+        y = 0
         for i, member in enumerate(sorted_members):
-            if i > 20:
+            if y > 20:
                 pages.append(description)
                 description = ""
             description += f"\n#{i+1} : **{member.name}**"
-            
+            y += 1
+
         pages.append(description)
         content.description = pages[0]
         if len(pages) > 1:
