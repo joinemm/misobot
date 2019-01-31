@@ -250,29 +250,32 @@ class Commands:
             return
 
         query = ' '.join(args)
+        scripts = []
         if len(args) == 1:
             url = f"https://gfycat.com/gifs/tag/{query}"
-        else:
-            url = f"https://gfycat.com/gifs/search/{query}"
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            scripts += soup.find_all('script')
+
+        url = f"https://gfycat.com/gifs/search/{query}"
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
-        scripts = soup.find_all('script')
-        data = None
+        scripts += soup.find_all('script')
+        urls = []
         for i in range(len(scripts)):
             try:
                 data = json.loads(scripts[i].text, encoding='utf-8')
+                for x in data["itemListElement"]:
+                    if "url" in x:
+                        urls.append(x['url'])
             except json.JSONDecodeError:
                 pass
-
-        urls = []
-        for x in data["itemListElement"]:
-            if "url" in x:
-                urls.append(x['url'])
 
         if not urls:
             await ctx.send("Found nothing!")
             return
 
+        # print(f"found {len(urls)} gifs")
         msg = await ctx.send(f"**{query}**: {rd.choice(urls)}")
         await msg.add_reaction("❌")
 
@@ -280,7 +283,7 @@ class Commands:
             return _reaction.message.id == msg.id and _reaction.emoji == "❌" and _user == ctx.author
 
         try:
-            await self.client.wait_for('reaction_add', timeout=300.0, check=check)
+            await self.client.wait_for('reaction_add', timeout=120.0, check=check)
         except asyncio.TimeoutError:
             return
         else:

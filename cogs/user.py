@@ -119,6 +119,25 @@ class User:
         if len(pages) > 1:
             await util.page_switcher(self.client, my_msg, content, pages)
 
+    @commands.command()
+    async def serverinfo(self, ctx):
+        """Info about the server"""
+        self.logger.info(misolog.format_log(ctx, f""))
+
+        message = discord.Embed(color=int(misomisc.get_color(ctx.guild.icon_url), 16))
+        message.title = f"{ctx.guild.name} | #{ctx.guild.id}"
+        message.add_field(name="Owner", value=f"{ctx.guild.owner.name}#{ctx.guild.owner.discriminator}")
+        message.add_field(name="Region", value=str(ctx.guild.region))
+        message.add_field(name="Created At", value=ctx.guild.created_at.strftime('%Y-%m-%d | %H:%M'))
+        message.add_field(name="Members", value=str(ctx.guild.member_count))
+        message.add_field(name="Roles", value=str(len(ctx.guild.roles)))
+        message.add_field(name="Emojis", value=str(len(ctx.guild.emojis)))
+        message.add_field(name="Channels", value=f"{len(ctx.guild.text_channels)} Text channels, "
+                                                 f"{len(ctx.guild.voice_channels)} Voice channels")
+        message.set_thumbnail(url=ctx.guild.icon_url)
+
+        await ctx.send(embed=message)
+
     @commands.command(name="avatar")
     async def avatar(self, ctx, mention=None):
         """Get a user's profile get"""
