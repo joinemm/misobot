@@ -93,7 +93,7 @@ class User:
         await ctx.send(embed=pages[int(page)-1])
 
     @commands.command()
-    async def members(self, ctx, page=1):
+    async def members(self, ctx):
         """Get the members who first joined this server"""
         self.logger.info(misolog.format_log(ctx, f""))
         sorted_members = sorted(ctx.guild.members, key=lambda x: x.joined_at)
@@ -106,7 +106,7 @@ class User:
             if y > 20:
                 pages.append(description)
                 description = ""
-            description += f"\n#{i+1} : **{member.name}**"
+            description += f"\n#{i+1} : **{member.name}** ({member.joined_at.strftime('%Y-%m-%d | %H:%M')})"
             y += 1
 
         pages.append(description)
