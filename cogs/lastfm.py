@@ -8,7 +8,7 @@ from utils import misc as misomisc
 import imgkit
 import time as t
 import os
-import asyncio
+import cogs.utility as util
 import main
 
 keys = os.environ
@@ -114,7 +114,7 @@ class LastFM:
             my_msg = await ctx.send(embed=content)
 
             if len(pages) > 1:
-                await self.page_switcher(my_msg, content, pages)
+                await util.page_switcher(self.client, my_msg, content, pages)
 
     def userinfo(self, ctx, username):
         data = api_request({"user": username, "method": "user.getinfo"})
@@ -497,43 +497,11 @@ class LastFM:
             my_msg = await ctx.send(embed=content)
 
             if len(pages) > 1:
-                await self.page_switcher(my_msg, content, pages)
+                await util.page_switcher(self.client, my_msg, content, pages)
 
         else:
             await ctx.send("You haven't listened to this artist! "
                            "Make sure the artist name is formatted exactly as it shows up in the last fm database.")
-
-    async def page_switcher(self, my_msg, content, pages):
-        current_page = 0
-
-        def check(_reaction, _user):
-            return _reaction.message.id == my_msg.id and _reaction.emoji in ["⬅", "➡"] \
-                   and not _user == self.client.user
-
-        await my_msg.add_reaction("⬅")
-        await my_msg.add_reaction("➡")
-
-        while True:
-            try:
-                reaction, user = await self.client.wait_for('reaction_add', timeout=3600.0, check=check)
-            except asyncio.TimeoutError:
-                return
-            else:
-                try:
-                    if reaction.emoji == "⬅" and current_page > 0:
-                        content.description = pages[current_page - 1]
-                        current_page -= 1
-                        await my_msg.remove_reaction("⬅", user)
-                    elif reaction.emoji == "➡":
-                        content.description = pages[current_page + 1]
-                        current_page += 1
-                        await my_msg.remove_reaction("➡", user)
-                    else:
-                        continue
-                    content.set_footer(text=f"page {current_page + 1} of {len(pages)}")
-                    await my_msg.edit(embed=content)
-                except IndexError:
-                    continue
 
 
 def api_request(data_dict):

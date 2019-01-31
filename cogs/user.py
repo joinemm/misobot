@@ -5,6 +5,7 @@ from utils import misc as misomisc
 import imgkit
 import main
 import random
+import cogs.utility as util
 
 database = main.database
 
@@ -98,16 +99,22 @@ class User:
         sorted_members = sorted(ctx.guild.members, key=lambda x: x.joined_at)
 
         content = discord.Embed(title=f"First members of {ctx.guild.name}")
-        content.description = ""
-        page = int(page)
+        description = ""
+        pages = []
         for i, member in enumerate(sorted_members):
-            if i < page*25-25:
-                continue
-            if i > 25*page:
-                break
-            content.description += f"\n#{i+1} : **{member.name}**"
+            if i > 20:
+                pages.append(description)
+                description = ""
+            description += f"\n#{i+1} : **{member.name}**"
+            
+        pages.append(description)
+        content.description = pages[0]
+        if len(pages) > 1:
+            content.set_footer(text=f"page 1 of {len(pages)}")
+        my_msg = await ctx.send(embed=content)
 
-        await ctx.send(embed=content)
+        if len(pages) > 1:
+            await util.page_switcher(self.client, my_msg, content, pages)
 
     @commands.command(name="avatar")
     async def avatar(self, ctx, mention=None):
