@@ -98,15 +98,16 @@ class User:
         self.logger.info(misolog.format_log(ctx, f""))
         sorted_members = sorted(ctx.guild.members, key=lambda x: x.joined_at)
 
-        content = discord.Embed(title=f"First members of {ctx.guild.name}")
+        content = discord.Embed(title=f"{ctx.guild.name} Members:")
         description = ""
         pages = []
         y = 0
         for i, member in enumerate(sorted_members):
-            if y > 20:
+            if y > 14:
                 pages.append(description)
                 description = ""
-            description += f"\n#{i+1} : **{member.name}** ({member.joined_at.strftime('%Y-%m-%d | %H:%M')})"
+                y = 0
+            description += f"\n**#{i+1}** : **{member.name}** ({member.joined_at.strftime('%Y-%m-%d | %H:%M')})"
             y += 1
 
         pages.append(description)
