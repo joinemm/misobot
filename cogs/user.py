@@ -46,6 +46,11 @@ class User:
         if user.is_on_mobile():
             status += " :iphone:"
 
+        member_number = 1
+        for member in ctx.guild.members:
+            if member.joined_at < user.joined_at:
+                member_number += 1
+
         activity = str(user.activities[0]) if user.activities else "None"
         message = discord.Embed(color=user.color)
         message.title = f"{user.name}#{user.discriminator} ({user.id})"
@@ -55,6 +60,7 @@ class User:
         message.add_field(name="Last fishy", value=fishy_time)
         message.add_field(name="Account created", value=user.created_at.strftime('%Y-%m-%d'))
         message.add_field(name="Joined server", value=user.joined_at.strftime('%Y-%m-%d'))
+        message.add_field(name="Member", value=f"#{member_number}")
         roles_names = []
         for role in user.roles:
             roles_names.append(role.mention)
@@ -67,6 +73,7 @@ class User:
     @commands.command()
     async def roleslist(self, ctx, page=1):
         """List the roles of this server"""
+        self.logger.info(misolog.format_log(ctx, f""))
         pages = []
         content = discord.Embed(title=f"Roles for {ctx.message.guild.name}")
         content.description = ""
@@ -83,6 +90,24 @@ class User:
             pages[int(page) - 1].set_footer(text=f"page {page} of {len(pages)}")
 
         await ctx.send(embed=pages[int(page)-1])
+
+    @commands.command()
+    async def members(self, ctx, page=1):
+        """Get the members who first joined this server"""
+        self.logger.info(misolog.format_log(ctx, f""))
+        sorted_members = sorted(ctx.guild.members, key=lambda x: x.joined_at)
+
+        content = discord.Embed(title=f"First members of {ctx.guild.name}")
+        content.description = ""
+        page = int(page)
+        for i, member in enumerate(sorted_members):
+            if i < page*25-25:
+                continue
+            if i > 25*page:
+                break
+            content.description += f"\n#{i+1} : **{member.name}**"
+
+        await ctx.send(embed=content)
 
     @commands.command(name="avatar")
     async def avatar(self, ctx, mention=None):

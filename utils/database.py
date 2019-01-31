@@ -122,9 +122,9 @@ def deep_get(dictionary, keys, default=None):
             return d.get(key, default)
         except AttributeError:
             try:
-                return d[key]
-            except TypeError:
                 return d[int(key)]
+            except (ValueError, IndexError):
+                return default
 
     return reduce(getter, keys.split("."), dictionary)
 
