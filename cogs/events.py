@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord.utils import get
+import re
 import traceback
 import sys
 from utils import logger as misolog
@@ -54,9 +54,64 @@ class Events:
         if message.guild is None:
             return
 
+        # ignore own messages
+        if message.author == self.client.user:
+            return
+
+        # add up and downvotes
         if message.channel.id in database.get_attr("guilds", f"{message.guild.id}.vote_channels", []):
             await message.add_reaction(self.client.get_emoji(540246030491451392))
             await message.add_reaction(self.client.get_emoji(540246041962872852))
+
+        # miso was pinged
+        if self.client.user in message.mentions:
+            await message.channel.send("<:misoping:532922215105036329>")
+
+        # git gud
+        if message.content.startswith("git"):
+            gitcommand = re.search(r'git (\S+)', message.content).group(1)
+            if gitcommand == "--help":
+                await message.channel.send("```\n"
+                                           "usage: git [--version] [--help] [-C <path>] [-c <name>=<value>]\n"
+                                           "           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n"
+                                           "           [-p | --paginate | --no-pager] [--no-replace-objects] [--bare]\n"
+                                           "           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n"
+                                           "           <command> [<args>]```")
+            elif gitcommand == "--version":
+                await message.channel.send("git version 2.17.1")
+            else:
+                await message.channel.send(f"`git: '{gitcommand}' is not a git command. See 'git --help'.`")
+
+        # notifications
+        if message.guild is not None:
+            triggerwords = database.get_attr("notifications", f"{message.guild.id}")
+            if triggerwords is not None:
+                triggerwords = list(triggerwords.keys())
+                matches = set()
+                for word in triggerwords:
+                    pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
+                    if pattern.findall(message.content):
+                        matches.add(word)
+                for word in matches:
+                    pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
+                    for user_id in database.get_attr("notifications", f"{message.guild.id}.{word}"):
+                        if user_id in database.get_attr("users", f"{user_id}.blacklist", []):
+                            return
+                        if not user_id == message.author.id:
+                            user = message.guild.get_member(user_id)
+                            if user is not None:
+                                content = discord.Embed()
+                                content.set_author(
+                                    name=f'{message.author} mentioned "{word}" in {message.guild.name}',
+                                    icon_url=message.author.avatar_url)
+                                highlighted_text = re.sub(pattern, lambda x: f'**{x.group(0)}**', message.content)
+                                content.description = f">>> {highlighted_text}\n\n" \
+                                    f"[Go to message]({message.jump_url})"
+                                content.set_thumbnail(url=message.guild.icon_url)
+                                content.set_footer(text=f"#{message.channel.name}")
+                                content.timestamp = message.created_at
+
+                                await user.send(embed=content)
 
         # xp gain
         xp = misomisc.xp_from_message(message)

@@ -12,45 +12,6 @@ class Notifications:
     def __init__(self, client):
         self.client = client
 
-    async def on_message(self, message):
-        if message.author == self.client.user:
-            # ignore own messages
-            return
-
-        # miso was pinged
-        if self.client.user in message.mentions:
-            await message.channel.send("<:misoping:532922215105036329>")
-
-        # notifications
-        if message.guild is not None:
-            triggerwords = database.get_attr("notifications", f"{message.guild.id}")
-            if triggerwords is not None:
-                triggerwords = list(triggerwords.keys())
-                matches = set()
-                for word in triggerwords:
-                    pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
-                    if pattern.findall(message.content):
-                        matches.add(word)
-                for word in matches:
-                    pattern = re.compile(r'(?:^|\W){0}(?:$|\W)'.format(word), flags=re.IGNORECASE)
-                    for user_id in database.get_attr("notifications", f"{message.guild.id}.{word}"):
-                        if user_id in database.get_attr("users", f"{user_id}.blacklist", []):
-                            return
-                        if not user_id == message.author.id:
-                            user = message.guild.get_member(user_id)
-                            if user is not None:
-                                content = discord.Embed()
-                                content.set_author(name=f'{message.author} mentioned "{word}" in {message.guild.name}',
-                                                   icon_url=message.author.avatar_url)
-                                highlighted_text = re.sub(pattern, lambda x: f'**{x.group(0)}**', message.content)
-                                content.description = f">>> {highlighted_text}\n\n" \
-                                                      f"[Go to message]({message.jump_url})"
-                                content.set_thumbnail(url=message.guild.icon_url)
-                                content.set_footer(text=f"#{message.channel.name}")
-                                content.timestamp = message.created_at
-
-                                await user.send(embed=content)
-
     @commands.command()
     async def notification(self, ctx, mode, *args):
         """Add keywords to get notified when someone mentions them"""
