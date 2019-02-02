@@ -35,90 +35,80 @@ class Fishy:
 
         time_since_fishy = timestamp - database.get_attr("users", f"{user_id_fisher}.fishy_timestamp", 0)
 
+        korean = ctx.message.content.startswith(">물고기") or ctx.message.content.startswith(">랴노ㅛ")
+
         if time_since_fishy > cooldown or time_since_fishy is None:
             trash = random.randint(1, 10) == 1
             if trash:
-                christmas = False
-                if christmas:
-                    rarity = "gift"
-                    amount = 0
-                    if self_fishy:
-                        await ctx.send(f"Caught a **christmas present!** :gift:")
-                    else:
-                        await ctx.send(f"Caught a **christmas present** :gift: for {receiver_name}!")
+                trash_icons = [':moyai:', ':stopwatch:', ':wrench:', ':hammer:', ':pick:', ':nut_and_bolt:',
+                               ':gear:', ':toilet:', ':alembic:', ':bathtub:', ':paperclip:', ':scissors:',
+                               ':boot:', ':high_heel:', ':spoon:', ':saxophone:', ':trumpet:', ':scooter:',
+                               ':anchor:'
+                               ]
+                rarity = "trash"
+                amount = 0
+                icon = random.choice(trash_icons)
+                if korean:
+                    await ctx.send(f"너는 **쓰레기!**  {icon}" + ("" if self_fishy else f" **{receiver_name}** 를 위해")
+                                   + "다음에 잘하면 돼.")
                 else:
-
-                    trash_icons = [':moyai:', ':stopwatch:', ':wrench:', ':hammer:', ':pick:', ':nut_and_bolt:',
-                                   ':gear:', ':toilet:', ':alembic:', ':bathtub:', ':paperclip:', ':scissors:',
-                                   ':boot:', ':high_heel:', ':spoon:', ':saxophone:', ':trumpet:', ':scooter:',
-                                   ':anchor:'
-                                   ]
-                    rarity = "trash"
-                    amount = 0
-                    icon = random.choice(trash_icons)
-                    if self_fishy:
-                        await ctx.send(f"Caught **trash!**  {icon} Better luck next time.")
-                    else:
-                        await ctx.send(f"Caught **trash**  {icon} for {receiver_name}! Better luck next time.")
+                    await ctx.send(f"Caught **trash!**  {icon}" + ("" if self_fishy else f" for {receiver_name}")
+                                   + " Better luck next time.")
 
             else:
                 rand = random.randint(1, 100)
                 if rand == 1:
                     rarity = "legendary"
                     amount = random.randint(400, 750)
-                    if self_fishy:
-                        await ctx.send(f":star2: **Caught a *legendary* fish! Congratulations!! :star2: ({amount}"
-                                       f" fishies)** :dolphin:")
+                    if korean:
+                        await ctx.send(":star2: **너는" + ("" if self_fishy else f" **{receiver_name}** 를 위해") +
+                                       f"전설의 마리의 물고기를 잡았다!! :star2: ({amount} 물고기)** :dolphin:")
                     else:
-                        await ctx.send(f":star2: **Caught a *legendary* fish for {receiver_name}!! :star2: ({amount} "
-                                       f"fishies)** :dolphin:")
+                        await ctx.send(f":star2: **Caught a *legendary* fish" +
+                                       ("" if self_fishy else f" for {receiver_name}") + f"!! :star2: ({amount} "
+                                       "fishies)** :dolphin:")
 
                 elif rand < 5:
                     rarity = "rare"
                     amount = random.randint(100, 399)
-                    if self_fishy:
-                        await ctx.send(f":star: **Caught a super rare fish! :star: ({amount} "
-                                       f"fishies)** :tropical_fish:")
+                    if korean:
+                        await ctx.send(":star: **너는" + ("" if self_fishy else f" **{receiver_name}** 를 위해") +
+                                       f"드문 마리의 물고기를 잡았다! :star: ({amount} 물고기)** :tropical_fish:")
                     else:
-                        await ctx.send(f":star: **Caught a super rare fish for {receiver_name}! :star: ({amount} "
-                                       f"fishies)** :tropical_fish:")
+                        await ctx.send(f":star: **Caught a super rare fish" +
+                                       ("" if self_fishy else f" for {receiver_name}") + f"! :star: ({amount} "
+                                       "fishies)** :tropical_fish:")
 
                 elif rand < 20:
                     rarity = "uncommon"
                     amount = random.randint(30, 99)
-                    if self_fishy:
-                        await ctx.send(f"**Caught an uncommon fish!** (**{amount}** fishies) :blowfish:")
+                    if korean:
+                        await ctx.send("**너는" + ("" if self_fishy else f" **{receiver_name}** 를 위해") +
+                                       f"보통 아닌 마리의 물고기를 잡았다!** (**{amount}** 물고기) :blowfish:")
                     else:
-                        await ctx.send(f"**Caught an uncommon fish for {receiver_name}!** (**{amount}** "
-                                       f"fishies) :blowfish:")
+                        await ctx.send(f"**Caught an uncommon fish " + ("" if self_fishy else f"for {receiver_name}") +
+                                       f"!** (**{amount}** fishies) :blowfish:")
 
                 else:
                     rarity = "common"
                     amount = random.randint(1, 29)
-                    if amount == 1:
-                        if self_fishy:
-                            await ctx.send(f"Caught only **{amount}** fishy! :fishing_pole_and_fish:")
-                        else:
-                            await ctx.send(f"Caught only **{amount}** fishy for **{receiver_name}**! "
-                                           f":fishing_pole_and_fish:")
+                    if amount == 1 and not korean:
+                        await ctx.send(f"Caught only **{amount}** fishy " +
+                                       ("" if self_fishy else f"for **{receiver_name}**") + "! :fishing_pole_and_fish:")
 
                     else:
-                        if ctx.message.content.startswith(">물고기") or ctx.message.content.startswith(">랴노ㅛ"):
-                            if self_fishy:
-                                await ctx.send(f"너는 **{amount}** 마리의 물고기를 잡았다! :fishing_pole_and_fish: ")
-                            else:
-                                await ctx.send(f"너는 **{receiver_name}** 를 위해 **{amount}** 마리의 물고기를 잡았다! "
-                                               f":fishing_pole_and_fish:")
+                        if korean:
+                            await ctx.send(f"너는" + ("" if self.fishy else f" **{receiver_name}** 를 위해") +
+                                           f" **{amount}** 마리의 물고기를 잡았다! :fishing_pole_and_fish:")
                         else:
-                            if self_fishy:
-                                await ctx.send(f"Caught **{amount}** fishies! :fishing_pole_and_fish: ")
-                            else:
-                                await ctx.send(f"Caught **{amount}** fishies for **{receiver_name}**! :fishing_pole_and_fish:")
+                            await ctx.send(f"Caught **{amount}** fishies " +
+                                           ("" if self.fishy else f"for **{receiver_name}**") +
+                                           "! :fishing_pole_and_fish:")
 
                 database.set_attr("users", f"{user_id_receiver}.fishy", amount, increment=True)
 
                 if not self_fishy:
-                    database.set_attr("users", f"{user_id_fisher}.fishy", amount, increment=True)
+                    database.set_attr("users", f"{user_id_fisher}.fishy_gifted", amount, increment=True)
 
             database.set_attr("users", f"{user_id_fisher}.fishy_timestamp", timestamp)
             database.set_attr("users", f"{user_id_fisher}.warning", 0)
@@ -165,7 +155,7 @@ class Fishy:
 
             self.logger.info(misolog.format_log(ctx, f"fail (wait_time={wait_time:.3f}s)"))
 
-    @commands.command()
+    @commands.command(aliases=["leaderboards"])
     async def leaderboard(self, ctx, mode=None, page=None):
         """The fishy leaderboard"""
         self.logger.info(misolog.format_log(ctx, f""))
