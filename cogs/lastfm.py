@@ -518,7 +518,7 @@ class LastFM:
     async def fmartist_data_threaded(self, method, user, total_pages, perpage):
         with ThreadPoolExecutor(max_workers=20) as executor:
             loop = asyncio.get_event_loop()
-            datas = [{"method": method, "user": user, "limit": perpage, "page": i} for i in range(1, total_pages + 1)]
+            datas = [{"method": method, "user": user, "limit": perpage, "page": i} for i in range(2, total_pages + 1)]
             tasks = [
                 loop.run_in_executor(
                     executor,
