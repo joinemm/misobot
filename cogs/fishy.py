@@ -62,7 +62,7 @@ class Fishy:
                     amount = random.randint(400, 750)
                     if korean:
                         await ctx.send(":star2: **너는" + ("" if self_fishy else f" **{receiver_name}** 를 위해") +
-                                       f"전설의 마리의 물고기를 잡았다!! :star2: ({amount} 물고기)** :dolphin:")
+                                       f" 전설의 마리의 물고기를 잡았다!! :star2: ({amount} 물고기)** :dolphin:")
                     else:
                         await ctx.send(f":star2: **Caught a *legendary* fish" +
                                        ("" if self_fishy else f" for {receiver_name}") + f"!! :star2: ({amount} "
@@ -73,7 +73,7 @@ class Fishy:
                     amount = random.randint(100, 399)
                     if korean:
                         await ctx.send(":star: **너는" + ("" if self_fishy else f" **{receiver_name}** 를 위해") +
-                                       f"드문 마리의 물고기를 잡았다! :star: ({amount} 물고기)** :tropical_fish:")
+                                       f" 드문 마리의 물고기를 잡았다! :star: ({amount} 물고기)** :tropical_fish:")
                     else:
                         await ctx.send(f":star: **Caught a super rare fish" +
                                        ("" if self_fishy else f" for {receiver_name}") + f"! :star: ({amount} "
@@ -84,7 +84,7 @@ class Fishy:
                     amount = random.randint(30, 99)
                     if korean:
                         await ctx.send("**너는" + ("" if self_fishy else f" **{receiver_name}** 를 위해") +
-                                       f"보통 아닌 마리의 물고기를 잡았다!** (**{amount}** 물고기) :blowfish:")
+                                       f" 보통 아닌 마리의 물고기를 잡았다!** (**{amount}** 물고기) :blowfish:")
                     else:
                         await ctx.send(f"**Caught an uncommon fish " + ("" if self_fishy else f"for {receiver_name}") +
                                        f"!** (**{amount}** fishies) :blowfish:")

@@ -400,6 +400,29 @@ class Commands:
         await ctx.send(embed=content)
         self.logger.info(misolog.format_log(ctx, f"{percentage}"))
 
+    @commands.command()
+    async def pewdiepie(self, ctx):
+        """Pewdiepie VS T-series"""
+        self.logger.info(misolog.format_log(ctx, f""))
+        pewdiepie = get_subcount("pewdiepie")
+        tseries = get_subcount("tseries")
+
+        content = discord.Embed(color=discord.Color.magenta(), title="Pewdiepie VS T-Series live subscriber count:",
+                                url="https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw?sub_confirmation=1")
+        content.add_field(name="Pewdiepie", value="**{:,}**".format(pewdiepie))
+        content.add_field(name="T-Series", value="**{:,}**".format(tseries))
+        if pewdiepie >= tseries:
+            desc = "Pewdiepie currently has {:,} more subscribers!".format(pewdiepie-tseries)
+            content.set_thumbnail(
+                url="https://yt3.ggpht.com/a-/AAuE7mAPBVgUYqlLw9SvJyKAVWmgkQ2-KrkgSv4_5A=s288-mo-c-c0xffffffff-rj-k-no")
+        else:
+            desc = "T-Series currently has {:,} more subscribers!".format(tseries-pewdiepie)
+            content.set_thumbnail(
+                url="https://yt3.ggpht.com/a-/AAuE7mBlVCRJawuU4QYf21y-Fx-cc8c9HhExSiAPtQ=s288-mo-c-c0xffffffff-rj-k-no")
+        # content.timestamp = ctx.message.created_at
+        content.set_footer(text=desc)
+        await ctx.send(embed=content)
+
 
 def scrape_kprofiles(url):
     """Scrape the given kprofiles url for artist names and return the results"""
@@ -417,6 +440,30 @@ def scrape_kprofiles(url):
                 item = item.replace("Profile", "")
             filtered_results.append(item.strip())
     return filtered_results
+
+
+def get_subcount(username):
+    urls = {"pewdiepie": "https://bastet.socialblade.com/youtube/lookup?query=UC-lHJZR3Gqxm24_Vd_AJ5Yw",
+            "tseries": "https://bastet.socialblade.com/youtube/lookup?query=UCq-Fj5jknLsUf-MWSy4_brA"}
+    url = urls.get(username)
+    if url is None:
+        return None
+    while True:
+        try:
+            response = requests.get(url=url, headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
+                "Origin": "https://socialblade.com",
+                "Host": "bastet.socialblade.com"}, timeout=1)
+        except requests.exceptions.ReadTimeout:
+            continue
+        if response.status_code == 200:
+            try:
+                subcount = int(response.content.decode('utf-8'))
+                break
+            except ValueError:
+                continue
+
+    return subcount
 
 
 def setup(client):

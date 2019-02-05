@@ -157,7 +157,7 @@ class User:
         else:
             avatar_url = user.avatar_url_as(static_format="png")
 
-        content = discord.Embed(color=discord.Color.light_grey())
+        content = discord.Embed(color=user.color)
         content.set_author(name=f"{user.name}", url=avatar_url)
         content.set_image(url=avatar_url)
 

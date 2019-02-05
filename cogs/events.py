@@ -71,12 +71,13 @@ class Events:
         if message.content.startswith("git"):
             gitcommand = re.search(r'git (\S+)', message.content).group(1)
             if gitcommand == "--help":
-                await message.channel.send("```\n"
-                                           "usage: git [--version] [--help] [-C <path>] [-c <name>=<value>]\n"
-                                           "           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n"
-                                           "           [-p | --paginate | --no-pager] [--no-replace-objects] [--bare]\n"
-                                           "           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n"
-                                           "           <command> [<args>]```")
+                msg = "```\n" \
+                      "usage: git [--version] [--help] [-C <path>] [-c <name>=<value>]\n" \
+                      "           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n" \
+                      "           [-p | --paginate | --no-pager] [--no-replace-objects] [--bare]\n" \
+                      "           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n" \
+                      "           <command> [<args>]```"
+                await message.channel.send(msg)
             elif gitcommand == "--version":
                 await message.channel.send("git version 2.17.1")
             else:
