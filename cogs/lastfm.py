@@ -10,6 +10,8 @@ import time as t
 import os
 import cogs.utility as util
 import main
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 keys = os.environ
 LASTFM_APPID = keys['LASTFM_APIKEY']
@@ -432,6 +434,8 @@ class LastFM:
     async def fmartist(self, ctx, mode, *args):
         """Get your most listened tracks or albums for an artist"""
         self.logger.info(misolog.format_log(ctx, f""))
+        perpage = 200
+
         if mode in ["toptracks", "tt", "tracks", "track"]:
             method = "user.gettoptracks"
             json_attr = ["toptracks", "track"]
@@ -453,13 +457,16 @@ class LastFM:
 
         async with ctx.typing():
             items = []
-            data = api_request({"method": method, "user": user, "limit": 1000})
+            data = api_request({"method": method, "user": user, "limit": perpage})
             total_pages = int(data[json_attr[0]]['@attr']['totalPages'])
             items += data[json_attr[0]][json_attr[1]]
             if total_pages > 1:
-                for i in range(2, total_pages + 1):
-                    data = api_request({"method": method, "user": user, "limit": 1000, "page": i})
-                    items += data[json_attr[0]][json_attr[1]]
+                loop = self.client.loop
+                # future = asyncio.ensure_future(self.get_data(method, user, total_pages, perpage))
+                # gather = loop.create_task(future)
+                gather = await loop.create_task(self.fmartist_data_threaded(method, user, total_pages, perpage))
+                for x in gather:
+                    items += x[json_attr[0]][json_attr[1]]
 
             artist_data = {}
             formatted_name = None
@@ -507,6 +514,20 @@ class LastFM:
         else:
             await ctx.send("You haven't listened to this artist! "
                            "Make sure the artist name is formatted exactly as it shows up in the last fm database.")
+
+    async def fmartist_data_threaded(self, method, user, total_pages, perpage):
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            loop = asyncio.get_event_loop()
+            datas = [{"method": method, "user": user, "limit": perpage, "page": i} for i in range(1, total_pages + 1)]
+            tasks = [
+                loop.run_in_executor(
+                    executor,
+                    api_request,
+                    data
+                )
+                for data in datas
+            ]
+            return await asyncio.gather(*tasks)
 
 
 def api_request(data_dict):

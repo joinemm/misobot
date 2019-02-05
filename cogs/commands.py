@@ -98,8 +98,7 @@ class Commands:
         content.add_field(name="System CPU Usage", value=f"{psutil.cpu_percent()}%")
         content.add_field(name="System uptime", value=system_uptime_string)
 
-        content.add_field(name="System RAM Usage", value=f"{mem.percent}% ({mem.used/math.pow(1024, 3):.2f}GB/"
-                                                         f"{mem.total/math.pow(1024, 3):.2f}GB)")
+        content.add_field(name="System RAM Usage", value=f"{mem.percent}%")
         content.add_field(name="Bot memory usage", value=f"{memory_use/math.pow(1024, 2):.2f}MB")
 
         await ctx.send(embed=content)
