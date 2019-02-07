@@ -5,13 +5,14 @@ import os
 
 logger = misolog.create_logger(__name__)
 database = db.Database()
-version = "1.2.5"
+version = "1.3.0"
 
 TOKEN = os.environ.get('MISO_BOT_TOKEN')
 
 client = commands.Bot(command_prefix=">")
 extensions = ["cogs.commands", "cogs.owner", "cogs.lastfm", "cogs.apis", "cogs.music", "cogs.events",
-              "cogs.fishy", "cogs.mod", "cogs.user", "cogs.sorter", "cogs.notifications", "cogs.levels"]
+              "cogs.fishy", "cogs.mod", "cogs.user", "cogs.sorter", "cogs.notifications", "cogs.levels",
+              "cogs.rolepicker"]
 
 
 if __name__ == "__main__":
