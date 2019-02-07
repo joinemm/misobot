@@ -38,15 +38,21 @@ class Roles:
 
     @commands.command()
     async def role(self, ctx, rolename=None):
-        roleid = database.get_attr("guilds", f"{ctx.guild.id}.roles.{rolename}")
+        roleid = database.get_attr("guilds", f"{ctx.guild.id}.roles.{rolename.strip('+-')}")
         if roleid is None:
             await ctx.send(f"Role `{rolename}` does not exist!")
             return
 
         role = ctx.guild.get_role(roleid)
-        await ctx.author.add_roles(role)
-        await ctx.send(f"Added you the role **{role.name}!**")
-it
+        if rolename[0] == "+":
+            await ctx.author.add_roles(role)
+            await ctx.send(f"Added you the role **{role.name}!**")
+        elif rolename[0] == "-":
+            await ctx.author.remove_roles(role)
+            await ctx.send(f"Removed the role **{role.name}** from you!")
+        else:
+            await ctx.send("Invalid syntax! Usage: `>role +name | >role -name`")
+
 
 def setup(client):
     client.add_cog(Roles(client))
