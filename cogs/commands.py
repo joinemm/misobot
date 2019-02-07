@@ -17,6 +17,7 @@ import psutil
 import math
 import json
 import asyncio
+import datetime
 
 database = main.database
 
@@ -224,14 +225,29 @@ class Commands:
         soup = BeautifulSoup(response.text, 'html.parser')
         script = soup.find_all('script')
         sources = []
+        found_date = False
+        post_date = None
         for i in range(len(script)):
             urls = re.findall('"display_url":"(.*?)"', script[i].text)
             if urls:
                 sources = urls
+            if not found_date:
+                try:
+                    data = json.loads(script[i].text, encoding='utf-8')
+                    datestring = data.get('uploadDate')
+                    post_date = datetime.datetime.strptime(datestring, "%Y-%m-%dT%H:%M:%S")
+                    found_date = True
+                except json.JSONDecodeError:
+                    pass
         sources = list(set(sources))
 
+        date = re.findall('<script type="application/ld+json">(.*?)</script>', response.text)
+        print(date)
+
         if sources:
-            content = discord.Embed()
+            content = discord.Embed(title=soup.title.string, url=url)
+            if post_date is not None:
+                content.timestamp = post_date
             for url in sources:
                 content.set_image(url=url)
                 await ctx.send(embed=content)
