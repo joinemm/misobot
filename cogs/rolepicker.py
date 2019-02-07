@@ -1,6 +1,8 @@
 from discord.ext import commands
 from utils import misc
+from utils import logger as misolog
 import main
+import asyncio
 
 database = main.database
 
@@ -9,10 +11,12 @@ class Roles:
 
     def __init__(self, client):
         self.client = client
+        self.logger = misolog.create_logger(__name__)
 
     @commands.command()
     @commands.has_permissions(manage_roles=True)
     async def rolesetup(self, ctx, action=None, name=None, role=None):
+        self.logger.info(misolog.format_log(ctx, f""))
         if action == "help":
             await ctx.send("**Usage:** `>rolesetup [add | remove] [name] [role id]`")
             return
@@ -38,20 +42,27 @@ class Roles:
 
     @commands.command()
     async def role(self, ctx, rolename=None):
+        self.logger.info(misolog.format_log(ctx, f""))
         roleid = database.get_attr("guilds", f"{ctx.guild.id}.roles.{rolename.strip('+-')}")
         if roleid is None:
             await ctx.send(f"Role `{rolename}` does not exist!")
             return
 
+        msg = None
         role = ctx.guild.get_role(roleid)
         if rolename[0] == "+":
             await ctx.author.add_roles(role)
-            await ctx.send(f"Added you the role **{role.name}!**")
+            msg = await ctx.send(f"Added you the role **{role.name}!**")
         elif rolename[0] == "-":
             await ctx.author.remove_roles(role)
-            await ctx.send(f"Removed the role **{role.name}** from you!")
+            msg = await ctx.send(f"Removed the role **{role.name}** from you!")
         else:
             await ctx.send("Invalid syntax! Usage: `>role +name | >role -name`")
+
+        if msg is not None:
+            await asyncio.sleep(5)
+            await ctx.message.delete()
+            await msg.delete()
 
 
 def setup(client):
