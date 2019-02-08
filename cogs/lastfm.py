@@ -529,6 +529,44 @@ class LastFM:
             ]
             return await asyncio.gather(*tasks)
 
+    @commands.command()
+    async def whoknows(self, ctx, *args):
+        artistname = " ".join(args)
+        await ctx.message.channel.trigger_typing()
+        listeners = []
+        for userid in database.get_attr("users", "."):
+            lastfm_username = database.get_attr("users", f"{userid}.lastfm_username")
+            if lastfm_username is None:
+                continue
+
+            # member = ctx.guild.get_member(int(userid))
+            member = self.client.get_user(int(userid))
+            if member is None:
+                continue
+
+            # is on this server and has lastfm connected
+            playcount = get_playcount(artistname, lastfm_username)
+            listeners.append((playcount, member))
+
+        rows = []
+        for i, x in enumerate(sorted(listeners, key=lambda p: p[0], reverse=True)):
+            if i == 0:
+                rank = ":crown:"
+            else:
+                rank = f"`{i + 1}`."
+            rows.append(f"{rank} **{x[1].name}** - **{x[0]}** plays")
+
+        content = discord.Embed(title=f"Who knows **{artistname}**?")
+        pages = create_pages(rows)
+        content.description = pages[0]
+
+        if len(pages) > 1:
+            content.set_footer(text=f"page 1 of {len(pages)}")
+        my_msg = await ctx.send(embed=content)
+
+        if len(pages) > 1:
+            await util.page_switcher(self.client, my_msg, content, pages)
+
 
 def api_request(data_dict):
     """Get json data from lastfm api and return it
@@ -544,13 +582,21 @@ def api_request(data_dict):
         return None
 
 
-def create_pages(rows):
+def get_playcount(artist, username):
+    data = api_request({"method": "artist.getinfo", "user": username, "artist": artist})
+    try:
+        return int(data['artist']['stats']['userplaycount'])
+    except KeyError:
+        return 0
+
+
+def create_pages(rows, maxrows=15):
     pages = []
     description = ""
     thisrow = 0
     for row in rows:
         thisrow += 1
-        if len(description) + len(row) < 2000 and thisrow < 16:
+        if len(description) + len(row) < 2000 and thisrow < maxrows+1:
             description += f"\n{row}"
         else:
             thisrow = 0
