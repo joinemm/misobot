@@ -546,7 +546,8 @@ class LastFM:
 
             # is on this server and has lastfm connected
             playcount = get_playcount(artistname, lastfm_username)
-            listeners.append((playcount, member))
+            if playcount > 0:
+                listeners.append((playcount, member))
 
         rows = []
         for i, x in enumerate(sorted(listeners, key=lambda p: p[0], reverse=True)):
