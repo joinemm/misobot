@@ -80,12 +80,14 @@ class Commands:
         up_time = time.time() - self.start_time
         m, s = divmod(up_time, 60)
         h, m = divmod(m, 60)
-        uptime_string = "%d hours %d minutes %d seconds" % (h, m, s)
+        d, h = divmod(h, 24)
+        uptime_string = "%d days %d hours %d minutes %d seconds" % (d, h, m, s)
 
         stime = time.time() - psutil.boot_time()
         m, s = divmod(stime, 60)
         h, m = divmod(m, 60)
-        system_uptime_string = "%d hours %d minutes %d seconds" % (h, m, s)
+        d, h = divmod(h, 24)
+        system_uptime_string = "%d days %d hours %d minutes %d seconds" % (d, h, m, s)
 
         mem = psutil.virtual_memory()
 
@@ -427,11 +429,11 @@ class Commands:
         content.add_field(name="Pewdiepie", value="**{:,}**".format(pewdiepie))
         content.add_field(name="T-Series", value="**{:,}**".format(tseries))
         if pewdiepie >= tseries:
-            desc = "Pewdiepie currently has {:,} more subscribers!".format(pewdiepie-tseries)
+            desc = "PewDiePie is currently {:,} subscribers ahead of T-Series!".format(pewdiepie-tseries)
             content.set_thumbnail(
                 url="https://yt3.ggpht.com/a-/AAuE7mAPBVgUYqlLw9SvJyKAVWmgkQ2-KrkgSv4_5A=s288-mo-c-c0xffffffff-rj-k-no")
         else:
-            desc = "T-Series currently has {:,} more subscribers!".format(tseries-pewdiepie)
+            desc = "T-Series is currently {:,} subscribers ahead of PewDiePie!".format(tseries-pewdiepie)
             content.set_thumbnail(
                 url="https://yt3.ggpht.com/a-/AAuE7mBlVCRJawuU4QYf21y-Fx-cc8c9HhExSiAPtQ=s288-mo-c-c0xffffffff-rj-k-no")
         # content.timestamp = ctx.message.created_at
