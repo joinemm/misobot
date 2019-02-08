@@ -539,8 +539,8 @@ class LastFM:
             if lastfm_username is None:
                 continue
 
-            # member = ctx.guild.get_member(int(userid))
-            member = self.client.get_user(int(userid))
+            member = ctx.guild.get_member(int(userid))
+            # member = self.client.get_user(int(userid))
             if member is None:
                 continue
 
