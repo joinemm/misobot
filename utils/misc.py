@@ -43,6 +43,8 @@ def channel_from_mention(guild, text, default=None):
 
 
 def get_color(url):
+    if url.strip() == "":
+        return None
     try:
         r = requests.get(url)
         if r.status_code == 200:
@@ -50,7 +52,7 @@ def get_color(url):
                 for chunk in r:
                     f.write(chunk)
         else:
-            return "ffffff"
+            return None
 
         color_thief = ColorThief('downloads/album_art.png')
         dominant_color = color_thief.get_color(quality=1)
