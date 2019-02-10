@@ -141,7 +141,7 @@ class User:
 
     @commands.command(name="avatar")
     async def avatar(self, ctx, mention=None, extra=None):
-        """Get a user's profile get"""
+        """Get a user's profile picture"""
         self.logger.info(misolog.format_log(ctx, f""))
         if mention is not None:
             user = misomisc.user_from_mention(self.client, mention, ctx.author)

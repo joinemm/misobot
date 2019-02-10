@@ -10,7 +10,6 @@ import urllib.parse
 import time
 from utils import logger as misolog
 from bs4 import BeautifulSoup
-import youtube_dl
 import os
 import main
 import psutil
@@ -305,32 +304,6 @@ class Commands:
             return
         else:
             await msg.delete()
-
-    @commands.command(name="ytmp3")
-    async def ytmp3(self, ctx, url):
-        """Turn youtube video into downloadable mp3 file"""
-        async with ctx.typing():
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'outtmpl': 'downloads/%(title)s.mp3',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192'
-                }]
-            }
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-                title = ydl.extract_info(url=url).get('title', None).replace('"', "'")
-
-            with open(f"downloads/{title}.mp3", "rb") as f:
-                await ctx.send(file=discord.File(f))
-                self.logger.info(misolog.format_log(ctx, f""))
-            try:
-                os.remove(f"downloads/{title}.mp3")
-            except OSError as e:
-                self.logger.warning(f"Failed to delete {title}.mp3")
-                print(str(e))
 
     @commands.command(name="8ball")
     async def eightball(self, ctx, *args):
