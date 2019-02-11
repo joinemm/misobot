@@ -98,11 +98,11 @@ class Fishy:
 
                     else:
                         if korean:
-                            await ctx.send(f"너는" + ("" if self.fishy else f" **{receiver_name}** 를 위해") +
+                            await ctx.send(f"너는" + ("" if self_fishy else f" **{receiver_name}** 를 위해") +
                                            f" **{amount}** 마리의 물고기를 잡았다! :fishing_pole_and_fish:")
                         else:
                             await ctx.send(f"Caught **{amount}** fishies " +
-                                           ("" if self.fishy else f"for **{receiver_name}**") +
+                                           ("" if self_fishy else f"for **{receiver_name}**") +
                                            "! :fishing_pole_and_fish:")
 
                 database.set_attr("users", f"{user_id_receiver}.fishy", amount, increment=True)
