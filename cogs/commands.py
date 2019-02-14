@@ -17,6 +17,8 @@ import math
 import json
 import asyncio
 import datetime
+from utils import minestat
+
 
 database = main.database
 
@@ -411,6 +413,25 @@ class Commands:
                 url="https://yt3.ggpht.com/a-/AAuE7mBlVCRJawuU4QYf21y-Fx-cc8c9HhExSiAPtQ=s288-mo-c-c0xffffffff-rj-k-no")
         # content.timestamp = ctx.message.created_at
         content.set_footer(text=desc)
+        await ctx.send(embed=content)
+
+    @commands.command()
+    async def minecraft(self, ctx, address="mc.joinemm.me"):
+        """Get the status of a minecraft server"""
+        server = minestat.MineStat(address, 25565)
+        content = discord.Embed()
+        # content.title = f"`{server.address} : {server.port}`"
+        content.colour = discord.Color.green()
+        if server.online:
+            content.add_field(name="Server Address", value=f"`{server.address}`")
+            content.add_field(name="Port", value=server.port)
+            content.add_field(name="Players", value=f"{server.current_players}/{server.max_players}")
+            content.add_field(name="Latency", value=f"{server.latency}ms")
+            content.set_footer(text=f"{server.version} | {server.motd}")
+        else:
+            content.description = "**Server is offline**"
+        content.set_thumbnail(url="https://vignette.wikia.nocookie.net/potcoplayers/images/c/c2/"
+                                  "Minecraft-icon-file-gzpvzfll.png/revision/latest?cb=20140813205910")
         await ctx.send(embed=content)
 
 
