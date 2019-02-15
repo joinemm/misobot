@@ -424,10 +424,10 @@ class Commands:
         content.colour = discord.Color.green()
         if server.online:
             content.add_field(name="Server Address", value=f"`{server.address}`")
-            content.add_field(name="Port", value=server.port)
+            content.add_field(name="Version", value=server.version)
             content.add_field(name="Players", value=f"{server.current_players}/{server.max_players}")
             content.add_field(name="Latency", value=f"{server.latency}ms")
-            content.set_footer(text=f"{server.version} | {server.motd}")
+            content.set_footer(text=f"{server.motd}")
         else:
             content.description = "**Server is offline**"
         content.set_thumbnail(url="https://vignette.wikia.nocookie.net/potcoplayers/images/c/c2/"
