@@ -509,10 +509,8 @@ class Apis:
         """Get all the images from a tweet"""
         self.logger.info(misolog.format_log(ctx, f""))
         if "status" in tweet_url:
-            tweet_id = re.search(r'status/(\d+)', tweet_url).group(1)
-            tweet = twt.get_status(tweet_id)
-        else:
-            tweet = twt.get_status(tweet_url, tweet_mode='extended')
+            tweet_url = re.search(r'status/(\d+)', tweet_url).group(1)
+        tweet = twt.get_status(tweet_url, tweet_mode='extended')
 
         media_files = []
         try:
