@@ -21,7 +21,7 @@ class Events:
 
     async def on_ready(self):
         """The event triggered when bot is done loading extensions and is ready to use"""
-        await self.client.change_presence(activity=discord.Game(name='>info'))
+        await self.client.change_presence(activity=discord.Activity(name='youtu.be/bVxe8_8RsjQ', type=2))
         self.logger.info('Loading complete : Bot state = READY')
 
     async def on_member_join(self, member):
@@ -102,14 +102,12 @@ class Events:
                             user = message.guild.get_member(user_id)
                             if user is not None:
                                 content = discord.Embed()
-                                content.set_author(
-                                    name=f'{message.author} mentioned "{word}" in {message.guild.name}',
-                                    icon_url=message.author.avatar_url)
+                                content.set_author(name=f"{message.author}", icon_url=message.author.avatar_url)
                                 highlighted_text = re.sub(pattern, lambda x: f'**{x.group(0)}**', message.content)
-                                content.description = f">>> {highlighted_text}\n\n" \
+                                content.description = f"`>>>` {highlighted_text}\n\n" \
                                     f"[Go to message]({message.jump_url})"
-                                content.set_thumbnail(url=message.guild.icon_url)
-                                content.set_footer(text=f"#{message.channel.name}")
+                                # content.set_thumbnail(url=message.guild.icon_url)
+                                content.set_footer(text=f"{message.guild.name} | #{message.channel.name}")
                                 content.timestamp = message.created_at
 
                                 await user.send(embed=content)
