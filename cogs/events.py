@@ -166,8 +166,7 @@ class Events:
                         content = discord.Embed(color=discord.Color.gold())
                         content.set_author(name=f"{reaction.message.author}",
                                            icon_url=reaction.message.author.avatar_url)
-                        content.description = "<:blank:540269692535963669> " + reaction.message.content + \
-                                              f"\n\n[context]({reaction.message.jump_url})"
+                        content.description = reaction.message.content + f"\n\n[context]({reaction.message.jump_url})"
                         content.timestamp = reaction.message.created_at
                         content.set_footer(text=f"{reaction.count} ⭐ #{reaction.message.channel.name}")
                         if len(reaction.message.attachments) > 0:
@@ -188,18 +187,8 @@ class Events:
 
     async def on_command_error(self, ctx, error):
         """The event triggered when an error is raised while invoking a command"""
-
-        # This prevents any commands with local handlers being handled here in on_command_error.
-        # if hasattr(ctx.command, 'on_error'):
-        #    return
-
-        # ignored = commands.CommandNotFound
-
-        # Allows us to check for original exceptions raised and sent to CommandInvokeError.
-        # If nothing is found. We keep the exception passed to on_command_error.
         error = getattr(error, 'original', error)
 
-        # Anything in ignored will return and prevent anything happening.
         if isinstance(error, commands.CommandNotFound):
             custom_command = ctx.message.content.strip(">").split(" ")[0]
             response = self.custom_command_check(custom_command, ctx)
@@ -209,10 +198,12 @@ class Events:
             else:
                 self.logger.error(misolog.format_log(ctx, str(error)))
                 return
+
         elif isinstance(error, commands.DisabledCommand):
             self.logger.error(misolog.format_log(ctx, str(error)))
             await ctx.send(f'{ctx.command} has been disabled.')
             return
+
         elif isinstance(error, commands.NoPrivateMessage):
             self.logger.error(misolog.format_log(ctx, str(error)))
             try:
@@ -220,10 +211,18 @@ class Events:
             except Exception:
                 pass
             return
+
         elif isinstance(error, commands.NotOwner):
             self.logger.error(misolog.format_log(ctx, str(error)))
             await ctx.send("Sorry, only Joinemm#1998 can use this command!")
             return
+
+        elif isinstance(error, commands.MissingPermissions):
+            print(str(error))
+            perms = '\n'.join([f"**{x}**" for x in error.missing_perms])
+            await ctx.send(f"You are missing the required permissions to use this command:\n{perms}")
+            return
+
         else:
             self.logger.error(f'Ignoring exception in command {ctx.command}:')
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
