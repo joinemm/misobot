@@ -296,16 +296,24 @@ class Commands:
         # print(f"found {len(urls)} gifs")
         msg = await ctx.send(f"**{query}**: {rd.choice(urls)}")
         await msg.add_reaction("❌")
+        await msg.add_reaction("🔁")
 
         def check(_reaction, _user):
-            return _reaction.message.id == msg.id and _reaction.emoji == "❌" and _user == ctx.author
+            return _reaction.message.id == msg.id and _reaction.emoji in ["❌", "🔁"] and _user == ctx.author
 
-        try:
-            await self.client.wait_for('reaction_add', timeout=120.0, check=check)
-        except asyncio.TimeoutError:
-            return
-        else:
-            await msg.delete()
+        while True:
+            try:
+                reaction, user = await self.client.wait_for('reaction_add', timeout=300.0, check=check)
+            except asyncio.TimeoutError:
+                await msg.clear_reactions()
+                return
+            else:
+                if reaction.emoji == "❌":
+                    await msg.delete()
+                    return
+                elif reaction.emoji == "🔁":
+                    await msg.edit(content=f"**{query}**: {rd.choice(urls)}")
+                    await msg.remove_reaction("🔁", user)
 
     @commands.command(name="8ball")
     async def eightball(self, ctx, *args):
@@ -418,6 +426,7 @@ class Commands:
     @commands.command()
     async def minecraft(self, ctx, address="mc.joinemm.me"):
         """Get the status of a minecraft server"""
+        self.logger.info(misolog.format_log(ctx, f""))
         server = minestat.MineStat(address, 25565)
         content = discord.Embed()
         # content.title = f"`{server.address} : {server.port}`"
@@ -433,6 +442,22 @@ class Commands:
         content.set_thumbnail(url="https://vignette.wikia.nocookie.net/potcoplayers/images/c/c2/"
                                   "Minecraft-icon-file-gzpvzfll.png/revision/latest?cb=20140813205910")
         await ctx.send(embed=content)
+
+    @commands.command()
+    async def xkcd(self, ctx, comic_id=None):
+        """Get a random xkcd"""
+        self.logger.info(misolog.format_log(ctx, f""))
+        if comic_id is None:
+            url = "https://c.xkcd.com/random/comic/"
+            response = requests.get(url, headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Connection": "keep-alive",
+                "Referer": "https://xkcd.com/",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"})
+            location = response.url
+        else:
+            location = f"https://xkcd.com/{comic_id}/"
+        await ctx.send(location)
 
 
 def scrape_kprofiles(url):

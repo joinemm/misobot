@@ -86,7 +86,10 @@ class Database:
         if attr == ".":
             return datafile.get_data()
         else:
-            return deep_get(datafile.get_data(), attr, default)
+            try:
+                return deep_get(datafile.get_data(), attr, default)
+            except TypeError:
+                return None
 
     def set_attr(self, database, attr, value, increment=False):
         datafile = self.datafiles[database]

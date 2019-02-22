@@ -73,55 +73,79 @@ class Mod:
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def config(self, ctx, mode=None, arg=None, arg2=None):
-        """Set bot parameters like welcome channel and mute role"""
-        self.logger.info(misolog.format_log(ctx, f""))
-
-        if mode in ["welcome", "welcomechannel"]:
-            if arg is not None:
+    async def welcome(self, ctx, option, *args):
+        """Configure the welcome message"""
+        if option == "channel":
+            try:
+                arg = args[0]
                 channel = misomisc.channel_from_mention(ctx.guild, arg)
                 if channel is not None:
                     database.set_attr("guilds", f"{ctx.guild.id}.welcome_channel", channel.id)
                     await ctx.send(f"Welcome channel for {ctx.guild.name} set to {channel.mention}")
                 else:
                     await ctx.send("ERROR: Invalid channel")
-            else:
+            except IndexError:
                 await ctx.send(f"ERROR: Please give a channel to set the as the welcome channel")
 
-        elif mode == "starboard":
-            if arg == "channel":
-                if arg2 is not None:
-                    channel = misomisc.channel_from_mention(ctx.guild, arg2)
-                    if channel is not None:
-                        database.set_attr("guilds", f"{ctx.guild.id}.starboard_channel", channel.id)
-                        await ctx.send(f"{channel.mention} is now the starboard channel")
-                    else:
-                        await ctx.send("ERROR: Invalid channel")
+        elif option == "message":
+            message = " ".join(args)
+            database.set_attr("guilds", f"{ctx.guild.id}.welcome_message", message)
+            await ctx.send("New welcome message set:")
+            await ctx.send(message.format(mention=ctx.author.mention, user=ctx.author.name))
+
+        elif option == "enable":
+            database.set_attr("guilds", f"{ctx.guild.id}.welcome", True)
+            await ctx.send("Welcome messages **enabled**")
+
+        elif option == "disable":
+            database.set_attr("guilds", f"{ctx.guild.id}.welcome", False)
+            await ctx.send("Welcome messages **disabled**")
+
+        else:
+            await ctx.send(f"ERROR: Invalid option `{option}`.\nUse `message`, `channel`, `disable` or `enable`")
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def starboard(self, ctx, option=None, arg=None):
+        if option == "channel":
+            if arg is not None:
+                channel = misomisc.channel_from_mention(ctx.guild, arg)
+                if channel is not None:
+                    database.set_attr("guilds", f"{ctx.guild.id}.starboard_channel", channel.id)
+                    await ctx.send(f"{channel.mention} is now the starboard channel")
                 else:
-                    await ctx.send(f"ERROR: Please give a channel")
-
-            elif arg == "amount":
-                try:
-                    amount = int(arg2)
-                except ValueError:
-                    await ctx.send("ERROR: Pleave give a number")
-                    return
-
-                database.set_attr("guilds", f"{ctx.guild.id}.starboard_amount", amount)
-                await ctx.send(f"Starboard emoji requirement set to `{amount}`")
-
-            elif arg == "enable":
-                database.set_attr("guilds", f"{ctx.guild.id}.starboard", True)
-                await ctx.send("Starboard **enabled**")
-
-            elif arg == "disable":
-                database.set_attr("guilds", f"{ctx.guild.id}.starboard", False)
-                await ctx.send("Starboard **disabled**")
-
+                    await ctx.send("ERROR: Invalid channel")
             else:
-                await ctx.send("ERROR: Invalid argument. use `channel`, `amount`, `disable` or `enable`")
+                await ctx.send(f"ERROR: Please give a channel")
 
-        elif mode in ["votechannel", "votingchannel"]:
+        elif option == "amount":
+            try:
+                amount = int(arg)
+            except ValueError:
+                await ctx.send("ERROR: Please give a number")
+                return
+
+            database.set_attr("guilds", f"{ctx.guild.id}.starboard_amount", amount)
+            await ctx.send(f"Starboard emoji requirement set to `{amount}`")
+
+        elif option == "enable":
+            database.set_attr("guilds", f"{ctx.guild.id}.starboard", True)
+            await ctx.send("Starboard **enabled**")
+
+        elif option == "disable":
+            database.set_attr("guilds", f"{ctx.guild.id}.starboard", False)
+            await ctx.send("Starboard **disabled**")
+
+        else:
+            await ctx.send(f"ERROR: Invalid option `{option}`.\nUse `channel`, `amount`, `disable` or `enable`")
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def config(self, ctx, mode=None, arg=None, arg2=None):
+        """Configure server specific options"""
+        self.logger.info(misolog.format_log(ctx, f""))
+
+        if mode in ["votechannel", "votingchannel"]:
             if arg in ["add", "remove"]:
                 if arg2 is not None:
                     channel = misomisc.channel_from_mention(ctx.guild, arg2)
@@ -172,8 +196,8 @@ class Mod:
             else:
                 await ctx.send(f"ERROR: Please give `true` or `false` to set this setting to")
         else:
-            await ctx.send("Error: Please give a parameter to configure.\n"
-                           "`[welcome | muterole | autorole | levelup | votechannel]`")
+            await ctx.send("ERROR: Please give a parameter to configure.\n"
+                           "`[muterole | autorole | levelup | votechannel]`")
 
 
 def setup(client):

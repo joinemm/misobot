@@ -91,7 +91,10 @@ class Levels:
         i = 0
 
         for userid, value in sorted(tops.items(), key=lambda x: itemgetter('xp')(x[1]), reverse=True):
-            user = self.client.get_user(int(userid))
+            if scope == "global":
+                user = self.client.get_user(int(userid))
+            else:
+                user = ctx.guild.get_member(int(userid))
             if user is None or user.bot:
                 continue
             i += 1

@@ -144,7 +144,7 @@ class User:
         """Get a user's profile picture"""
         self.logger.info(misolog.format_log(ctx, f""))
         if mention is not None:
-            user = misomisc.user_from_mention(self.client, mention, ctx.author)
+            user = misomisc.user_from_mention(ctx.guild, mention, ctx.author)
             if user is None:
                 user = ctx.author
         else:

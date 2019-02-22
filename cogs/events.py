@@ -26,12 +26,13 @@ class Events:
 
     async def on_member_join(self, member):
         """The event triggered when user joins a guild"""
-        channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
-        if channel_id is not None:
-            await self.client.get_channel(channel_id).send(f'Welcome {member.mention}')
-            self.logger.info(f"Welcomed {member} to {member.guild.name}")
-        else:
-            self.logger.warning(f"no welcome channel set for {member.guild.name}")
+        if database.get_attr("guilds", f"{member.guild.id}.welcome", True):
+            channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
+            if channel_id is not None:
+                await self.client.get_channel(channel_id).send(f'Welcome {member.mention}')
+                self.logger.info(f"Welcomed {member} to {member.guild.name}")
+            else:
+                self.logger.warning(f"no welcome channel set for {member.guild.name}")
 
         role_id = database.get_attr("guilds", f"{member.guild.id}.autorole")
         if role_id is not None:
@@ -42,12 +43,13 @@ class Events:
 
     async def on_member_remove(self, member):
         """The event triggered when user leaves a guild"""
-        channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
-        if channel_id is not None:
-            await self.client.get_channel(channel_id).send(f'Goodbye {member.mention}...')
-            self.logger.info(f"Said goodbye to {member} from {member.guild.name}")
-        else:
-            self.logger.warning(f"no goodbye channel set for {member.guild.name}")
+        if database.get_attr("guilds", f"{member.guild.id}.welcome", True):
+            channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
+            if channel_id is not None:
+                await self.client.get_channel(channel_id).send(f'Goodbye {member.mention}...')
+                self.logger.info(f"Said goodbye to {member} from {member.guild.name}")
+            else:
+                self.logger.warning(f"no goodbye channel set for {member.guild.name}")
 
     async def on_message(self, message):
         # ignore DMs

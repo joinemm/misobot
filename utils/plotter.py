@@ -4,7 +4,7 @@ from scipy.interpolate import make_interp_spline, BSpline
 import matplotlib.ticker as plticker
 
 
-def create_graph(data, usercolor, title=None, dimensions=(6, 3)):
+def create_graph(data, usercolor, title=None, dimensions=(6, 3), draw=False):
     plt.rcParams['figure.figsize'] = [dimensions[0], dimensions[1]]
     T = np.array(list(range(0, len(data))))
     xnew = np.linspace(T.min(), T.max(), 240)
@@ -42,34 +42,6 @@ def create_graph(data, usercolor, title=None, dimensions=(6, 3)):
     ax.tick_params(axis='x', colors='white')
     ax.tick_params(axis='y', colors='white')
     plt.fill_between(xnew, power_smooth, color=usercolor, alpha=0.2)
-    # plt.show()
+    if draw:
+        plt.show()
     plt.savefig('downloads/graph.png', facecolor='#1D1E22', bbox_inches='tight')
-
-
-y = [
-                2119,
-                1157,
-                282,
-                245,
-                111,
-                116,
-                80,
-                122,
-                131,
-                268,
-                230,
-                602,
-                413,
-                1008,
-                616,
-                777,
-                757,
-                588,
-                1430,
-                1227,
-                586,
-                1742,
-                786,
-                2607
-            ]
-create_graph(y, "#1ABC9C")
