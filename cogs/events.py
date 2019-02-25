@@ -103,11 +103,13 @@ class Events:
                         if not user_id == message.author.id:
                             user = message.guild.get_member(user_id)
                             if user is not None:
+                                if user not in message.channel.members:
+                                    return
                                 content = discord.Embed()
                                 content.set_author(name=f"{message.author}", icon_url=message.author.avatar_url)
                                 highlighted_text = re.sub(pattern, lambda x: f'**{x.group(0)}**', message.content)
                                 content.description = f"`>>>` {highlighted_text}\n\n" \
-                                    f"[Go to message]({message.jump_url})"
+                                                      f"[Go to message]({message.jump_url})"
                                 # content.set_thumbnail(url=message.guild.icon_url)
                                 content.set_footer(text=f"{message.guild.name} | #{message.channel.name}")
                                 content.timestamp = message.created_at
