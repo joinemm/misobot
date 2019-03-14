@@ -15,6 +15,7 @@ async def page_switcher(client, my_msg, content, pages):
         try:
             reaction, user = await client.wait_for('reaction_add', timeout=3600.0, check=check)
         except asyncio.TimeoutError:
+            await my_msg.clear_reactions()
             return
         else:
             try:
@@ -32,3 +33,20 @@ async def page_switcher(client, my_msg, content, pages):
                 await my_msg.edit(embed=content)
             except IndexError:
                 continue
+
+
+def create_pages(rows, maxrows=15):
+    pages = []
+    description = ""
+    thisrow = 0
+    for row in rows:
+        thisrow += 1
+        if len(description) + len(row) < 2000 and thisrow < maxrows+1:
+            description += f"\n{row}"
+        else:
+            thisrow = 0
+            pages.append(f"{description}")
+            description = f"\n{row}"
+    if not description == "":
+        pages.append(f"{description}")
+    return pages

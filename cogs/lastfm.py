@@ -218,7 +218,7 @@ class LastFM:
             content.set_author(name=f"{user_attr['user']} — {amount} Recent tracks",
                                icon_url=ctx.message.author.avatar_url)
 
-            pages = create_pages(description)
+            pages = util.create_pages(description)
             content.description = pages[0]
             return content, pages
         else:
@@ -249,7 +249,7 @@ class LastFM:
             content.set_footer(text=f"Total unique artists: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Most played artists {period}",
                                icon_url=ctx.message.author.avatar_url)
-            pages = create_pages(description)
+            pages = util.create_pages(description)
             content.description = pages[0]
             return content, pages
         else:
@@ -282,7 +282,7 @@ class LastFM:
             content.set_footer(text=f"Total unique albums: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Most played albums {period}",
                                icon_url=ctx.message.author.avatar_url)
-            pages = create_pages(description)
+            pages = util.create_pages(description)
             content.description = pages[0]
             return content, pages
         else:
@@ -315,7 +315,7 @@ class LastFM:
             content.set_footer(text=f"Total unique tracks: {user_attr['total']}")
             content.set_author(name=f"{user_attr['user']} — {amount} Most played tracks {period}",
                                icon_url=ctx.message.author.avatar_url)
-            pages = create_pages(description)
+            pages = util.create_pages(description)
             content.description = pages[0]
             return content, pages
         else:
@@ -501,7 +501,7 @@ class LastFM:
 
             content.title = f"{user}'s top " + ("tracks" if method == "user.gettoptracks" else "albums") \
                             + f" for {formatted_name} | Total {total_plays} plays"
-            pages = create_pages(description)
+            pages = util.create_pages(description)
             content.description = pages[0]
 
             if len(pages) > 1:
@@ -561,7 +561,7 @@ class LastFM:
         if not rows:
             return await ctx.send(f"Nobody on this server has listened to **{artistname}**")
 
-        pages = create_pages(rows)
+        pages = util.create_pages(rows)
         content.description = pages[0]
 
         if len(pages) > 1:
@@ -594,23 +594,6 @@ def get_playcount(artist, username):
         return int(data['artist']['stats']['userplaycount'])
     except KeyError:
         return 0
-
-
-def create_pages(rows, maxrows=15):
-    pages = []
-    description = ""
-    thisrow = 0
-    for row in rows:
-        thisrow += 1
-        if len(description) + len(row) < 2000 and thisrow < maxrows+1:
-            description += f"\n{row}"
-        else:
-            thisrow = 0
-            pages.append(f"{description}")
-            description = f"\n{row}"
-    if not description == "":
-        pages.append(f"{description}")
-    return pages
 
 
 def get_period(timeframe):

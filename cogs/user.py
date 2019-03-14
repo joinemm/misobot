@@ -73,25 +73,24 @@ class User:
         await ctx.send(embed=message)
 
     @commands.command()
-    async def roleslist(self, ctx, page=1):
+    async def roleslist(self, ctx):
         """List the roles of this server"""
         self.logger.info(misolog.format_log(ctx, f""))
-        pages = []
         content = discord.Embed(title=f"Roles for {ctx.message.guild.name}")
-        content.description = ""
+        rows = []
         for role in reversed(ctx.message.guild.roles):
-            item = f"{role.mention} ({role.id}) ({str(role.color)}) - {len(role.members)} members\n"
-            if len(content.description) + len(item) > 2000:
-                pages.append(content)
-                content = discord.Embed(title=f"Roles for {ctx.message.guild.name}")
-                content.description = ""
-            else:
-                content.description += item
-        pages.append(content)
-        if len(pages) > 1:
-            pages[int(page) - 1].set_footer(text=f"page {page} of {len(pages)}")
+            item = f"{role.mention} ({role.id}) (**{str(role.color)}**) - **{len(role.members)}** members"
+            rows.append(item)
 
-        await ctx.send(embed=pages[int(page)-1])
+        pages = util.create_pages(rows, 20)
+        content.description = pages[0]
+
+        if len(pages) > 1:
+            content.set_footer(text=f"page 1 of {len(pages)}")
+        my_msg = await ctx.send(embed=content)
+
+        if len(pages) > 1:
+            await util.page_switcher(self.client, my_msg, content, pages)
 
     @commands.command()
     async def members(self, ctx):
@@ -139,7 +138,7 @@ class User:
 
         await ctx.send(embed=message)
 
-    @commands.command(name="avatar")
+    @commands.command(aliases=['dp'])
     async def avatar(self, ctx, mention=None, extra=None):
         """Get a user's profile picture"""
         self.logger.info(misolog.format_log(ctx, f""))
