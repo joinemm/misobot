@@ -73,8 +73,9 @@ class Mod:
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def welcome(self, ctx, option, *args):
+    async def welcomeconfig(self, ctx, option, *args):
         """Configure the welcome message"""
+        self.logger.info(misolog.format_log(ctx, f""))
         if option == "channel":
             try:
                 arg = args[0]
@@ -107,6 +108,7 @@ class Mod:
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def starboard(self, ctx, option=None, arg=None):
+        self.logger.info(misolog.format_log(ctx, f""))
         if option == "channel":
             if arg is not None:
                 channel = misomisc.channel_from_mention(ctx.guild, arg)

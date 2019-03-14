@@ -423,7 +423,7 @@ class LastFM:
                            css='html/fm_chart_style.css')
         with open("downloads/fmchart.jpeg", "rb") as img:
             timer_upload = t.time()
-            await ctx.send(f"{ctx.message.author.mention} `{period} {size}x{size}{chart_type} chart`",
+            await ctx.send(f"`{ctx.message.author.name} {period} {size}x{size}{chart_type} chart`",
                            file=discord.File(img))
         if "debug" in args:
             await ctx.send(f"\nChart gen = {timer_upload - timer_start:.4f}s"
@@ -558,6 +558,9 @@ class LastFM:
             rows.append(f"{rank} **{x[1].name}** - **{x[0]}** plays")
 
         content = discord.Embed(title=f"Who knows **{artistname}**?")
+        if not rows:
+            return await ctx.send(f"Nobody on this server has listened to **{artistname}**")
+
         pages = create_pages(rows)
         content.description = pages[0]
 
@@ -580,6 +583,8 @@ def api_request(data_dict):
         fm_data = json.loads(response.content.decode('utf-8'))
         return fm_data
     else:
+        print(f"Api request error code {response.status_code}, returning None")
+        print(json.loads(response.content.decode('utf-8')))
         return None
 
 

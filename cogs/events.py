@@ -29,7 +29,9 @@ class Events:
         if database.get_attr("guilds", f"{member.guild.id}.welcome", True):
             channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
             if channel_id is not None:
-                await self.client.get_channel(channel_id).send(f'Welcome {member.mention}')
+                message = database.get_attr("guilds", f"{member.guild.id}.welcome_message", default="Welcome {mention}")
+                formatted_message = message.format(mention=member.mention, user=member.name)
+                await self.client.get_channel(channel_id).send(formatted_message)
                 self.logger.info(f"Welcomed {member} to {member.guild.name}")
             else:
                 self.logger.warning(f"no welcome channel set for {member.guild.name}")
@@ -46,7 +48,7 @@ class Events:
         if database.get_attr("guilds", f"{member.guild.id}.welcome", True):
             channel_id = database.get_attr("guilds", f"{member.guild.id}.welcome_channel")
             if channel_id is not None:
-                await self.client.get_channel(channel_id).send(f'Goodbye {member.mention}...')
+                await self.client.get_channel(channel_id).send(f'Goodbye **{member.nickname} [{member.mention}]**...')
                 self.logger.info(f"Said goodbye to {member} from {member.guild.name}")
             else:
                 self.logger.warning(f"no goodbye channel set for {member.guild.name}")

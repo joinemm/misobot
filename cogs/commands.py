@@ -423,10 +423,11 @@ class Commands:
         content.set_footer(text=desc)
         await ctx.send(embed=content)
 
-    @commands.command()
-    async def minecraft(self, ctx, address="mc.joinemm.me"):
+    @commands.command(aliases=['mc'])
+    async def minecraft(self, ctx, address='mc.joinemm.me'):
         """Get the status of a minecraft server"""
         self.logger.info(misolog.format_log(ctx, f""))
+        
         server = minestat.MineStat(address, 25565)
         content = discord.Embed()
         # content.title = f"`{server.address} : {server.port}`"
