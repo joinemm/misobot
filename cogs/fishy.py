@@ -242,7 +242,7 @@ class Fishy:
                               f"Rare: **{rare}** - {(rare/total)*100:.1f}%\n" \
                               f"Legendary: **{legendary}** - {(legendary/total)*100:.1f}%\n\n" \
                               f"Total fish count: **{total}**\n" \
-            f"Average fishy: **{fishy_total / total:.2f}**"
+                              f"Average fishy: **{fishy_total / total:.2f}**"
         await ctx.send(embed=message)
         self.logger.info(misolog.format_log(ctx, f""))
 

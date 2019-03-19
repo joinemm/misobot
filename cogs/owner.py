@@ -179,8 +179,8 @@ class Owner:
             starboard_channel = guilds[guild_id].get('starboard_channel')
             starboard_amount = guilds[guild_id].get('starboard_amount', 3)
 
-            sqldatabase.execute("REPLACE INTO guilds VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                                (guild_id, muterole, autorole, levelup_toggle, welcome_toggle, welcome_channel,
+            sqldatabase.execute("REPLACE INTO guilds VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                (guild_id, muterole, autorole, levelup_toggle, welcome_toggle, welcome_channel, None,
                                  starboard_toggle, starboard_channel, starboard_amount))
 
             for command in guilds[guild_id].get('custom_commands', []):
