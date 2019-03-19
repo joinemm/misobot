@@ -74,25 +74,27 @@ class Owner:
     @commands.is_owner()
     async def convertusersdb(self, ctx):
         usersdb = database.get_attr("users", ".")
-        sqldatabase.execute("""CREATE TABLE users (
-                            discord_id INTEGER PRIMARY KEY,
+        sqldatabase.execute("""CREATE TABLE IF NOT EXISTS users (
+                            user_id INTEGER,
                             lastfm_username TEXT,
                             sunsign TEXT,
-                            location TEXT
+                            location TEXT,
+                            PRIMARY KEY (user_id)
                             );""")
 
-        sqldatabase.execute("""CREATE TABLE fishy (
-                            discord_id INTEGER PRIMARY KEY,
-                            timestamp FLOAT,
-                            fishy INTEGER,
-                            fishy_gifted INTEGER,
-                            trash INTEGER,
-                            common INTEGER,
-                            uncommon INTEGER,
-                            rare INTEGER,
-                            legendary INTEGER,
-                            warning INTEGER);""")
-        sqldatabase.execute("""CREATE TABLE badges (
+        sqldatabase.execute("""CREATE TABLE IF NOT EXISTS `fishy` (
+        `user_id`	INTEGER,
+        `timestamp`	FLOAT,
+        `fishy`	INTEGER DEFAULT 0 NOT NULL,
+        `fishy_gifted`	INTEGER DEFAULT 0 NOT NULL,
+        `trash`	INTEGER DEFAULT 0 NOT NULL,
+        `common`	INTEGER DEFAULT 0 NOT NULL,
+        `uncommon`	INTEGER DEFAULT 0 NOT NULL,
+        `rare`	INTEGER DEFAULT 0 NOT NULL,
+        `legendary`	INTEGER DEFAULT 0 NOT NULL,
+        PRIMARY KEY(`user_id`)
+        );""")
+        sqldatabase.execute("""CREATE TABLE IF NOT EXISTS badges (
                             discord_id INTEGER PRIMARY KEY,
                             developer INTEGER,
                             patron INTEGER,
@@ -103,12 +105,12 @@ class Owner:
                             generous_fisher INTEGER);""")
 
         for userid in usersdb:
-            sqldatabase.execute("""INSERT INTO users VALUES (?, ?, ?, ?);""",
+            sqldatabase.execute("""REPLACE INTO users VALUES (?, ?, ?, ?);""",
                                 (int(userid),
                                  usersdb[userid].get("lastfm_username"),
                                  usersdb[userid].get("sunsign"),
                                  None))
-            sqldatabase.execute("""INSERT INTO fishy VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            sqldatabase.execute("""REPLACE INTO fishy VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                                 (int(userid),
                                  usersdb[userid].get("fishy_timestamp"),
                                  usersdb[userid].get("fishy"),
@@ -117,13 +119,12 @@ class Owner:
                                  usersdb[userid].get("fish_common"),
                                  usersdb[userid].get("fish_uncommon"),
                                  usersdb[userid].get("fish_rare"),
-                                 usersdb[userid].get("fish_legendary"),
-                                 usersdb[userid].get("warning")
+                                 usersdb[userid].get("fish_legendary")
                                  ))
 
             badges = usersdb[userid].get("badges")
             if badges is not None:
-                sqldatabase.execute("""INSERT INTO badges VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                sqldatabase.execute("""REPLACE INTO badges VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                                     (int(userid),
                                      (1 if "developer" in badges else 0),
                                      (1 if "patron" in badges else 0),
@@ -142,7 +143,8 @@ class Owner:
             for keyword in notifs[guildid]:
                 for userid in notifs[guildid][keyword]:
                     print(guildid, userid, keyword)
-                    sqldatabase.execute("REPLACE INTO notifications VALUES (?, ?, ?)", (int(guildid), int(userid), keyword))
+                    sqldatabase.execute("REPLACE INTO notifications VALUES (?, ?, ?)",
+                                        (int(guildid), int(userid), keyword))
 
     @commands.command(hidden=True)
     @commands.is_owner()
@@ -151,13 +153,13 @@ class Owner:
         for guildid in index:
             for userid in index[guildid]:
                 xp = index[guildid][userid]['xp']
-                bot = 1 if index[guildid][userid]['bot'] else 0
                 messages = index[guildid][userid]['messages']
                 activity = index[guildid][userid]['activity']
-                values = [int(guildid), int(userid), bot, xp, messages] + activity
+                print(xp, sum(activity))
+                values = [int(guildid), int(userid), messages] + activity
                 print(values)
                 sqldatabase.execute("REPLACE INTO activity VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                                    "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                    "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                     tuple(values))
 
     @commands.command(hidden=True)

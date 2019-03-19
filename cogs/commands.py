@@ -320,7 +320,7 @@ class Commands:
         """Ask a yes/no question"""
         if args:
             choices = ["Yes, definitely.", "Yes.", "Most likely yes.", "I think so, yes.",
-                       "Absolutely, no question about it", "Maybe.", "Perhaps.", "It's possible, but not likely."
+                       "Absolutely, no question about it", "Maybe.", "Perhaps.", "Possibly.",
                                                                                  "I don't think so.", "No.",
                        "Most likely not.", "Definitely not.", "No way."]
             answer = rd.choice(choices)
