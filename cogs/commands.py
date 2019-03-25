@@ -18,6 +18,7 @@ import json
 import asyncio
 import datetime
 from utils import minestat
+import googlesearch
 
 
 database = main.database
@@ -459,6 +460,34 @@ class Commands:
         else:
             location = f"https://xkcd.com/{comic_id}/"
         await ctx.send(location)
+
+    @commands.command()
+    async def google(self, ctx, *, query):
+        """Search anything from google.com"""
+        results = list(googlesearch.search(query, stop=10, pause=1.0, only_standard=True))
+        msg = await ctx.send(f"**#{1}: **{results[0]}")
+
+        await msg.add_reaction("⬅")
+        await msg.add_reaction("➡")
+
+        def check(_reaction, _user):
+            return _reaction.message.id == msg.id and _reaction.emoji in ["⬅", "➡"] and _user == ctx.author
+
+        i = 0
+        while True:
+            try:
+                reaction, user = await self.client.wait_for('reaction_add', timeout=300.0, check=check)
+            except asyncio.TimeoutError:
+                await msg.clear_reactions()
+                return
+            else:
+                if reaction.emoji == "⬅" and i > 0:
+                    i -= 1
+                    await msg.remove_reaction("⬅", user)
+                elif reaction.emoji == "➡" and i < len(results)-1:
+                    i += 1
+                    await msg.remove_reaction("➡", user)
+                await msg.edit(content=f"**#{i+1}: **{results[i]}", embed=None)
 
 
 def scrape_kprofiles(url):
