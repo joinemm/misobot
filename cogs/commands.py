@@ -52,7 +52,7 @@ class Commands:
         self.logger.info(misolog.format_log(ctx, f""))
         appinfo = await self.client.application_info()
         membercount = sum(1 for x in self.client.get_all_members())
-        info_embed = discord.Embed(title="Miso Bot | version 2.0",
+        info_embed = discord.Embed(title=f"Miso Bot | version {main.version}",
                                    description=f"Created by {appinfo.owner.mention}\n\n"
                                    f"Use `{self.client.command_prefix}help` to get the list of commands, "
                                    f"or visit the documention website for more help."
