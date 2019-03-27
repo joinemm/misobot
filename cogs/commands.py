@@ -51,28 +51,28 @@ class Commands:
         """Get information about the bot"""
         self.logger.info(misolog.format_log(ctx, f""))
         appinfo = await self.client.application_info()
-        info_embed = discord.Embed(title='Hello',
-                                   description=f'I am Miso Bot, created by {appinfo.owner.mention}.\n'
-                                   'See the documentation website for a list of commands, '
-                                   'or use the `>help` command.'
-                                               f'\n\nCurrently active in {len(self.client.guilds)} servers.',
-                                   colour=discord.Colour.magenta())
+        members = list(self.client.get_all_members())
+        info_embed = discord.Embed(title=f"Miso Bot | version {main.version}",
+                                   description=f"Created by {appinfo.owner.mention}\n\n"
+                                   f"Use `{self.client.command_prefix}help` to get the list of commands, "
+                                   f"or visit the documention website for more help."
+                                   f"\n\nCurrently active in **{len(self.client.guilds)}** "
+                                   f"servers totaling **{len(members)}** unique users",
+                                   colour=discord.Colour.red())
 
-        info_embed.set_footer(text=f'version {main.version}')
+        # info_embed.set_footer(text=f'version 2.0')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
-        info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-Bot', inline=False)
+        info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-bot-rewrite', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
         info_embed.add_field(name='Patreon', value="https://www.patreon.com/joinemm", inline=False)
-
-        await ctx.send(embed=info_embed)
 
     @commands.command(name='ping')
     async def ping(self, ctx):
         """Get the bot's ping"""
         pong_msg = await ctx.send(":ping_pong:")
         sr_lat = (pong_msg.created_at - ctx.message.created_at).total_seconds() * 1000
-        await pong_msg.edit(content=f"```latency = {sr_lat}ms\n"
-                                    f"heartbeat = {self.client.latency*1000:.1f}ms```")
+        await pong_msg.edit(content=f"Command latency = `{sr_lat}ms`\n"
+                                    f"API heartbeat = `{self.client.latency * 1000:.1f}ms`")
         self.logger.info(misolog.format_log(ctx, f""))
 
     @commands.command(name="status", aliases=["uptime"])
