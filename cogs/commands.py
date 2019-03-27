@@ -51,13 +51,13 @@ class Commands:
         """Get information about the bot"""
         self.logger.info(misolog.format_log(ctx, f""))
         appinfo = await self.client.application_info()
-        members = list(self.client.get_all_members())
-        info_embed = discord.Embed(title=f"Miso Bot | version {main.version}",
+        membercount = sum(1 for x in self.client.get_all_members())
+        info_embed = discord.Embed(title="Miso Bot | version 2.0",
                                    description=f"Created by {appinfo.owner.mention}\n\n"
                                    f"Use `{self.client.command_prefix}help` to get the list of commands, "
                                    f"or visit the documention website for more help."
                                    f"\n\nCurrently active in **{len(self.client.guilds)}** "
-                                   f"servers totaling **{len(members)}** unique users",
+                                   f"servers totaling **{membercount}** unique users",
                                    colour=discord.Colour.red())
 
         # info_embed.set_footer(text=f'version 2.0')
@@ -65,6 +65,7 @@ class Commands:
         info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-bot-rewrite', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
         info_embed.add_field(name='Patreon', value="https://www.patreon.com/joinemm", inline=False)
+        await ctx.send(embed=info_embed)
 
     @commands.command(name='ping')
     async def ping(self, ctx):
