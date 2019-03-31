@@ -73,13 +73,12 @@ class Mod:
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def welcomeconfig(self, ctx, option, *args):
+    async def welcomeconfig(self, ctx, option, *, args):
         """Configure the welcome message"""
         self.logger.info(misolog.format_log(ctx, f""))
         if option == "channel":
             try:
-                arg = args[0]
-                channel = misomisc.channel_from_mention(ctx.guild, arg)
+                channel = misomisc.channel_from_mention(ctx.guild, args)
                 if channel is not None:
                     database.set_attr("guilds", f"{ctx.guild.id}.welcome_channel", channel.id)
                     await ctx.send(f"Welcome channel for {ctx.guild.name} set to {channel.mention}")
@@ -89,7 +88,7 @@ class Mod:
                 await ctx.send(f"ERROR: Please give a channel to set the as the welcome channel")
 
         elif option == "message":
-            message = " ".join(args)
+            message = args
             database.set_attr("guilds", f"{ctx.guild.id}.welcome_message", message)
             await ctx.send("New welcome message set:")
             await ctx.send(message.format(mention=ctx.author.mention, user=ctx.author.name))
