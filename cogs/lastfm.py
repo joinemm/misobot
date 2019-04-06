@@ -466,7 +466,11 @@ class LastFM(commands.Cog):
                 # gather = loop.create_task(future)
                 gather = await loop.create_task(self.fmartist_data_threaded(method, user, total_pages, perpage))
                 for x in gather:
-                    items += x[json_attr[0]][json_attr[1]]
+                    try:
+                        items += x[json_attr[0]][json_attr[1]]
+                    except Exception as e:
+                        self.logger.error(e)
+                        await ctx.send(x)
 
             artist_data = {}
             formatted_name = None
@@ -584,8 +588,7 @@ def api_request(data_dict):
         return fm_data
     else:
         print(f"Api request error code {response.status_code}, returning None")
-        print(json.loads(response.content.decode('utf-8')))
-        return None
+        return json.loads(response.content.decode('utf-8'))
 
 
 def get_playcount(artist, username):
