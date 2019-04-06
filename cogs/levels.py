@@ -10,7 +10,7 @@ import main
 database = main.database
 
 
-class Levels:
+class Levels(commands.Cog):
 
     def __init__(self, client):
         self.client = client

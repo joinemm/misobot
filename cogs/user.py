@@ -13,7 +13,7 @@ database = main.database
 badges = database.get_attr("data", "badges")
 
 
-class User:
+class User(commands.Cog):
 
     def __init__(self, client):
         self.client = client

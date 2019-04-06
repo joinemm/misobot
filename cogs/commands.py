@@ -24,7 +24,7 @@ import googlesearch
 database = main.database
 
 
-class Commands:
+class Commands(commands.Cog):
 
     def __init__(self, client):
         self.client = client
@@ -529,7 +529,6 @@ def get_subcount(username):
                 break
             except ValueError:
                 continue
-
     return subcount
 
 

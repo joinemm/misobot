@@ -20,7 +20,7 @@ LASTFM_TOKEN = keys['LASTFM_SECRET']
 database = main.database
 
 
-class LastFM:
+class LastFM(commands.Cog):
 
     def __init__(self, client):
         self.client = client

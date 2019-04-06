@@ -46,7 +46,7 @@ papago_pairs = ['ko/en', 'ko/ja', 'ko/zh-cn', 'ko/zh-tw', 'ko/vi', 'ko/id', 'ko/
 database = main.database
 
 
-class Apis:
+class Apis(commands.Cog):
 
     def __init__(self, client):
         self.client = client
@@ -217,10 +217,8 @@ class Apis:
         await ctx.message.channel.trigger_typing()
         self.logger.info(misolog.format_log(ctx, f""))
         search_string = " ".join(args)
-        url = "https://mashape-community-urban-dictionary.p.mashape.com/define?term="
-        response = requests.get(url + search_string,
-                                headers={"X-Mashape-Key": "w3TR0XTmB3mshcxWHQNKxiVWSuUtp1nqnlzjsnoZ6d0yZ1MJAT",
-                                         "Accept": "text/plain"})
+        url = "http://api.urbandictionary.com/v0/define?term="
+        response = requests.get(url + search_string)
         if response.status_code == 200:
             message = discord.Embed(colour=discord.Colour.orange())
             message.set_author(name=search_string.capitalize(), icon_url="https://i.imgur.com/yMwpnBe.png")

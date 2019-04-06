@@ -7,7 +7,7 @@ from utils import sqldatabase
 database = main.database
 
 
-class Owner:
+class Owner(commands.Cog):
 
     def __init__(self, client):
         self.client = client

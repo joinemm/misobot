@@ -7,7 +7,7 @@ from utils import misc as misomisc
 database = main.database
 
 
-class Mod:
+class Mod(commands.Cog):
 
     def __init__(self, client):
         self.client = client

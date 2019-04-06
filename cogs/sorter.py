@@ -174,7 +174,7 @@ class SorterInstance:
         return content
 
 
-class Sorter:
+class Sorter(commands.Cog):
 
     def __init__(self, client):
         self.client = client

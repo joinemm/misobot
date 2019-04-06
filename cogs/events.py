@@ -10,7 +10,7 @@ import main
 database = main.database
 
 
-class Events:
+class Events(commands.Cog):
 
     def __init__(self, client):
         self.client = client
@@ -19,11 +19,13 @@ class Events:
         self.logger = misolog.create_logger(__name__)
         self.starred_already = {}
 
+    @commands.Cog.listener()
     async def on_ready(self):
         """The event triggered when bot is done loading extensions and is ready to use"""
         await self.client.change_presence(activity=discord.Activity(name='youtu.be/bVxe8_8RsjQ', type=2))
         self.logger.info('Loading complete : Bot state = READY')
 
+    @commands.Cog.listener()
     async def on_member_join(self, member):
         """The event triggered when user joins a guild"""
         if database.get_attr("guilds", f"{member.guild.id}.welcome", True):
@@ -43,6 +45,7 @@ class Events:
         else:
             self.logger.warning(f"no autorole set for {member.guild.name}")
 
+    @commands.Cog.listener()
     async def on_member_remove(self, member):
         """The event triggered when user leaves a guild"""
         if database.get_attr("guilds", f"{member.guild.id}.welcome", True):
@@ -53,6 +56,7 @@ class Events:
             else:
                 self.logger.warning(f"no goodbye channel set for {member.guild.name}")
 
+    @commands.Cog.listener()
     async def on_message(self, message):
         # ignore DMs
         if message.guild is None:
@@ -141,6 +145,7 @@ class Events:
                 if database.get_attr("guilds", f"{message.guild.id}.levelup_messages", True):
                     await message.channel.send(f"{message.author.mention} just leveled up! (level **{level_now}**)")
 
+    @commands.Cog.listener()
     async def on_message_delete(self, message):
         """The event triggered when a cached message is deleted"""
         channel_id = database.get_attr("guilds", f"{message.guild.id}.log_channel")
@@ -156,6 +161,7 @@ class Events:
                 channel = self.client.get_channel(self.delete_log_channel_id)
                 await channel.send(embed=embed)
 
+    @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
         if reaction.emoji == "⭐":
             if database.get_attr("guilds", f"{reaction.message.guild.id}.starboard", False):
@@ -189,6 +195,7 @@ class Events:
                     content.set_footer(text=f"{reaction.count} ⭐ #{reaction.message.channel.name}")
                     await mymsg.edit(embed=content)
 
+    @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         """The event triggered when an error is raised while invoking a command"""
         error = getattr(error, 'original', error)

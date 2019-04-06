@@ -7,7 +7,7 @@ from utils import misc
 database = main.database
 
 
-class Notifications:
+class Notifications(commands.Cog):
 
     def __init__(self, client):
         self.client = client

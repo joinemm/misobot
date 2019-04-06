@@ -9,7 +9,7 @@ import main
 database = main.database
 
 
-class Fishy:
+class Fishy(commands.Cog):
 
     def __init__(self, client):
         self.client = client
