@@ -62,7 +62,7 @@ class Commands(commands.Cog):
 
         # info_embed.set_footer(text=f'version 2.0')
         info_embed.set_thumbnail(url=self.client.user.avatar_url)
-        info_embed.add_field(name='Github', value='https://github.com/joinemm/Miso-bot-rewrite', inline=False)
+        info_embed.add_field(name='Github', value='https://github.com/joinemm/miso-bot', inline=False)
         info_embed.add_field(name='Documentation', value="http://joinemm.me/misobot", inline=False)
         info_embed.add_field(name='Patreon', value="https://www.patreon.com/joinemm", inline=False)
         await ctx.send(embed=info_embed)
