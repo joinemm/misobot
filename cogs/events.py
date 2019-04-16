@@ -72,8 +72,8 @@ class Events(commands.Cog):
             await message.add_reaction(self.client.get_emoji(540246041962872852))
 
         # miso was pinged
-        if self.client.user in message.mentions:
-            await message.channel.send("<:misoping:532922215105036329>")
+        # if self.client.user in message.mentions:
+        #    await message.channel.send("<:misoping:532922215105036329>")
 
         # git gud
         if message.content.startswith("git"):
