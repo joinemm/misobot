@@ -2,6 +2,9 @@ import discord
 from discord.ext import commands
 import requests
 import json
+from utils import logger as misolog
+
+logger = misolog.create_logger(__name__)
 
 
 class Chatbot(commands.Cog):
@@ -25,11 +28,13 @@ class Chatbot(commands.Cog):
         sessionid = self.sessions.get(str(user.id), "")
         data = process_talk(user.id, sentence, sessionid)
         for response in data['responses']:
-            await ctx.send(user.mention + " " + response
-                           .replace("Mitsuku", "Miso")
-                           .replace("mitsuku", "miso")
-                           .replace("Mousebreaker", "Joinemm")
-                           )
+            response = (response
+                        .replace("Mitsuku", "Miso")
+                        .replace("mitsuku", "miso")
+                        .replace("Mousebreaker", "Joinemm")
+                        )
+            await ctx.send(user.mention + " " + response)
+            logger.info(f'[CHAT] {user} : "{sentence}"\nMiso : "{response}"')
 
         self.sessions[str(user.id)] = data['sessionid']
 
