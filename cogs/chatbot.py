@@ -3,6 +3,7 @@ from discord.ext import commands
 import requests
 import json
 from utils import logger as misolog
+import re
 
 logger = misolog.create_logger(__name__)
 
@@ -28,12 +29,30 @@ class Chatbot(commands.Cog):
         sessionid = self.sessions.get(str(user.id), "")
         data = process_talk(user.id, sentence, sessionid)
         for response in data['responses']:
+            buttons = re.findall(r'<button>(.*?)</button>', response)
+            for button in buttons:
+                url = re.findall(r'<url>(.*?)</url>', button)[0].replace(" ", "-")
+                response = re.sub(r'<button>.*?</button>', url + "\n", response, 1)
+
+            images = re.findall(r'<image>(.*?)</image>', response)
+            if images:
+                url = images[0]
+                embed = discord.Embed()
+                embed.set_image(url=url)
+                response = re.sub(r'<image>.*?</image>[.|]', "", response)
+            else:
+                embed = None
+
             response = (response
                         .replace("Mitsuku", "Miso")
                         .replace("mitsuku", "miso")
-                        .replace("Mousebreaker", "Joinemm")
-                        )
-            await ctx.send(user.mention + " " + response)
+                        ).strip()
+
+            if embed:
+                await ctx.send(response, embed=embed)
+            else:
+                await ctx.send(response)
+
             logger.info(f'[CHAT] {user} : "{sentence}"\nMiso : "{response}"')
 
         self.sessions[str(user.id)] = data['sessionid']
