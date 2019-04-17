@@ -28,6 +28,8 @@ class Chatbot(commands.Cog):
 
         sessionid = self.sessions.get(str(user.id), "")
         data = process_talk(user.id, sentence, sessionid)
+        if data is None:
+            return
         for response in data['responses']:
             buttons = re.findall(r'<button>(.*?)</button>', response)
             for button in buttons:
@@ -96,8 +98,14 @@ def process_talk(user_id, sentence, sessionid):
                "Content-Length": "0"}
 
     response = requests.post(url, headers=headers)
-    data = json.loads(response.content.decode('utf-8'))
-    return data
+    try:
+        data = json.loads(response.content.decode('utf-8'))
+        return data
+    except Exception as e:
+        print(e)
+        print(response.status_code)
+        print(response.content)
+        return None
 
 
 def setup(client):
