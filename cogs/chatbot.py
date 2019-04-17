@@ -4,6 +4,7 @@ import requests
 import json
 from utils import logger as misolog
 import re
+import urllib.parse
 
 logger = misolog.create_logger(__name__)
 
@@ -75,13 +76,15 @@ class Chatbot(commands.Cog):
             elif message.content.startswith(f"<@!{self.client.user.id}>"):
                 sentence = sentence.replace(f"<@!{self.client.user.id}>", "").strip()
 
-            await self.conversation(await self.client.get_context(message), message.author, sentence)
+            if len(sentence) > 0:
+                await self.conversation(await self.client.get_context(message), message.author, sentence)
 
 
 def process_talk(user_id, sentence, sessionid):
+    input_string = urllib.parse.quote(sentence, safe='')
     url = ("https://miapi.pandorabots.com/talk"
            "?botkey=n0M6dW2XZacnOgCWTp0FRYUuMjSfCkJGgobNpgPv9060_72eKnu3Yl-o1v2nFGtSXqfwJBG2Ros~"
-           f"&input={sentence}"
+           f"&input={input_string}"
            f"&client_name={user_id}"
            f"&sessionid={sessionid}"
            )
