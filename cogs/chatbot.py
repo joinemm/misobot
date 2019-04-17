@@ -3,6 +3,7 @@ from discord.ext import commands
 import requests
 import json
 from utils import logger as misolog
+from utils import misc as misomisc
 import re
 import urllib.parse
 
@@ -90,7 +91,7 @@ def process_talk(user_id, sentence, sessionid):
            )
 
     headers = {"Host": "miapi.pandorabots.com",
-               "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0",
+               "User-Agent": misomisc.useragent(),
                "Accept": "*/*",
                "Accept-Language": "en,en-US;q=0.5",
                "Accept-Encoding": "gzip, deflate, br",
