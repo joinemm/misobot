@@ -103,8 +103,8 @@ def process_talk(user_id, sentence, sessionid):
         return data
     except Exception as e:
         print(e)
-        print(response.status_code)
-        print(response.content)
+        print(user_id, "<", sentence, ">", sessionid)
+        print(response.status_code, response.content)
         return None
 
 
