@@ -19,6 +19,7 @@ import asyncio
 import datetime
 from utils import minestat
 import googlesearch
+import arrow
 
 
 database = main.database
@@ -31,6 +32,30 @@ class Commands(commands.Cog):
         self.start_time = time.time()
         self.artists = database.get_attr("data", "artists")
         self.logger = misolog.create_logger(__name__)
+
+    @commands.command()
+    async def changelog(self, ctx):
+        author = "joinemm"
+        repo = "miso-bot"
+        data = get_commits(author, repo)
+        content = discord.Embed(color=discord.Color.from_rgb(255, 255, 255))
+        content.set_author(name="Github commit history", icon_url=data[0]['author']['avatar_url'],
+                           url=f"https://github.com/{author}/{repo}/commits/master")
+        content.set_thumbnail(url='http://www.logospng.com/images/182/github-icon-182553.png')
+
+        for i, commit in enumerate(data):
+            if i >= 10:
+                break
+            sha = commit['sha'][:7]
+            author = commit['author']['login']
+            date = commit['commit']['author']['date']
+            arrow_date = arrow.get(date)
+            url = commit['html_url']
+            content.add_field(name=f"[`{sha}`] **{commit['commit']['message']}**",
+                              value=f"**{author}** committed {arrow_date.humanize()} | [link]({url})",
+                              inline=False)
+
+        await ctx.send(embed=content)
 
     @commands.command()
     async def patreon(self, ctx):
@@ -531,6 +556,12 @@ def get_subcount(username):
                 continue
     return subcount
 
+
+def get_commits(author, repository):
+    url = f"https://api.github.com/repos/{author}/{repository}/commits"
+    response = requests.get(url)
+    data = json.loads(response.content.decode('utf-8'))
+    return data
 
 def setup(client):
     client.add_cog(Commands(client))
