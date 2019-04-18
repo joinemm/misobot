@@ -9,7 +9,7 @@ class ImageObject:
         self.filename = filename
         self.image = Image.open(self.filename)
         self.draw = ImageDraw.Draw(self.image)
-        self.font = 'SourceHanSans-Regular.ttc'
+        self.font = 'gulim.ttf'
 
     def get_text_size(self, font_filename, font_size, text):
         font = ImageFont.truetype(font_filename, font_size)
