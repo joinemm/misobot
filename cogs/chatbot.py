@@ -66,6 +66,12 @@ class Chatbot(commands.Cog):
         self.sessions[str(user.id)] = data['sessionid']
 
     @commands.command()
+    @commands.is_owner()
+    async def refreshproxies(self, ctx):
+        self.proxies = get_proxies()
+        await ctx.send(f"Done. **{len(self.proxies)}** IP proxies available")
+
+    @commands.command()
     async def talk(self, ctx, *, sentence):
         """Use this command, or @mention miso to talk with her"""
         await self.conversation(ctx, ctx.author, sentence)
@@ -82,7 +88,9 @@ class Chatbot(commands.Cog):
                 sentence = sentence.replace(f"<@!{self.client.user.id}>", "").strip()
 
             if len(sentence) > 0:
-                await self.conversation(await self.client.get_context(message), message.author, sentence)
+                ctx = self.client.get_context(message)
+                with ctx.typing():
+                    await self.conversation(await ctx, message.author, sentence)
 
     def process_talk(self, user_id, sentence, sessionid):
         input_string = urllib.parse.quote(sentence, safe='')
@@ -109,7 +117,7 @@ class Chatbot(commands.Cog):
                    "Content-Length": "0"}
         while True:
             try:
-                response = requests.post(url, headers=headers, proxies={"http": proxy, "https": proxy})
+                response = requests.post(url, headers=headers, proxies={"http": proxy, "https": proxy}, timeout=10)
                 break
             except Exception:
                 continue
