@@ -88,9 +88,9 @@ class Chatbot(commands.Cog):
                 sentence = sentence.replace(f"<@!{self.client.user.id}>", "").strip()
 
             if len(sentence) > 0:
-                ctx = self.client.get_context(message)
+                ctx = await self.client.get_context(message)
                 with ctx.typing():
-                    await self.conversation(await ctx, message.author, sentence)
+                    await self.conversation(ctx, message.author, sentence)
 
     def process_talk(self, user_id, sentence, sessionid):
         input_string = urllib.parse.quote(sentence, safe='')
