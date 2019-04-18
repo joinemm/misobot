@@ -89,7 +89,7 @@ class Chatbot(commands.Cog):
 
             if len(sentence) > 0:
                 ctx = await self.client.get_context(message)
-                with ctx.typing():
+                async with ctx.typing():
                     await self.conversation(ctx, message.author, sentence)
 
     def process_talk(self, user_id, sentence, sessionid):
