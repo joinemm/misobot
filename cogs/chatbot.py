@@ -1,6 +1,9 @@
 import discord
 from discord.ext import commands
+from lxml.html import fromstring
 import requests
+from itertools import cycle
+import traceback
 import json
 from utils import logger as misolog
 from utils import misc as misomisc
@@ -15,6 +18,7 @@ class Chatbot(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.sessions = {}
+        self.proxies = get_proxies()
 
     async def conversation(self, ctx, user, sentence):
 
@@ -29,7 +33,7 @@ class Chatbot(commands.Cog):
                     )
 
         sessionid = self.sessions.get(str(user.id), "")
-        data = process_talk(user.id, sentence, sessionid)
+        data = self.process_talk(user.id, sentence, sessionid)
         if data is None:
             return
         for response in data['responses']:
@@ -80,36 +84,55 @@ class Chatbot(commands.Cog):
             if len(sentence) > 0:
                 await self.conversation(await self.client.get_context(message), message.author, sentence)
 
+    def process_talk(self, user_id, sentence, sessionid):
+        input_string = urllib.parse.quote(sentence, safe='')
 
-def process_talk(user_id, sentence, sessionid):
-    input_string = urllib.parse.quote(sentence, safe='')
-    url = ("https://miapi.pandorabots.com/talk"
-           "?botkey=n0M6dW2XZacnOgCWTp0FRYUuMjSfCkJGgobNpgPv9060_72eKnu3Yl-o1v2nFGtSXqfwJBG2Ros~"
-           f"&input={input_string}"
-           f"&client_name={user_id}"
-           f"&sessionid={sessionid}"
-           )
+        proxy_pool = cycle(self.proxies)
+        proxy = next(proxy_pool)
 
-    headers = {"Host": "miapi.pandorabots.com",
-               "User-Agent": misomisc.useragent(),
-               "Accept": "*/*",
-               "Accept-Language": "en,en-US;q=0.5",
-               "Accept-Encoding": "gzip, deflate, br",
-               "Origin": "https://www.pandorabots.com",
-               "DNT": "1",
-               "Connection": "keep-alive",
-               "Referer": "https://www.pandorabots.com/mitsuku/",
-               "Content-Length": "0"}
+        url = ("https://miapi.pandorabots.com/talk"
+               "?botkey=n0M6dW2XZacnOgCWTp0FRYUuMjSfCkJGgobNpgPv9060_72eKnu3Yl-o1v2nFGtSXqfwJBG2Ros~"
+               f"&input={input_string}"
+               f"&client_name={user_id}"
+               f"&sessionid={sessionid}"
+               )
 
-    response = requests.post(url, headers=headers)
-    try:
-        data = json.loads(response.content.decode('utf-8'))
-        return data
-    except Exception as e:
-        print(e)
-        print(user_id, "<", sentence, ">", sessionid)
-        print(response.status_code, response.content)
-        return None
+        headers = {"Host": "miapi.pandorabots.com",
+                   "User-Agent": misomisc.useragent(),
+                   "Accept": "*/*",
+                   "Accept-Language": "en,en-US;q=0.5",
+                   "Accept-Encoding": "gzip, deflate, br",
+                   "Origin": "https://www.pandorabots.com",
+                   "DNT": "1",
+                   "Connection": "keep-alive",
+                   "Referer": "https://www.pandorabots.com/mitsuku/",
+                   "Content-Length": "0"}
+        while True:
+            try:
+                response = requests.post(url, headers=headers, proxies={"http": proxy, "https": proxy})
+                break
+            except Exception:
+                continue
+        try:
+            data = json.loads(response.content.decode('utf-8'))
+            return data
+        except Exception as e:
+            print(e)
+            print(user_id, "<", sentence, ">", sessionid)
+            print(response.status_code, response.content)
+            return None
+
+
+def get_proxies():
+    url = 'https://free-proxy-list.net/'
+    response = requests.get(url)
+    parser = fromstring(response.text)
+    proxies = set()
+    for i in parser.xpath('//tbody/tr')[:10]:
+        if i.xpath('.//td[7][contains(text(),"yes")]'):
+            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
+            proxies.add(proxy)
+    return proxies
 
 
 def setup(client):
