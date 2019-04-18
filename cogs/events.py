@@ -186,11 +186,11 @@ class Events(commands.Cog):
                         self.starred_already[str(reaction.message.id)] = mymsg.id
                 else:
                     channel_id = database.get_attr("guilds", f"{reaction.message.guild.id}.starboard_channel")
-                    channel = reaction.message.guild.fetch_channel(channel_id)
+                    channel = reaction.message.guild.get_channel(channel_id)
                     if channel is None:
                         return
 
-                    mymsg = await channel.get_message(self.starred_already[str(reaction.message.id)])
+                    mymsg = await channel.fetch_message(self.starred_already[str(reaction.message.id)])
                     content = mymsg.embeds[0]
                     content.set_footer(text=f"{reaction.count} ⭐ #{reaction.message.channel.name}")
                     await mymsg.edit(embed=content)
