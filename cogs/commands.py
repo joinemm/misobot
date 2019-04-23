@@ -154,10 +154,10 @@ class Commands(commands.Cog):
             search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
             try:
                 first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
-                await ctx.send(first_result_url)
             except IndexError:
-                print(response.content)
-                await ctx.send("Found nothing!")
+                print(response.url)
+                return await ctx.send("Found nothing!")
+            await ctx.send(first_result_url)
             self.logger.info(misolog.format_log(ctx, f"{first_result_url}"))
         else:
             await ctx.send("Error: status code " + str(response.status_code))
