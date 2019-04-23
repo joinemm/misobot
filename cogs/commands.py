@@ -149,7 +149,7 @@ class Commands(commands.Cog):
             return
         search_string = " ".join(args)
         search_string = urllib.parse.urlencode({'search_query': search_string})
-        response = requests.get('http://www.youtube.com/results?search_query=' + search_string + "&hl=en_US&app=desktop")
+        response = requests.get('http://www.youtube.com/results?' + search_string + "&hl=en_US&app=desktop")
         if response.status_code == 200:
             search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
             try:
