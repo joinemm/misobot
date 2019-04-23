@@ -155,8 +155,9 @@ class Commands(commands.Cog):
             try:
                 first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
             except IndexError:
-                print(response.content.decode())
-                print(response.is_redirect)
+                with open('downloads/yt_dump.txt' 'w') as f:
+                    f.write(response.content.decode())
+                #print(response.is_redirect)
                 return await ctx.send("Found nothing!")
             await ctx.send(first_result_url)
             self.logger.info(misolog.format_log(ctx, f"{first_result_url}"))
