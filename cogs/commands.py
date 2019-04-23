@@ -149,13 +149,13 @@ class Commands(commands.Cog):
             return
         search_string = " ".join(args)
         search_string = urllib.parse.urlencode({'search_query': search_string})
-        response = requests.get('http://www.youtube.com/results?search_query=' + search_string)
+        response = requests.get('http://www.youtube.com/results?search_query=' + search_string + "&hl=en_US&app=desktop")
         if response.status_code == 200:
             search_results = re.findall('href=\\"\\/watch\\?v=(.{11})', response.content.decode())
             try:
                 first_result_url = 'http://www.youtube.com/watch?v=' + search_results[0]
             except IndexError:
-                with open('downloads/yt_dump.txt' 'w') as f:
+                with open('downloads/yt_dump.txt', 'w') as f:
                     f.write(response.content.decode())
                 #print(response.is_redirect)
                 return await ctx.send("Found nothing!")
