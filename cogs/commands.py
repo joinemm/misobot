@@ -457,11 +457,11 @@ class Commands(commands.Cog):
         await ctx.send(embed=content)
 
     @commands.command(aliases=['mc'])
-    async def minecraft(self, ctx, address='mc.joinemm.me'):
+    async def minecraft(self, ctx, address='mc.joinemm.me', port='25568'):
         """Get the status of a minecraft server"""
         self.logger.info(misolog.format_log(ctx, f""))
         
-        server = minestat.MineStat(address, 25565)
+        server = minestat.MineStat(address, int(port))
         content = discord.Embed()
         # content.title = f"`{server.address} : {server.port}`"
         content.colour = discord.Color.green()
