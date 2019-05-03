@@ -65,7 +65,7 @@ class Commands(commands.Cog):
     @commands.command()
     async def patrons(self, ctx):
         """List the current patreons"""
-        patrons = [381491116853166080, 121757433507872768]
+        patrons = [381491116853166080, 121757433507872768, 132921952544227329]
         content = discord.Embed()
         content.title = "Patreon supporters ❤"
         content.description = "\n".join([self.client.get_user(x).mention for x in patrons])
