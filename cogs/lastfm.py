@@ -67,14 +67,15 @@ class LastFM(commands.Cog):
         elif method in ["help"]:
             help_msg = "```\n" \
                        ">fm       nowplaying (np)   week\n" \
-                       "          recent (re)       month\n" \
-                       "          toptracks (tt)    3month\n" \
+                       "          recent     (re)   month\n" \
+                       "          toptracks  (tt)   3month\n" \
                        "          topartists (ta)   6month\n" \
-                       "          topalbums (talb)  year\n\n" \
-                       ">fmchart  recent (re)        1x1\n" \
-                       "          topalbums (talb)    :\n" \
+                       "          topalbums  (talb) year\n\n" \
+                       ">fmchart  recent     (re)    1x1\n" \
+                       "          topalbums  (talb)   :\n" \
                        "          topartists (ta)   14x14\n\n" \
-                       ">fmartist [artist name]" \
+                       ">fmartist toptracks  (tt)   <artist name>" \
+                       "          topalbums  (talb) <artist name>" \
                        "```"
             await ctx.send(help_msg)
             return
