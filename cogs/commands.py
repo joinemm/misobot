@@ -457,7 +457,7 @@ class Commands(commands.Cog):
         await ctx.send(embed=content)
 
     @commands.command(aliases=['mc'])
-    async def minecraft(self, ctx, address='mc.joinemm.me', port='25568'):
+    async def minecraft(self, ctx, address='mc.joinemm.me', port='25565'):
         """Get the status of a minecraft server"""
         self.logger.info(misolog.format_log(ctx, f""))
         
