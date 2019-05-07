@@ -521,6 +521,14 @@ class Commands(commands.Cog):
                     await msg.remove_reaction("➡", user)
                 await msg.edit(content=f"**#{i+1}: **{results[i]}", embed=None)
 
+    @commands.command(aliases=['minecraftwiki'])
+    async def mcwiki(self, ctx, *, query):
+        """Search from minecraft wiki"""
+        url = f"https://minecraft.gamepedia.com/index.php?search={query}"
+        response = requests.get(url)
+        content = response.content.decode('utf-8')
+        await ctx.send(response.url)
+
 
 def scrape_kprofiles(url):
     """Scrape the given kprofiles url for artist names and return the results"""
