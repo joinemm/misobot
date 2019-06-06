@@ -81,7 +81,7 @@ def make_guilds_roles_votechannels():
 
         rolepicker_channel = None
 
-        sqldatabase.execute("REPLACE INTO guilds VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        sqldatabase.execute("REPLACE INTO guilds VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                             (guild_id, muterole, autorole, levelup_toggle, welcome_toggle, welcome_channel,
                              welcome_message,
                              starboard_toggle, starboard_channel, starboard_amount, rolepicker_channel))
