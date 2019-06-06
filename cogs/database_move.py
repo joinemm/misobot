@@ -23,6 +23,8 @@ def make_activity():
 def make_badges():
     for user in database.get_attr("users", ".", []):
         badges = database.get_attr("users", f"{user}.badges")
+        if badges is None:
+            continue
         sqldatabase.execute("""REPLACE INTO badges VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                             (int(user),
                              (1 if "developer" in badges else 0),
