@@ -80,11 +80,12 @@ def make_guilds_roles_votechannels():
         starboard_amount = guilds[guild_id].get('starboard_amount', 3)
 
         rolepicker_channel = None
+        rolepicker_case = 1
 
-        sqldatabase.execute("REPLACE INTO guilds VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        sqldatabase.execute("REPLACE INTO guilds VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                             (guild_id, muterole, autorole, levelup_toggle, welcome_toggle, welcome_channel,
-                             welcome_message,
-                             starboard_toggle, starboard_channel, starboard_amount, rolepicker_channel))
+                             welcome_message, starboard_toggle, starboard_channel, starboard_amount, rolepicker_channel,
+                             rolepicker_case))
 
         for role in guilds[guild_id].get('roles', []):
             role_id = guilds[guild_id]['roles'][role]
@@ -124,3 +125,12 @@ def full_package():
     make_notifications()
     make_users()
     print("Database moved succesfully")
+
+
+def emojis():
+    with open("emojisdb", "r") as f:
+        for line in f:
+            print(line)
+            datas = line.strip().split(";")
+            sqldatabase.execute("""REPLACE INTO emojis VALUES (?, ?, ?)""",
+                                (datas[0], datas[1], (datas[2] if not datas[2] == "" else None)))

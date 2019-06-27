@@ -77,6 +77,11 @@ class Owner(commands.Cog):
         database_move.full_package()
         await ctx.send("done")
 
+    @commands.command(hidden=True)
+    @commands.is_owner()
+    async def emojisdb(self, ctx):
+        database_move.emojis()
+
     @commands.command()
     async def commandlist(self, ctx):
         amount = len(self.client.commands)
