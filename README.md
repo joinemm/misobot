@@ -1,4 +1,4 @@
-# Miso Bot
+# Old repository for Miso Bot
 A discord bot written in Python using the rewrite branch of discord.py library. Has tons of API integrations and all sorts of fun commands to use. The Bot is currently running on an DigitalOcean Ubuntu server, and it is not recommended that you run your own instance of it. Please see the documentation website for more in-depth look at the commands. 
 
 http://joinemm.me/misobot/
